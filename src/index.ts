@@ -14,7 +14,13 @@ export type { TokenStore } from "./auth/token-store.js";
 export { sessionTokenProvider, staticTokenProvider } from "./auth/credential-provider.js";
 export type { TokenProvider } from "./auth/credential-provider.js";
 
-export { SdkError, ConnectError, ApiError, AuthError, ForbiddenError, ValidationError } from "./core/errors.js";
+export {
+  SdkError, ConnectError, ApiError, AuthError, ForbiddenError, ValidationError,
+  ProtocolError, UnsupportedError, RUNTIME_ERROR_CODES,
+} from "./core/errors.js";
+export type { RuntimeErrorCode } from "./core/errors.js";
+export { createLogger } from "./core/logger.js";
+export type { Logger, LogSink, LogEntry, LogLevel, LogFields, LoggerOptions } from "./core/logger.js";
 
 export type {
   IssuedSession,

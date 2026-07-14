@@ -50,6 +50,34 @@ export class AuthError extends ApiError {}
 export class ForbiddenError extends AuthError {}
 export class ValidationError extends ApiError {}
 
+/** The wire protocol version mismatched, or a frame was malformed — do not guess. */
+export class ProtocolError extends SdkError {
+  constructor(message: string, cause?: unknown) {
+    super("E_PROTOCOL", message, cause);
+  }
+}
+
+/** A capability the runtime does not (yet) expose — e.g. attachments before the
+ *  server ships them. The API shape is frozen; the call throws until it lands. */
+export class UnsupportedError extends SdkError {
+  constructor(message = "not supported by this runtime") {
+    super("E_UNSUPPORTED", message);
+  }
+}
+
+/**
+ * The rotor runtime's error taxonomy codes, re-exported so a client can branch on a
+ * run's error code WITHOUT importing the runtime package. Kept in sync with
+ * openrotor's `errors.ts`.
+ */
+export const RUNTIME_ERROR_CODES = [
+  "E_MISSING_INPUT", "E_TYPE", "E_SCHEMA", "E_UNKNOWN_STEP", "E_NO_HANDLER", "E_NO_TOOL",
+  "E_POLICY_DENIED", "E_SCOPE_EXCEEDED", "E_BUDGET_EXCEEDED", "E_TIMEOUT", "E_UNGROUNDED",
+  "E_SPACE_MISMATCH", "E_TRANSPORT", "E_TOOL", "E_STATOR", "E_UNTRANSLATABLE", "E_UNMERGEABLE",
+  "E_REPLAY_DIVERGENCE", "E_HANDLER", "E_FAILED", "E_DEFAULT", "E_INTERNAL",
+] as const;
+export type RuntimeErrorCode = (typeof RUNTIME_ERROR_CODES)[number];
+
 /** Build the most specific ApiError subclass for a server error envelope. */
 export function apiErrorFor(opts: { code: string; message: string; httpStatus: number; remediation?: string; requestId?: string; retryable?: boolean }): ApiError {
   if (opts.httpStatus === 401) return new AuthError(opts);

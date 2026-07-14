@@ -9,6 +9,7 @@
  */
 
 import { ConnectError, apiErrorFor } from "./errors.js";
+import { createLogger, type Logger } from "./logger.js";
 
 export type FetchLike = typeof fetch;
 
@@ -16,6 +17,7 @@ export interface HttpOptions {
   baseUrl: string;
   fetchImpl?: FetchLike;
   timeoutMs?: number;
+  logger?: Logger;
 }
 
 export interface RequestOptions {
@@ -32,12 +34,14 @@ export class HttpClient {
   private readonly baseUrl: string;
   private readonly fetchImpl: FetchLike;
   private readonly timeoutMs: number;
+  private readonly log: Logger;
 
   constructor(opts: HttpOptions) {
     this.baseUrl = opts.baseUrl.replace(/\/$/, "");
     // Bind to preserve the global's `this` (some runtimes require it).
     this.fetchImpl = opts.fetchImpl ?? ((...args) => fetch(...args));
     this.timeoutMs = opts.timeoutMs ?? 30_000;
+    this.log = opts.logger ?? createLogger();
   }
 
   get<T>(path: string, opts: RequestOptions = {}): Promise<T> {
@@ -66,6 +70,7 @@ export class HttpClient {
     try {
       res = await this.fetchImpl(url, init);
     } catch (e) {
+      this.log.warn("request error", { method, path });
       throw new ConnectError(`request to ${path} failed`, e);
     } finally {
       clearTimeout(timer);
@@ -77,6 +82,7 @@ export class HttpClient {
 
     if (!res.ok) {
       const env = (json ?? {}) as ErrorEnvelope;
+      this.log.warn("request failed", { method, path, status: res.status, code: env.error?.code });
       throw apiErrorFor({
         code: env.error?.code ?? "E_INTERNAL",
         message: env.error?.message ?? `HTTP ${res.status}`,

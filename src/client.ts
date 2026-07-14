@@ -12,6 +12,7 @@ import { InMemoryTokenStore, type TokenStore } from "./auth/token-store.js";
 import { RefreshManager } from "./auth/refresh-manager.js";
 import { AuthClient } from "./auth/auth-client.js";
 import { sessionTokenProvider, staticTokenProvider, type TokenProvider } from "./auth/credential-provider.js";
+import { createLogger, type LoggerOptions } from "./core/logger.js";
 import type { StoredSession } from "./contract/auth.js";
 
 export interface ClientOptions {
@@ -29,6 +30,8 @@ export interface ClientOptions {
   apiKey?: string;
   /** Request timeout in ms (default 30s). */
   timeoutMs?: number;
+  /** Optional observability. No telemetry by default — silent unless you pass a sink. */
+  log?: LoggerOptions;
 }
 
 export interface Client {
@@ -43,13 +46,16 @@ export interface Client {
 }
 
 export function createClient(opts: ClientOptions): Client {
+  const logger = createLogger(opts.log ?? {});
   const http = new HttpClient({
     baseUrl: opts.url,
+    logger,
     ...(opts.fetch ? { fetchImpl: opts.fetch } : {}),
     ...(opts.timeoutMs !== undefined ? { timeoutMs: opts.timeoutMs } : {}),
   });
   const store = opts.tokenStore ?? new InMemoryTokenStore();
   const refresh = new RefreshManager(http, store, {
+    logger,
     ...(opts.refreshMarginMs !== undefined ? { refreshMarginMs: opts.refreshMarginMs } : {}),
     ...(opts.onSignedOut ? { onSignedOut: opts.onSignedOut } : {}),
   });

@@ -13,6 +13,7 @@
 
 import type { HttpClient } from "../core/http.js";
 import { AuthError } from "../core/errors.js";
+import { createLogger, type Logger } from "../core/logger.js";
 import type { IssuedSession, StoredSession } from "../contract/auth.js";
 import type { TokenStore } from "./token-store.js";
 
@@ -21,6 +22,8 @@ export interface RefreshOptions {
   refreshMarginMs?: number;
   /** Called once when the session becomes unrecoverable; host flips UI to signed-out. */
   onSignedOut?: () => void;
+  /** Optional observability sink (redacted). Silent by default. */
+  logger?: Logger;
 }
 
 function toStored(issued: IssuedSession, now: number): StoredSession {
@@ -31,6 +34,7 @@ export class RefreshManager {
   private inFlight: Promise<StoredSession | null> | null = null;
   private readonly marginMs: number;
   private readonly onSignedOut: (() => void) | undefined;
+  private readonly log: Logger;
 
   constructor(
     private readonly http: HttpClient,
@@ -40,6 +44,7 @@ export class RefreshManager {
   ) {
     this.marginMs = opts.refreshMarginMs ?? 60_000;
     this.onSignedOut = opts.onSignedOut;
+    this.log = opts.logger ?? createLogger();
   }
 
   /** Persist a freshly issued session (after any login). */
@@ -72,13 +77,16 @@ export class RefreshManager {
     if (!session) return null;
     try {
       const issued = await this.http.post<IssuedSession>("/api/session/refresh", { refreshToken: session.refreshToken });
+      this.log.debug("session refreshed");
       return await this.adopt(issued);
     } catch (e) {
       // A 401 means the refresh is dead (rotated/reused/revoked/expired) → sign out.
       if (e instanceof AuthError) {
+        this.log.info("session signed out (refresh unrecoverable)");
         await this.signalSignedOut();
         return null;
       }
+      this.log.warn("session refresh failed (transient)");
       throw e; // transient (network/5xx) — let the caller decide to retry
     }
   }
