@@ -13,6 +13,8 @@ import { RefreshManager } from "./auth/refresh-manager.js";
 import { AuthClient } from "./auth/auth-client.js";
 import { sessionTokenProvider, staticTokenProvider, type TokenProvider } from "./auth/credential-provider.js";
 import { createLogger, type LoggerOptions } from "./core/logger.js";
+import { SseTransport } from "./transport/sse-transport.js";
+import { Session, type SessionConfig } from "./session/session.js";
 import type { StoredSession } from "./contract/auth.js";
 
 export interface ClientOptions {
@@ -34,6 +36,16 @@ export interface ClientOptions {
   log?: LoggerOptions;
 }
 
+/** Options for opening a rotor session (the data plane). */
+export interface OpenSessionOptions extends SessionConfig {
+  /** Runtime base URL (a provisioned `*.fly.dev`, or the client url for loopback). */
+  url?: string;
+  /** Runtime bearer. Defaults to the client's session token. */
+  token?: TokenProvider;
+  /** Injectable fetch for the runtime stream (defaults to the client's). */
+  fetch?: FetchLike;
+}
+
 export interface Client {
   /** The sign-in surface (magic link, Google, Apple, org SSO, sign out). */
   auth: AuthClient;
@@ -43,6 +55,8 @@ export interface Client {
   refresh(): Promise<boolean>;
   /** The current stored session, or null if signed out. */
   getSession(): Promise<StoredSession | null>;
+  /** Open a rotor session on the runtime (streaming turns, durable reconnect). */
+  session(opts: OpenSessionOptions): Session;
 }
 
 export function createClient(opts: ClientOptions): Client {
@@ -66,5 +80,13 @@ export function createClient(opts: ClientOptions): Client {
     token,
     refresh: async () => (await refresh.refresh()) !== null,
     getSession: () => store.load(),
+    session: (sopts: OpenSessionOptions): Session => {
+      const transport = new SseTransport({
+        baseUrl: sopts.url ?? opts.url,
+        token: sopts.token ?? token,
+        ...(sopts.fetch ?? opts.fetch ? { fetchImpl: sopts.fetch ?? opts.fetch } : {}),
+      });
+      return new Session(transport, { ...sopts, run: { logger, ...(sopts.run ?? {}) } });
+    },
   };
 }

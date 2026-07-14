@@ -6,7 +6,15 @@
  */
 
 export { createClient } from "./client.js";
-export type { Client, ClientOptions } from "./client.js";
+export type { Client, ClientOptions, OpenSessionOptions } from "./client.js";
+
+export { Session } from "./session/session.js";
+export type { SessionConfig } from "./session/session.js";
+export { SseTransport } from "./transport/sse-transport.js";
+export type { Transport, TurnRequest } from "./transport/transport.js";
+export type { Run, RunOptions } from "./transport/run.js";
+export { WIRE_VERSION, isWireEvent } from "./protocol/events.js";
+export type { WireEvent, WireEventKind, TurnEvent, LifecycleEvent, RunResult } from "./protocol/events.js";
 
 export { AuthClient } from "./auth/auth-client.js";
 export { InMemoryTokenStore } from "./auth/token-store.js";
