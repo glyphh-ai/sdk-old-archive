@@ -1,0 +1,46 @@
+{
+  "name": "@glyphh/client",
+  "version": "0.1.0",
+  "description": "The Glyphh client SDK — one library every client (mobile, desktop, CLI, web, platform) uses to authenticate and talk to the control plane + rotor runtime.",
+  "license": "LicenseRef-Proprietary",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "react-native": "./dist/index.js",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./storage/memory": {
+      "types": "./dist/storage/memory.d.ts",
+      "import": "./dist/storage/memory.js",
+      "require": "./dist/storage/memory.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "repl": "tsx scripts/repl.ts",
+    "verify": "npm run typecheck && npm run lint && npm run test"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.9.0",
+    "@types/node": "^20.14.0",
+    "eslint": "^9.9.0",
+    "tsup": "^8.3.0",
+    "tsx": "^4.23.1",
+    "typescript": "^5.5.0",
+    "typescript-eslint": "^8.8.0",
+    "vitest": "^2.1.9"
+  }
+}
