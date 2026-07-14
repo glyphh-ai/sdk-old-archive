@@ -54,6 +54,14 @@ describe("@glyphh/client — auth", () => {
     await expect(client.token()).rejects.toThrow(/not authenticated/);
   });
 
+  it("me() returns the authenticated identity", async () => {
+    const { client } = await signIn();
+    const id = await client.me();
+    expect(id.email).toMatch(/@example\.com$/);
+    expect(id.role).toBe("member");
+    expect(id.userId).toBeTruthy();
+  });
+
   it("a static API key is returned as-is without a session", async () => {
     const client = createClient({ url, apiKey: "yo_example_key" });
     expect(await client.token()).toBe("yo_example_key");

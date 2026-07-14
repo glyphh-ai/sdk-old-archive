@@ -15,7 +15,7 @@ import { sessionTokenProvider, staticTokenProvider, type TokenProvider } from ".
 import { createLogger, type LoggerOptions } from "./core/logger.js";
 import { SseTransport } from "./transport/sse-transport.js";
 import { Session, type SessionConfig } from "./session/session.js";
-import type { StoredSession } from "./contract/auth.js";
+import type { Identity, StoredSession } from "./contract/auth.js";
 
 export interface ClientOptions {
   /** Control-plane base URL, e.g. https://api.glyphh.ai (or http://127.0.0.1:3001). */
@@ -55,6 +55,8 @@ export interface Client {
   refresh(): Promise<boolean>;
   /** The current stored session, or null if signed out. */
   getSession(): Promise<StoredSession | null>;
+  /** The authenticated principal (who am I). Requires a session. */
+  me(): Promise<Identity>;
   /** Open a rotor session on the runtime (streaming turns, durable reconnect). */
   session(opts: OpenSessionOptions): Session;
 }
@@ -80,6 +82,7 @@ export function createClient(opts: ClientOptions): Client {
     token,
     refresh: async () => (await refresh.refresh()) !== null,
     getSession: () => store.load(),
+    me: async () => http.get<Identity>("/api/auth/me", { bearer: await token() }),
     session: (sopts: OpenSessionOptions): Session => {
       // The runtime bearer is a SEPARATE credential (the provisioned runtimeToken),
       // not the control-plane session token — and loopback needs none. Only attach

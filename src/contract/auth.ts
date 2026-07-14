@@ -5,6 +5,16 @@
  * the request/response bodies the control plane exposes. Pure types, zero runtime.
  */
 
+/** The authenticated principal — `client.me()`. */
+export interface Identity {
+  userId: string;
+  email: string;
+  name: string | null;
+  role: string;
+  orgId: string | null;
+  tier: string;
+}
+
 /** What every auth method returns from the server: an opaque session pair. */
 export interface IssuedSession {
   accessToken: string;

@@ -31,6 +31,7 @@ export { createLogger } from "./core/logger.js";
 export type { Logger, LogSink, LogEntry, LogLevel, LogFields, LoggerOptions } from "./core/logger.js";
 
 export type {
+  Identity,
   IssuedSession,
   StoredSession,
   MagicLinkStart,
