@@ -81,9 +81,12 @@ export function createClient(opts: ClientOptions): Client {
     refresh: async () => (await refresh.refresh()) !== null,
     getSession: () => store.load(),
     session: (sopts: OpenSessionOptions): Session => {
+      // The runtime bearer is a SEPARATE credential (the provisioned runtimeToken),
+      // not the control-plane session token — and loopback needs none. Only attach
+      // one if the caller supplies it.
       const transport = new SseTransport({
         baseUrl: sopts.url ?? opts.url,
-        token: sopts.token ?? token,
+        ...(sopts.token ? { token: sopts.token } : {}),
         ...(sopts.fetch ?? opts.fetch ? { fetchImpl: sopts.fetch ?? opts.fetch } : {}),
       });
       return new Session(transport, { ...sopts, run: { logger, ...(sopts.run ?? {}) } });
