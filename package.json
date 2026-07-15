@@ -24,6 +24,11 @@
       "types": "./dist/storage/file.d.ts",
       "import": "./dist/storage/file.js",
       "require": "./dist/storage/file.cjs"
+    },
+    "./runtime": {
+      "types": "./dist/runtime.d.ts",
+      "import": "./dist/runtime.js",
+      "require": "./dist/runtime.cjs"
     }
   },
   "files": [
