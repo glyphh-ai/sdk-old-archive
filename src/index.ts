@@ -87,6 +87,14 @@ export { HostingClient } from "./resources/hosting.js";
 export type { Deployment, DeployStatus, DeployInput } from "./contract/hosting.js";
 export { LibraryClient } from "./resources/library.js";
 export type { LibraryItem, LibraryKind, LibraryScope, SaveLibraryItemInput } from "./contract/library.js";
+export { RelayClient } from "./resources/relay.js";
+export type {
+  RelayPolicy,
+  RelayDevice,
+  RelayDeviceStatus,
+  RelayStatus,
+  EnableRelayInput,
+} from "./contract/relay.js";
 export type {
   Org,
   OrgUpdate,

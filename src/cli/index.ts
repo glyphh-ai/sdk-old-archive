@@ -22,6 +22,7 @@ import { registerSessions } from "./commands/sessions.js";
 import { registerGit } from "./commands/git.js";
 import { registerApps } from "./commands/apps.js";
 import { registerLibrary } from "./commands/library.js";
+import { registerRelay } from "./commands/relay.js";
 
 export function buildRegistry(): CommandRegistry {
   const reg = new CommandRegistry();
@@ -40,6 +41,7 @@ export function buildRegistry(): CommandRegistry {
   registerGit(reg);
   registerApps(reg);
   registerLibrary(reg);
+  registerRelay(reg);
   return reg;
 }
 

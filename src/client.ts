@@ -32,6 +32,7 @@ import { GitClient } from "./resources/git.js";
 import { AppsClient } from "./resources/apps.js";
 import { HostingClient } from "./resources/hosting.js";
 import { LibraryClient } from "./resources/library.js";
+import { RelayClient } from "./resources/relay.js";
 import type { Identity, StoredSession } from "./contract/auth.js";
 
 export interface ClientOptions {
@@ -108,6 +109,8 @@ export interface Client {
   drips: LibraryClient;
   /** Saved message-session library (personal + org). */
   messageSessions: LibraryClient;
+  /** Drive-my-desktop relay — org policy + per-device opt-in (same-user, revocable). */
+  relay: RelayClient;
   /** The bearer supplier for authenticated calls / the rotor transport. */
   token: TokenProvider;
   /** Force a session refresh (rotation). Resolves false if signed out. */
@@ -160,6 +163,7 @@ export function createClient(opts: ClientOptions): Client {
     layouts: new LibraryClient(authed, "layout"),
     drips: new LibraryClient(authed, "drip"),
     messageSessions: new LibraryClient(authed, "message_session"),
+    relay: new RelayClient(authed),
     token,
     refresh: async () => (await refresh.refresh()) !== null,
     getSession: () => store.load(),
