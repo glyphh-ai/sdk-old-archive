@@ -45,6 +45,15 @@ export class Run {
     this.rejectDone = rej;
   });
 
+  constructor() {
+    // Safety net: always observe the terminal promise. A stream failure rejects BOTH
+    // `events` (the async iterator) and `done`; a consumer that only iterates events
+    // and catches there would otherwise leave `done`'s rejection unhandled — crashing
+    // the host process. This no-op handler makes the rejection "observed"; a real
+    // `await run.done` still receives it.
+    void this.done.catch(() => {});
+  }
+
   get events(): AsyncIterable<TurnEvent> {
     return this.queue;
   }
