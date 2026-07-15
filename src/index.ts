@@ -61,6 +61,8 @@ export type {
 } from "./contract/catalog.js";
 export { ConnectionsClient } from "./resources/connections.js";
 export type { Connection, ConnectionKind, CustomMcpInput, ConnectLink } from "./contract/connections.js";
+export { UsageClient } from "./resources/usage.js";
+export type { UsageSummary } from "./contract/usage.js";
 export type {
   Org,
   OrgUpdate,

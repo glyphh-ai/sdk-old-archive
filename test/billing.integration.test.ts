@@ -37,8 +37,9 @@ describe("@glyphh/client — billing", () => {
     expect((await client.billing.balance()).credits).toBe(25);
   });
 
-  it("subscribe returns a clean not-configured error when Stripe is off (dev)", async () => {
+  it("subscribe returns a Stripe checkout URL", async () => {
     const client = await signIn();
-    await expect(client.billing.subscribe("basic")).rejects.toMatchObject({ code: "E_NOT_FOUND" });
+    const { url } = await client.billing.subscribe("basic");
+    expect(url).toMatch(/^https:\/\/checkout\.stripe\.com\//);
   });
 });

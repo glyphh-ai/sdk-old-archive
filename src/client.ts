@@ -25,6 +25,7 @@ import { CatalogClient } from "./resources/catalog.js";
 import { ProvidersClient } from "./resources/providers.js";
 import { AdminClient } from "./resources/admin.js";
 import { ConnectionsClient } from "./resources/connections.js";
+import { UsageClient } from "./resources/usage.js";
 import type { Identity, StoredSession } from "./contract/auth.js";
 
 export interface ClientOptions {
@@ -77,6 +78,8 @@ export interface Client {
   admin: AdminClient;
   /** Connectors — Pipedream accounts + custom MCP servers (org_admin manages). */
   connections: ConnectionsClient;
+  /** Usage rollups — credits consumed/saved by user, workspace, org. */
+  usage: UsageClient;
   /** The bearer supplier for authenticated calls / the rotor transport. */
   token: TokenProvider;
   /** Force a session refresh (rotation). Resolves false if signed out. */
@@ -117,6 +120,7 @@ export function createClient(opts: ClientOptions): Client {
     providers: new ProvidersClient(authed),
     admin: new AdminClient(authed),
     connections: new ConnectionsClient(authed),
+    usage: new UsageClient(authed),
     token,
     refresh: async () => (await refresh.refresh()) !== null,
     getSession: () => store.load(),
