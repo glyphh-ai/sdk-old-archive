@@ -18,6 +18,7 @@ import { registerCatalog } from "./commands/catalog.js";
 import { registerConnections } from "./commands/connections.js";
 import { registerUsage } from "./commands/usage.js";
 import { registerApiKeys } from "./commands/api-keys.js";
+import { registerSessions } from "./commands/sessions.js";
 
 export function buildRegistry(): CommandRegistry {
   const reg = new CommandRegistry();
@@ -32,6 +33,7 @@ export function buildRegistry(): CommandRegistry {
   registerConnections(reg);
   registerUsage(reg);
   registerApiKeys(reg);
+  registerSessions(reg);
   return reg;
 }
 

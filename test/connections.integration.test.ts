@@ -41,7 +41,8 @@ describe("@glyphh/client — connections", () => {
     expect(await client.connections.list()).toEqual([]);
   });
 
-  it("Pipedream connect is a clean not-configured error in dev", async () => {
-    await expect((await signIn()).connections.pipedreamConnectLink()).rejects.toMatchObject({ code: "E_NOT_FOUND" });
+  it("Pipedream connect returns a hosted connect link (live-configured)", async () => {
+    const { url } = await (await signIn()).connections.pipedreamConnectLink();
+    expect(url).toMatch(/^https:\/\/pipedream\.com\//);
   });
 });

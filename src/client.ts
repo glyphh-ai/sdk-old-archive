@@ -27,6 +27,7 @@ import { AdminClient } from "./resources/admin.js";
 import { ConnectionsClient } from "./resources/connections.js";
 import { UsageClient } from "./resources/usage.js";
 import { ApiKeysClient } from "./resources/api-keys.js";
+import { SessionsClient } from "./resources/sessions.js";
 import type { Identity, StoredSession } from "./contract/auth.js";
 
 export interface ClientOptions {
@@ -83,6 +84,8 @@ export interface Client {
   usage: UsageClient;
   /** User-scoped `gy_ak_` API keys for headless SDK/CLI use + the desktop relay. */
   apiKeys: ApiKeysClient;
+  /** Control-plane runtime sessions — provision/list/get/deprovision (data plane is `session()`). */
+  sessions: SessionsClient;
   /** The bearer supplier for authenticated calls / the rotor transport. */
   token: TokenProvider;
   /** Force a session refresh (rotation). Resolves false if signed out. */
@@ -125,6 +128,7 @@ export function createClient(opts: ClientOptions): Client {
     connections: new ConnectionsClient(authed),
     usage: new UsageClient(authed),
     apiKeys: new ApiKeysClient(authed),
+    sessions: new SessionsClient(authed),
     token,
     refresh: async () => (await refresh.refresh()) !== null,
     getSession: () => store.load(),

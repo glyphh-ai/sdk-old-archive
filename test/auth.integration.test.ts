@@ -19,7 +19,8 @@ const email = () => `sdk-${randomUUID()}@example.com`;
 async function signIn(overrides = {}) {
   const client = createClient({ url, ...overrides });
   const start = await client.auth.startEmailLink(email());
-  expect(start.sent).toBe(true);
+  // Dev/test hands back the token directly instead of dispatching a real email.
+  expect(start.sent).toBe(false);
   const token = start.devToken;
   expect(token).toMatch(/^gy_ml_/);
   const session = await client.auth.verifyEmailLink(token!);
