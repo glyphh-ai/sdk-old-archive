@@ -54,3 +54,45 @@ export interface OrgSsoParams {
   redirectUri: string;
   machineId?: string;
 }
+
+// ── device authorization grant (RFC 8628) — the CLI/TUI sign-in ────────────────
+
+/** `device/start` — the secret `deviceCode` (kept by the SDK) + what to show the user. */
+export interface DeviceAuthStart {
+  /** Secret handle the SDK polls with; never shown to the user. */
+  deviceCode: string;
+  /** The short human code the user types on the verification page, e.g. `WDJB-MJHT`. */
+  userCode: string;
+  /** Where the user goes to approve, e.g. `https://api.glyphh.ai/device`. */
+  verificationUri: string;
+  /** The verification URI with the code prefilled. */
+  verificationUriComplete: string;
+  /** Seconds until this request expires. */
+  expiresIn: number;
+  /** Minimum seconds between polls. */
+  interval: number;
+}
+
+/** What the SDK hands the UI to display while it polls. */
+export interface DevicePrompt {
+  userCode: string;
+  verificationUri: string;
+  verificationUriComplete: string;
+  expiresIn: number;
+}
+
+export type DevicePollStatus = "pending" | "slow_down" | "approved" | "denied" | "expired";
+
+/** `device/token` — the poll result; `session` is present only when `approved`. */
+export interface DevicePoll {
+  status: DevicePollStatus;
+  session?: IssuedSession;
+}
+
+export interface DeviceLoginOptions {
+  /** Called once with the code + URL to show the user. */
+  onPrompt: (prompt: DevicePrompt) => void;
+  /** Abort the poll loop (e.g. the user pressed Esc). */
+  signal?: AbortSignal;
+  machineId?: string;
+}

@@ -9,7 +9,39 @@
 
 import type { HttpClient } from "../core/http.js";
 import type { RefreshManager } from "./refresh-manager.js";
-import type { AppleName, IssuedSession, MagicLinkStart, OrgSsoParams, OrgSsoStart, StoredSession } from "../contract/auth.js";
+import { AuthError } from "../core/errors.js";
+import type {
+  AppleName,
+  DeviceAuthStart,
+  DeviceLoginOptions,
+  DevicePoll,
+  IssuedSession,
+  MagicLinkStart,
+  OrgSsoParams,
+  OrgSsoStart,
+  StoredSession,
+} from "../contract/auth.js";
+
+/** A client-side device-login failure (the caller must re-authenticate). */
+function deviceFail(message: string): AuthError {
+  return new AuthError({ code: "E_DEVICE_LOGIN", message, httpStatus: 401 });
+}
+
+/** Sleep `ms`, rejecting early if the caller aborts. */
+function delay(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) return reject(deviceFail("device login cancelled"));
+    const t = setTimeout(resolve, ms);
+    signal?.addEventListener(
+      "abort",
+      () => {
+        clearTimeout(t);
+        reject(deviceFail("device login cancelled"));
+      },
+      { once: true },
+    );
+  });
+}
 
 export class AuthClient {
   constructor(
@@ -38,6 +70,47 @@ export class AuthClient {
   async apple(identityToken: string, opts: { fullName?: AppleName; machineId?: string } = {}): Promise<StoredSession> {
     const issued = await this.http.post<IssuedSession>("/api/auth/apple", { identityToken, ...opts });
     return this.#adopt(issued);
+  }
+
+  // ── device authorization grant (headless CLI/TUI sign-in) ───────────────────
+  /**
+   * Sign in without a browser redirect back to this process: start a device grant,
+   * hand the user a short code + URL via `onPrompt`, then poll until they approve it
+   * in a browser. Resolves to the adopted session; rejects if denied/expired/cancelled.
+   */
+  async deviceLogin(opts: DeviceLoginOptions): Promise<StoredSession> {
+    const start = await this.http.post<DeviceAuthStart>(
+      "/api/auth/device/start",
+      opts.machineId ? { machineId: opts.machineId } : {},
+    );
+    opts.onPrompt({
+      userCode: start.userCode,
+      verificationUri: start.verificationUri,
+      verificationUriComplete: start.verificationUriComplete,
+      expiresIn: start.expiresIn,
+    });
+
+    let intervalMs = Math.max(1, start.interval) * 1000;
+    const deadline = Date.now() + start.expiresIn * 1000;
+    while (Date.now() < deadline) {
+      await delay(intervalMs, opts.signal);
+      const poll = await this.http.post<DevicePoll>("/api/auth/device/token", { deviceCode: start.deviceCode });
+      switch (poll.status) {
+        case "approved":
+          if (poll.session) return this.#adopt(poll.session);
+          break;
+        case "denied":
+          throw deviceFail("device login was denied");
+        case "expired":
+          throw deviceFail("device login expired — start again");
+        case "slow_down":
+          intervalMs += 2000;
+          break;
+        case "pending":
+          break;
+      }
+    }
+    throw deviceFail("device login timed out");
   }
 
   // ── organization OAuth/SSO (WorkOS, browser handoff) ────────────────────────

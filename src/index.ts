@@ -38,6 +38,11 @@ export type {
   OrgSsoStart,
   OrgSsoParams,
   AppleName,
+  DeviceAuthStart,
+  DevicePrompt,
+  DevicePoll,
+  DevicePollStatus,
+  DeviceLoginOptions,
 } from "./contract/auth.js";
 
 export { OrgClient } from "./resources/org.js";

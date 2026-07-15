@@ -11,12 +11,28 @@ import { flagStr } from "../args.js";
 export function registerAuth(reg: CommandRegistry): void {
   reg.register({
     path: "auth login",
+    summary: "sign in from this terminal (device flow — approve in a browser)",
+    covers: ["auth.deviceLogin"],
+    async run(ctx) {
+      await ctx.client.auth.deviceLogin({
+        onPrompt: (p) => {
+          ctx.print(`To sign in, open:  ${p.verificationUri}`);
+          ctx.print(`and enter the code:  ${p.userCode}`);
+          ctx.print("waiting for approval…");
+        },
+      });
+      ctx.print("signed in ✓");
+    },
+  });
+
+  reg.register({
+    path: "auth email",
     summary: "sign in via email magic link (dev returns the token and completes)",
-    usage: "auth login <email>",
+    usage: "auth email <email>",
     covers: ["auth.startEmailLink", "auth.verifyEmailLink"],
     async run(ctx, args) {
       const email = args.positional[0];
-      if (!email) throw new Error("usage: auth login <email>");
+      if (!email) throw new Error("usage: auth email <email>");
       const start = await ctx.client.auth.startEmailLink(email);
       if (!start.devToken) {
         ctx.print(`link sent to ${email} — then: glyphh auth verify <token>`);
