@@ -64,7 +64,7 @@ describe("@glyphh/client — auth", () => {
   });
 
   it("a static API key is returned as-is without a session", async () => {
-    const client = createClient({ url, apiKey: "yo_example_key" });
-    expect(await client.token()).toBe("yo_example_key");
+    const client = createClient({ url, apiKey: "gy_ak_example_key" });
+    expect(await client.token()).toBe("gy_ak_example_key");
   });
 });

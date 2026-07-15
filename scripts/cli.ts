@@ -11,7 +11,8 @@ import { startRepl } from "./repl.js";
 
 function extractServer(argv: string[]): { server?: string; rest: string[] } {
   const i = argv.indexOf("--server");
-  if (i !== -1 && argv[i + 1]) return { server: argv[i + 1], rest: [...argv.slice(0, i), ...argv.slice(i + 2)] };
+  const value = i !== -1 ? argv[i + 1] : undefined;
+  if (value) return { server: value, rest: [...argv.slice(0, i), ...argv.slice(i + 2)] };
   return { rest: argv };
 }
 

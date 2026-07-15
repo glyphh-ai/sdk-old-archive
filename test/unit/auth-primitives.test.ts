@@ -46,6 +46,6 @@ describe("credential providers", () => {
     await expect(sessionTokenProvider(signedOut)()).rejects.toThrow(/not authenticated/);
   });
   it("staticTokenProvider returns the key unchanged", async () => {
-    expect(await staticTokenProvider("yo_key")()).toBe("yo_key");
+    expect(await staticTokenProvider("gy_ak_key")()).toBe("gy_ak_key");
   });
 });

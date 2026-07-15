@@ -4,7 +4,7 @@
  * credential-provider.ts — turns the session into the `token: () => Promise<string>`
  * bearer supplier the rest of the SDK (and the rotor transport) consumes. Two
  * shapes: a session-backed provider that refreshes as needed, and a static
- * provider for a `yo_` API key (headless / CI).
+ * provider for a `gy_ak_` API key (headless / CI).
  */
 
 import type { RefreshManager } from "./refresh-manager.js";
@@ -20,7 +20,7 @@ export function sessionTokenProvider(refresh: RefreshManager): TokenProvider {
   };
 }
 
-/** Static: a long-lived `yo_` API key, unchanged per call. */
+/** Static: a long-lived `gy_ak_` API key, unchanged per call. */
 export function staticTokenProvider(apiKey: string): TokenProvider {
   return async () => apiKey;
 }

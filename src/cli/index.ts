@@ -17,6 +17,7 @@ import { registerBilling } from "./commands/billing.js";
 import { registerCatalog } from "./commands/catalog.js";
 import { registerConnections } from "./commands/connections.js";
 import { registerUsage } from "./commands/usage.js";
+import { registerApiKeys } from "./commands/api-keys.js";
 
 export function buildRegistry(): CommandRegistry {
   const reg = new CommandRegistry();
@@ -30,6 +31,7 @@ export function buildRegistry(): CommandRegistry {
   registerCatalog(reg);
   registerConnections(reg);
   registerUsage(reg);
+  registerApiKeys(reg);
   return reg;
 }
 

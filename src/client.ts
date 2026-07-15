@@ -26,6 +26,7 @@ import { ProvidersClient } from "./resources/providers.js";
 import { AdminClient } from "./resources/admin.js";
 import { ConnectionsClient } from "./resources/connections.js";
 import { UsageClient } from "./resources/usage.js";
+import { ApiKeysClient } from "./resources/api-keys.js";
 import type { Identity, StoredSession } from "./contract/auth.js";
 
 export interface ClientOptions {
@@ -39,7 +40,7 @@ export interface ClientOptions {
   refreshMarginMs?: number;
   /** Fired once when the session becomes unrecoverable — flip the UI to signed-out. */
   onSignedOut?: () => void;
-  /** A `yo_` API key for headless use — bypasses the interactive session entirely. */
+  /** A `gy_ak_` API key for headless use — bypasses the interactive session entirely. */
   apiKey?: string;
   /** Request timeout in ms (default 30s). */
   timeoutMs?: number;
@@ -80,6 +81,8 @@ export interface Client {
   connections: ConnectionsClient;
   /** Usage rollups — credits consumed/saved by user, workspace, org. */
   usage: UsageClient;
+  /** User-scoped `gy_ak_` API keys for headless SDK/CLI use + the desktop relay. */
+  apiKeys: ApiKeysClient;
   /** The bearer supplier for authenticated calls / the rotor transport. */
   token: TokenProvider;
   /** Force a session refresh (rotation). Resolves false if signed out. */
@@ -121,6 +124,7 @@ export function createClient(opts: ClientOptions): Client {
     admin: new AdminClient(authed),
     connections: new ConnectionsClient(authed),
     usage: new UsageClient(authed),
+    apiKeys: new ApiKeysClient(authed),
     token,
     refresh: async () => (await refresh.refresh()) !== null,
     getSession: () => store.load(),

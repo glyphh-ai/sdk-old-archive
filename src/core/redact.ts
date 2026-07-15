@@ -7,7 +7,7 @@
  */
 
 const SENSITIVE_KEY = /(pass(word)?|secret|token|authorization|auth|api[-_]?key|cookie|bearer|refresh|access|credential)/i;
-const SENSITIVE_VALUE = /^(yo_[A-Za-z0-9_-]{8,}|sk-[A-Za-z0-9_-]{8,}|gy_[a-z]{2}_[A-Za-z0-9_-]{8,}|eyJ[A-Za-z0-9_-]{10,}\.)/;
+const SENSITIVE_VALUE = /^(gy_[a-z]{2}_[A-Za-z0-9_-]{8,}|sk-[A-Za-z0-9_-]{8,}|eyJ[A-Za-z0-9_-]{10,}\.)/;
 const MAX_DEPTH = 5;
 const MAX_KEYS = 64;
 
