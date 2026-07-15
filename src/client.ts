@@ -28,6 +28,7 @@ import { ConnectionsClient } from "./resources/connections.js";
 import { UsageClient } from "./resources/usage.js";
 import { ApiKeysClient } from "./resources/api-keys.js";
 import { SessionsClient } from "./resources/sessions.js";
+import { GitClient } from "./resources/git.js";
 import type { Identity, StoredSession } from "./contract/auth.js";
 
 export interface ClientOptions {
@@ -86,6 +87,8 @@ export interface Client {
   apiKeys: ApiKeysClient;
   /** Control-plane runtime sessions — provision/list/get/deprovision (data plane is `session()`). */
   sessions: SessionsClient;
+  /** GitHub connection — link, list repos; sessions with a repo get a scoped clone token. */
+  git: GitClient;
   /** The bearer supplier for authenticated calls / the rotor transport. */
   token: TokenProvider;
   /** Force a session refresh (rotation). Resolves false if signed out. */
@@ -129,6 +132,7 @@ export function createClient(opts: ClientOptions): Client {
     usage: new UsageClient(authed),
     apiKeys: new ApiKeysClient(authed),
     sessions: new SessionsClient(authed),
+    git: new GitClient(authed),
     token,
     refresh: async () => (await refresh.refresh()) !== null,
     getSession: () => store.load(),

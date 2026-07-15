@@ -73,6 +73,8 @@ export type {
   SessionLocus,
   SessionStatus,
 } from "./contract/runtime.js";
+export { GitClient } from "./resources/git.js";
+export type { GitConnection, GitConnectLink, Repo } from "./contract/git.js";
 export type {
   Org,
   OrgUpdate,
