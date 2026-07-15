@@ -1,0 +1,29 @@
+/**
+ * @license Proprietary — © Glyphh. All rights reserved.
+ *
+ * cli/index.ts — assemble the command registry from every domain module. Each phase
+ * adds one `registerX(reg)` line here; the parity test guarantees the surface stays
+ * complete. Exposes `buildRegistry` for the bin, the REPL, and the parity test.
+ */
+
+import { CommandRegistry } from "./registry.js";
+import { registerAuth } from "./commands/auth.js";
+import { registerSession } from "./commands/session.js";
+import { registerRotor } from "./commands/rotor.js";
+import { registerMeta } from "./commands/meta.js";
+
+export function buildRegistry(): CommandRegistry {
+  const reg = new CommandRegistry();
+  registerAuth(reg);
+  registerSession(reg);
+  registerRotor(reg);
+  registerMeta(reg);
+  return reg;
+}
+
+export { CommandRegistry } from "./registry.js";
+export { dispatch, helpText } from "./dispatch.js";
+export { buildContext } from "./context.js";
+export type { CliContext } from "./context.js";
+export type { Command } from "./registry.js";
+export { sdkSurface } from "./surface.js";

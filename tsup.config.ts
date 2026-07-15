@@ -1,12 +1,16 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: ["src/index.ts", "src/storage/memory.ts"],
+  entry: {
+    index: "src/index.ts",
+    "storage/memory": "src/storage/memory.ts",
+    "storage/file": "src/storage/file.ts",
+    cli: "scripts/cli.ts",
+  },
   format: ["esm", "cjs"],
   dts: true,
   clean: true,
   sourcemap: true,
   target: "es2022",
-  // Zero runtime deps — the core runs on web-standard globals (fetch/WebSocket).
   external: [],
 });

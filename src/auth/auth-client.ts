@@ -17,7 +17,7 @@ export class AuthClient {
     private readonly refresh: RefreshManager,
   ) {}
 
-  private async adopt(issued: IssuedSession): Promise<StoredSession> {
+  async #adopt(issued: IssuedSession): Promise<StoredSession> {
     return this.refresh.adopt(issued);
   }
 
@@ -27,17 +27,17 @@ export class AuthClient {
   }
   async verifyEmailLink(token: string, machineId?: string): Promise<StoredSession> {
     const issued = await this.http.post<IssuedSession>("/api/auth/magic/verify", { token, ...(machineId ? { machineId } : {}) });
-    return this.adopt(issued);
+    return this.#adopt(issued);
   }
 
   // ── native social ───────────────────────────────────────────────────────────
   async google(idToken: string, machineId?: string): Promise<StoredSession> {
     const issued = await this.http.post<IssuedSession>("/api/auth/google", { idToken, ...(machineId ? { machineId } : {}) });
-    return this.adopt(issued);
+    return this.#adopt(issued);
   }
   async apple(identityToken: string, opts: { fullName?: AppleName; machineId?: string } = {}): Promise<StoredSession> {
     const issued = await this.http.post<IssuedSession>("/api/auth/apple", { identityToken, ...opts });
-    return this.adopt(issued);
+    return this.#adopt(issued);
   }
 
   // ── organization OAuth/SSO (WorkOS, browser handoff) ────────────────────────
@@ -48,7 +48,7 @@ export class AuthClient {
   /** Trade the one-time code (from the app's deep-link callback) for a session. */
   async exchange(code: string, machineId?: string): Promise<StoredSession> {
     const issued = await this.http.post<IssuedSession>("/api/auth/exchange", { code, ...(machineId ? { machineId } : {}) });
-    return this.adopt(issued);
+    return this.#adopt(issued);
   }
 
   // ── session ─────────────────────────────────────────────────────────────────
