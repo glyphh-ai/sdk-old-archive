@@ -29,6 +29,8 @@ import { UsageClient } from "./resources/usage.js";
 import { ApiKeysClient } from "./resources/api-keys.js";
 import { SessionsClient } from "./resources/sessions.js";
 import { GitClient } from "./resources/git.js";
+import { AppsClient } from "./resources/apps.js";
+import { HostingClient } from "./resources/hosting.js";
 import type { Identity, StoredSession } from "./contract/auth.js";
 
 export interface ClientOptions {
@@ -89,6 +91,10 @@ export interface Client {
   sessions: SessionsClient;
   /** GitHub connection — link, list repos; sessions with a repo get a scoped clone token. */
   git: GitClient;
+  /** The apps marketplace — browse, publish, install. */
+  apps: AppsClient;
+  /** App hosting — deploy a published app to `<slug>.glyphh.app`. */
+  hosting: HostingClient;
   /** The bearer supplier for authenticated calls / the rotor transport. */
   token: TokenProvider;
   /** Force a session refresh (rotation). Resolves false if signed out. */
@@ -133,6 +139,8 @@ export function createClient(opts: ClientOptions): Client {
     apiKeys: new ApiKeysClient(authed),
     sessions: new SessionsClient(authed),
     git: new GitClient(authed),
+    apps: new AppsClient(authed),
+    hosting: new HostingClient(authed),
     token,
     refresh: async () => (await refresh.refresh()) !== null,
     getSession: () => store.load(),

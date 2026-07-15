@@ -75,6 +75,16 @@ export type {
 } from "./contract/runtime.js";
 export { GitClient } from "./resources/git.js";
 export type { GitConnection, GitConnectLink, Repo } from "./contract/git.js";
+export { AppsClient } from "./resources/apps.js";
+export type {
+  AppManifest,
+  AppListing,
+  AppVisibility,
+  PublishAppInput,
+  InstalledApp,
+} from "./contract/apps.js";
+export { HostingClient } from "./resources/hosting.js";
+export type { Deployment, DeployStatus, DeployInput } from "./contract/hosting.js";
 export type {
   Org,
   OrgUpdate,
