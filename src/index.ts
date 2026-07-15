@@ -59,6 +59,8 @@ export type {
   ModelCreate,
   ModelPricing,
 } from "./contract/catalog.js";
+export { ConnectionsClient } from "./resources/connections.js";
+export type { Connection, ConnectionKind, CustomMcpInput, ConnectLink } from "./contract/connections.js";
 export type {
   Org,
   OrgUpdate,

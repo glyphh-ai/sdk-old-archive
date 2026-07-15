@@ -15,6 +15,7 @@ import { registerOrg } from "./commands/org.js";
 import { registerWorkspaces } from "./commands/workspaces.js";
 import { registerBilling } from "./commands/billing.js";
 import { registerCatalog } from "./commands/catalog.js";
+import { registerConnections } from "./commands/connections.js";
 
 export function buildRegistry(): CommandRegistry {
   const reg = new CommandRegistry();
@@ -26,6 +27,7 @@ export function buildRegistry(): CommandRegistry {
   registerWorkspaces(reg);
   registerBilling(reg);
   registerCatalog(reg);
+  registerConnections(reg);
   return reg;
 }
 
