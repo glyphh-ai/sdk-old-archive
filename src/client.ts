@@ -19,6 +19,7 @@ import { Session, type SessionConfig } from "./session/session.js";
 import { OrgClient } from "./resources/org.js";
 import { MembersClient } from "./resources/members.js";
 import { InvitesClient } from "./resources/invites.js";
+import { WorkspacesClient } from "./resources/workspaces.js";
 import type { Identity, StoredSession } from "./contract/auth.js";
 
 export interface ClientOptions {
@@ -59,6 +60,8 @@ export interface Client {
   members: MembersClient;
   /** Accept an org invite. */
   invites: InvitesClient;
+  /** Workspaces — governance (models/connections/apps/limits) + member assignment. */
+  workspaces: WorkspacesClient;
   /** The bearer supplier for authenticated calls / the rotor transport. */
   token: TokenProvider;
   /** Force a session refresh (rotation). Resolves false if signed out. */
@@ -93,6 +96,7 @@ export function createClient(opts: ClientOptions): Client {
     org: new OrgClient(authed),
     members: new MembersClient(authed),
     invites: new InvitesClient(http, authed),
+    workspaces: new WorkspacesClient(authed),
     token,
     refresh: async () => (await refresh.refresh()) !== null,
     getSession: () => store.load(),

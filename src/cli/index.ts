@@ -12,6 +12,7 @@ import { registerSession } from "./commands/session.js";
 import { registerRotor } from "./commands/rotor.js";
 import { registerMeta } from "./commands/meta.js";
 import { registerOrg } from "./commands/org.js";
+import { registerWorkspaces } from "./commands/workspaces.js";
 
 export function buildRegistry(): CommandRegistry {
   const reg = new CommandRegistry();
@@ -20,6 +21,7 @@ export function buildRegistry(): CommandRegistry {
   registerRotor(reg);
   registerMeta(reg);
   registerOrg(reg);
+  registerWorkspaces(reg);
   return reg;
 }
 
