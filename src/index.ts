@@ -45,6 +45,8 @@ export { MembersClient } from "./resources/members.js";
 export { InvitesClient } from "./resources/invites.js";
 export { WorkspacesClient } from "./resources/workspaces.js";
 export type { Workspace, WorkspaceInput, EffectiveGrants, Grant } from "./contract/workspace.js";
+export { BillingClient } from "./resources/billing.js";
+export type { Plan, Subscription, Balance, HostedUrl } from "./contract/billing.js";
 export type {
   Org,
   OrgUpdate,

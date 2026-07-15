@@ -20,6 +20,7 @@ import { OrgClient } from "./resources/org.js";
 import { MembersClient } from "./resources/members.js";
 import { InvitesClient } from "./resources/invites.js";
 import { WorkspacesClient } from "./resources/workspaces.js";
+import { BillingClient } from "./resources/billing.js";
 import type { Identity, StoredSession } from "./contract/auth.js";
 
 export interface ClientOptions {
@@ -62,6 +63,8 @@ export interface Client {
   invites: InvitesClient;
   /** Workspaces — governance (models/connections/apps/limits) + member assignment. */
   workspaces: WorkspacesClient;
+  /** Billing — plans, subscription, credit balance, Stripe checkout/portal. */
+  billing: BillingClient;
   /** The bearer supplier for authenticated calls / the rotor transport. */
   token: TokenProvider;
   /** Force a session refresh (rotation). Resolves false if signed out. */
@@ -97,6 +100,7 @@ export function createClient(opts: ClientOptions): Client {
     members: new MembersClient(authed),
     invites: new InvitesClient(http, authed),
     workspaces: new WorkspacesClient(authed),
+    billing: new BillingClient(authed),
     token,
     refresh: async () => (await refresh.refresh()) !== null,
     getSession: () => store.load(),
