@@ -31,6 +31,7 @@ import { SessionsClient } from "./resources/sessions.js";
 import { GitClient } from "./resources/git.js";
 import { AppsClient } from "./resources/apps.js";
 import { HostingClient } from "./resources/hosting.js";
+import { LibraryClient } from "./resources/library.js";
 import type { Identity, StoredSession } from "./contract/auth.js";
 
 export interface ClientOptions {
@@ -95,6 +96,18 @@ export interface Client {
   apps: AppsClient;
   /** App hosting — deploy a published app to `<slug>.glyphh.app`. */
   hosting: HostingClient;
+  /** Rotor-loop library (personal + org). */
+  rotors: LibraryClient;
+  /** Skill library (personal + org). */
+  skills: LibraryClient;
+  /** Agent library (personal + org). */
+  agents: LibraryClient;
+  /** Workbench layout library (personal + org). */
+  layouts: LibraryClient;
+  /** Drip (scheduled prompt) library (personal + org). */
+  drips: LibraryClient;
+  /** Saved message-session library (personal + org). */
+  messageSessions: LibraryClient;
   /** The bearer supplier for authenticated calls / the rotor transport. */
   token: TokenProvider;
   /** Force a session refresh (rotation). Resolves false if signed out. */
@@ -141,6 +154,12 @@ export function createClient(opts: ClientOptions): Client {
     git: new GitClient(authed),
     apps: new AppsClient(authed),
     hosting: new HostingClient(authed),
+    rotors: new LibraryClient(authed, "rotor"),
+    skills: new LibraryClient(authed, "skill"),
+    agents: new LibraryClient(authed, "agent"),
+    layouts: new LibraryClient(authed, "layout"),
+    drips: new LibraryClient(authed, "drip"),
+    messageSessions: new LibraryClient(authed, "message_session"),
     token,
     refresh: async () => (await refresh.refresh()) !== null,
     getSession: () => store.load(),

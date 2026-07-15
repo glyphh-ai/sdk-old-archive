@@ -85,6 +85,8 @@ export type {
 } from "./contract/apps.js";
 export { HostingClient } from "./resources/hosting.js";
 export type { Deployment, DeployStatus, DeployInput } from "./contract/hosting.js";
+export { LibraryClient } from "./resources/library.js";
+export type { LibraryItem, LibraryKind, LibraryScope, SaveLibraryItemInput } from "./contract/library.js";
 export type {
   Org,
   OrgUpdate,
