@@ -83,6 +83,11 @@ export class AuthClient {
       "/api/auth/device/start",
       opts.machineId ? { machineId: opts.machineId } : {},
     );
+    // Guard against a server that answers with a different (or empty) shape — e.g.
+    // an older deployment — so the failure is legible instead of "reading 'userCode'".
+    if (!start || typeof start.userCode !== "string") {
+      throw deviceFail("this server does not support device login");
+    }
     opts.onPrompt({
       userCode: start.userCode,
       verificationUri: start.verificationUri,
