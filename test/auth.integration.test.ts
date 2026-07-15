@@ -54,11 +54,12 @@ describe("@glyphh/client — auth", () => {
     await expect(client.token()).rejects.toThrow(/not authenticated/);
   });
 
-  it("me() returns the authenticated identity", async () => {
+  it("me() returns the authenticated identity (org_admin of a personal org)", async () => {
     const { client } = await signIn();
     const id = await client.me();
     expect(id.email).toMatch(/@example\.com$/);
-    expect(id.role).toBe("member");
+    expect(id.role).toBe("org_admin"); // personal-org-on-signup
+    expect(id.orgId).toBeTruthy();
     expect(id.userId).toBeTruthy();
   });
 

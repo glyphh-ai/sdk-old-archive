@@ -50,6 +50,12 @@ export class HttpClient {
   post<T>(path: string, body?: unknown, opts: RequestOptions = {}): Promise<T> {
     return this.request<T>("POST", path, body, opts);
   }
+  patch<T>(path: string, body?: unknown, opts: RequestOptions = {}): Promise<T> {
+    return this.request<T>("PATCH", path, body, opts);
+  }
+  del<T>(path: string, opts: RequestOptions = {}): Promise<T> {
+    return this.request<T>("DELETE", path, undefined, opts);
+  }
 
   private async request<T>(method: string, path: string, body: unknown, opts: RequestOptions): Promise<T> {
     const url = `${this.baseUrl}${path}`;

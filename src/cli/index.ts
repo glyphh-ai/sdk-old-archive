@@ -11,6 +11,7 @@ import { registerAuth } from "./commands/auth.js";
 import { registerSession } from "./commands/session.js";
 import { registerRotor } from "./commands/rotor.js";
 import { registerMeta } from "./commands/meta.js";
+import { registerOrg } from "./commands/org.js";
 
 export function buildRegistry(): CommandRegistry {
   const reg = new CommandRegistry();
@@ -18,6 +19,7 @@ export function buildRegistry(): CommandRegistry {
   registerSession(reg);
   registerRotor(reg);
   registerMeta(reg);
+  registerOrg(reg);
   return reg;
 }
 

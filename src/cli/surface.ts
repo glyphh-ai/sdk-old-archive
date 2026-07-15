@@ -16,12 +16,20 @@ function methodsOf(obj: object): string[] {
   return names.filter((n) => !SKIP.has(n) && typeof (obj as Record<string, unknown>)[n] === "function");
 }
 
-/** Every public method path a CLI must cover, derived from a real Client instance. */
+/**
+ * Every public method path a CLI must cover, derived from a real Client instance:
+ * top-level functions become `name`; each sub-client (auth, org, members, …) object
+ * contributes `name.method`. Adding a resource client therefore auto-extends what
+ * the parity test enforces.
+ */
 export function sdkSurface(client: Client): string[] {
   const paths: string[] = [];
   for (const [key, value] of Object.entries(client)) {
-    if (typeof value === "function") paths.push(key);
+    if (typeof value === "function") {
+      paths.push(key);
+    } else if (value && typeof value === "object") {
+      for (const method of methodsOf(value)) paths.push(`${key}.${method}`);
+    }
   }
-  for (const method of methodsOf(client.auth)) paths.push(`auth.${method}`);
   return paths.sort();
 }

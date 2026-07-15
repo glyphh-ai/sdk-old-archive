@@ -39,3 +39,18 @@ export type {
   OrgSsoParams,
   AppleName,
 } from "./contract/auth.js";
+
+export { OrgClient } from "./resources/org.js";
+export { MembersClient } from "./resources/members.js";
+export { InvitesClient } from "./resources/invites.js";
+export type {
+  Org,
+  OrgUpdate,
+  Address,
+  BillingContact,
+  Member,
+  MemberRole,
+  Invite,
+  CreatedInvite,
+  InvitePreview,
+} from "./contract/org.js";

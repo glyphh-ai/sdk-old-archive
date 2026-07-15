@@ -13,8 +13,12 @@ import { RefreshManager } from "./auth/refresh-manager.js";
 import { AuthClient } from "./auth/auth-client.js";
 import { sessionTokenProvider, staticTokenProvider, type TokenProvider } from "./auth/credential-provider.js";
 import { createLogger, type LoggerOptions } from "./core/logger.js";
+import { AuthedHttp } from "./core/authed-http.js";
 import { SseTransport } from "./transport/sse-transport.js";
 import { Session, type SessionConfig } from "./session/session.js";
+import { OrgClient } from "./resources/org.js";
+import { MembersClient } from "./resources/members.js";
+import { InvitesClient } from "./resources/invites.js";
 import type { Identity, StoredSession } from "./contract/auth.js";
 
 export interface ClientOptions {
@@ -49,6 +53,12 @@ export interface OpenSessionOptions extends SessionConfig {
 export interface Client {
   /** The sign-in surface (magic link, Google, Apple, org SSO, sign out). */
   auth: AuthClient;
+  /** The caller's organization (read + org_admin update). */
+  org: OrgClient;
+  /** Org membership + seats (list, invite, remove, set role). */
+  members: MembersClient;
+  /** Accept an org invite. */
+  invites: InvitesClient;
   /** The bearer supplier for authenticated calls / the rotor transport. */
   token: TokenProvider;
   /** Force a session refresh (rotation). Resolves false if signed out. */
@@ -77,8 +87,12 @@ export function createClient(opts: ClientOptions): Client {
   });
   const auth = new AuthClient(http, refresh);
   const token: TokenProvider = opts.apiKey ? staticTokenProvider(opts.apiKey) : sessionTokenProvider(refresh);
+  const authed = new AuthedHttp(http, token);
   return {
     auth,
+    org: new OrgClient(authed),
+    members: new MembersClient(authed),
+    invites: new InvitesClient(http, authed),
     token,
     refresh: async () => (await refresh.refresh()) !== null,
     getSession: () => store.load(),
