@@ -21,6 +21,9 @@ import { MembersClient } from "./resources/members.js";
 import { InvitesClient } from "./resources/invites.js";
 import { WorkspacesClient } from "./resources/workspaces.js";
 import { BillingClient } from "./resources/billing.js";
+import { CatalogClient } from "./resources/catalog.js";
+import { ProvidersClient } from "./resources/providers.js";
+import { AdminClient } from "./resources/admin.js";
 import type { Identity, StoredSession } from "./contract/auth.js";
 
 export interface ClientOptions {
@@ -65,6 +68,12 @@ export interface Client {
   workspaces: WorkspacesClient;
   /** Billing — plans, subscription, credit balance, Stripe checkout/portal. */
   billing: BillingClient;
+  /** The provider/model catalog (read). */
+  catalog: CatalogClient;
+  /** Org provider enablement + BYOK (org_admin). */
+  providers: ProvidersClient;
+  /** Glyphh platform administration (super_admin). */
+  admin: AdminClient;
   /** The bearer supplier for authenticated calls / the rotor transport. */
   token: TokenProvider;
   /** Force a session refresh (rotation). Resolves false if signed out. */
@@ -101,6 +110,9 @@ export function createClient(opts: ClientOptions): Client {
     invites: new InvitesClient(http, authed),
     workspaces: new WorkspacesClient(authed),
     billing: new BillingClient(authed),
+    catalog: new CatalogClient(authed),
+    providers: new ProvidersClient(authed),
+    admin: new AdminClient(authed),
     token,
     refresh: async () => (await refresh.refresh()) !== null,
     getSession: () => store.load(),

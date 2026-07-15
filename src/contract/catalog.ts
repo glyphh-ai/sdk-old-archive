@@ -1,0 +1,60 @@
+/**
+ * @license Proprietary — © Glyphh. All rights reserved.
+ *
+ * contract/catalog.ts — the provider/model catalog. Glyphh (super_admin) releases
+ * providers + models + credit pricing; an org enables a subset and may attach a BYOK
+ * key (write-only — never returned). Workspaces filter within the org's catalog.
+ * Pricing is exposed as whole credits per 1M tokens.
+ */
+
+export type ProviderKind = "proxied" | "open_weight";
+
+export interface Provider {
+  slug: string; // "anthropic", "openai", "openweights"
+  name: string;
+  kind: ProviderKind;
+  /** Is this provider enabled for the caller's org. */
+  enabledForOrg: boolean;
+  /** Does the org have a BYOK key set (never the key itself). */
+  hasByokKey: boolean;
+}
+
+export interface Model {
+  id: string; // "anthropic::claude-opus-4-8"
+  providerSlug: string;
+  name: string;
+  kind: ProviderKind;
+  inputCreditsPerMTok: number;
+  outputCreditsPerMTok: number;
+  active: boolean;
+}
+
+/** org_admin: enable a provider for the org, optionally with a BYOK key (write-only). */
+export interface EnableProviderInput {
+  slug: string;
+  key?: string;
+}
+
+/** super_admin: release a provider into the platform catalog. */
+export interface ProviderCreate {
+  slug: string;
+  name: string;
+  kind: ProviderKind;
+}
+
+/** super_admin: release a model + its credit pricing. */
+export interface ModelCreate {
+  id: string;
+  providerSlug: string;
+  name: string;
+  kind: ProviderKind;
+  inputCreditsPerMTok: number;
+  outputCreditsPerMTok: number;
+}
+
+/** super_admin: update a model's pricing / availability. */
+export interface ModelPricing {
+  inputCreditsPerMTok?: number;
+  outputCreditsPerMTok?: number;
+  active?: boolean;
+}

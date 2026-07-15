@@ -47,6 +47,18 @@ export { WorkspacesClient } from "./resources/workspaces.js";
 export type { Workspace, WorkspaceInput, EffectiveGrants, Grant } from "./contract/workspace.js";
 export { BillingClient } from "./resources/billing.js";
 export type { Plan, Subscription, Balance, HostedUrl } from "./contract/billing.js";
+export { CatalogClient } from "./resources/catalog.js";
+export { ProvidersClient } from "./resources/providers.js";
+export { AdminClient } from "./resources/admin.js";
+export type {
+  Provider,
+  Model,
+  ProviderKind,
+  EnableProviderInput,
+  ProviderCreate,
+  ModelCreate,
+  ModelPricing,
+} from "./contract/catalog.js";
 export type {
   Org,
   OrgUpdate,
