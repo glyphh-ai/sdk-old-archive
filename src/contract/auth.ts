@@ -10,9 +10,14 @@ export interface Identity {
   userId: string;
   email: string;
   name: string | null;
+  /** The EFFECTIVE org-local role for the session's active org. */
   role: string;
   orgId: string | null;
   tier: string;
+  /** The platform-admin axis — orthogonal to org role. Gates the admin console. */
+  isPlatformAdmin: boolean;
+  /** Present only while a platform admin is impersonating an org; otherwise null. */
+  impersonating: { orgId: string } | null;
 }
 
 /** What every auth method returns from the server: an opaque session pair. */
