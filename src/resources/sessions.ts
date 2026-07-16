@@ -36,9 +36,11 @@ export class SessionsClient {
   /**
    * Record a mid-stream model switch for traceability (the model-governance audit).
    * The runtime calls this on a role→model change so the whole switch is auditable.
+   * Session-agnostic: `sessionId` is a free-form string — a provisioned session id
+   * for hosted runs, or an ephemeral client id for LOCAL (embedded) runs that have
+   * no provisioned session — so a local opus→haiku switch still audits.
    */
   recordModelSwitch(input: ModelSwitchInput): Promise<ModelSwitchResult> {
-    const { sessionId, ...body } = input;
-    return this.http.post<ModelSwitchResult>(`/api/sessions/${encodeURIComponent(sessionId)}/model`, body);
+    return this.http.post<ModelSwitchResult>("/api/models/switch", input);
   }
 }

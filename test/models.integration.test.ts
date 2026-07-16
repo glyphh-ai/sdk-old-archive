@@ -66,17 +66,16 @@ describe("@glyphh/client — model governance", () => {
     expect(rows).toEqual([]);
   });
 
-  it("recordModelSwitch audits a mid-stream switch on a live session", async () => {
+  it("recordModelSwitch audits a LOCAL run's switch — ephemeral id, no provisioned session", async () => {
     const client = await signIn();
-    const { session } = await client.sessions.create({ rotor: "base", locus: "local" });
+    const localId = `cli-${Date.now()}-4242`; // an embedded-run client id, never provisioned
     const res = await client.sessions.recordModelSwitch({
-      sessionId: session.id, rotorSlug: "base", role: "assistant", from: OPUS, to: SONNET, surface: "cli",
+      sessionId: localId, rotorSlug: "base", role: "assistant", from: OPUS, to: SONNET, surface: "cli",
     });
-    expect(res).toMatchObject({ sessionId: session.id, from: OPUS, to: SONNET, surface: "cli" });
+    expect(res).toMatchObject({ sessionId: localId, from: OPUS, to: SONNET, surface: "cli" });
 
     const audit = await client.orgModels.audit({ action: "model.switch" });
-    expect(audit.entries.some((e) => (e.metadata as { sessionId?: string })?.sessionId === session.id)).toBe(true);
-    await client.sessions.delete(session.id);
+    expect(audit.entries.some((e) => (e.metadata as { sessionId?: string })?.sessionId === localId)).toBe(true);
   });
 
   it("orgModels surface is forbidden for a non-admin member (server enforces)", async () => {
