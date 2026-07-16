@@ -51,3 +51,28 @@ export interface ProvisionedSession {
   /** Opaque bearer for the data plane; the runtime validates it via introspection. Store it now. */
   runtimeToken: string;
 }
+
+/** Where a runtime model switch happened — the audit surface it was driven from. */
+export type ModelSwitchSurface = "cli" | "desktop" | "mobile" | "platform";
+
+/**
+ * A mid-stream role→model change to record for traceability (e.g. opus→haiku→opus).
+ * The runtime posts this so the whole switch (who / where / when / from→to) lands in
+ * the model-governance audit. `to` is required; the rest give the full context.
+ */
+export interface ModelSwitchInput {
+  sessionId: string;
+  rotorSlug?: string;
+  role?: string;
+  from?: string;
+  to: string;
+  surface: ModelSwitchSurface;
+}
+
+/** The echo a recorded model switch returns. */
+export interface ModelSwitchResult {
+  sessionId: string;
+  from: string | null;
+  to: string;
+  surface: ModelSwitchSurface;
+}

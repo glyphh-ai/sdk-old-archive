@@ -8,7 +8,7 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
-import type { CreateSessionInput, ProvisionedSession, RuntimeSession } from "../contract/runtime.js";
+import type { CreateSessionInput, ProvisionedSession, RuntimeSession, ModelSwitchInput, ModelSwitchResult } from "../contract/runtime.js";
 
 export class SessionsClient {
   constructor(private readonly http: AuthedHttp) {}
@@ -31,5 +31,14 @@ export class SessionsClient {
   /** Deprovision + stop a session. */
   delete(id: string): Promise<void> {
     return this.http.del<void>(`/api/sessions/${encodeURIComponent(id)}`);
+  }
+
+  /**
+   * Record a mid-stream model switch for traceability (the model-governance audit).
+   * The runtime calls this on a role→model change so the whole switch is auditable.
+   */
+  recordModelSwitch(input: ModelSwitchInput): Promise<ModelSwitchResult> {
+    const { sessionId, ...body } = input;
+    return this.http.post<ModelSwitchResult>(`/api/sessions/${encodeURIComponent(sessionId)}/model`, body);
   }
 }

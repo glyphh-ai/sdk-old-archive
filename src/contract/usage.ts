@@ -41,3 +41,20 @@ export interface UsageDailyQuery {
   /** org_admin only — break the org series down to one member. */
   userId?: string;
 }
+
+/** One model's usage rollup (charged credits in micro-credits). */
+export interface UsageByModelRow {
+  model: string;
+  credits: number; // micro-credits
+  requests: number;
+  inputTokens: number;
+  outputTokens: number;
+}
+
+/** Query for the by-model rollup. `from`/`to` are YYYY-MM-DD (optional; all time when omitted). */
+export interface UsageByModelQuery {
+  from?: string;
+  to?: string;
+  /** org_admin only — drill into one member (members are pinned to their own usage). */
+  userId?: string;
+}

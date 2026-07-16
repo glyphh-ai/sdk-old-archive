@@ -27,6 +27,7 @@ import { registerApps } from "./commands/apps.js";
 import { registerLibrary } from "./commands/library.js";
 import { registerRelay } from "./commands/relay.js";
 import { registerRotorConfig } from "./commands/rotor-config.js";
+import { registerModels } from "./commands/models.js";
 
 export function buildRegistry(): CommandRegistry {
   const reg = new CommandRegistry();
@@ -50,6 +51,7 @@ export function buildRegistry(): CommandRegistry {
   registerLibrary(reg);
   registerRelay(reg);
   registerRotorConfig(reg);
+  registerModels(reg);
   return reg;
 }
 

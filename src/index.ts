@@ -107,7 +107,7 @@ export type { Loop, LoopSummary, CreateLoopInput, UpdateLoopInput } from "./cont
 export { ConnectionsClient } from "./resources/connections.js";
 export type { Connection, ConnectionKind, CustomMcpInput, ConnectLink } from "./contract/connections.js";
 export { UsageClient } from "./resources/usage.js";
-export type { UsageSummary } from "./contract/usage.js";
+export type { UsageSummary, UsageDay, UsageDailyQuery, UsageByModelRow, UsageByModelQuery } from "./contract/usage.js";
 export { ApiKeysClient } from "./resources/api-keys.js";
 export type { ApiKey, ApiKeyInput, CreatedApiKey } from "./contract/api-keys.js";
 export { SessionsClient } from "./resources/sessions.js";
@@ -117,6 +117,9 @@ export type {
   ProvisionedSession,
   SessionLocus,
   SessionStatus,
+  ModelSwitchInput,
+  ModelSwitchResult,
+  ModelSwitchSurface,
 } from "./contract/runtime.js";
 export { GitClient } from "./resources/git.js";
 export type { GitConnection, GitConnectLink, Repo } from "./contract/git.js";
@@ -142,6 +145,16 @@ export type {
 } from "./contract/relay.js";
 export { RotorConfigClient } from "./resources/rotor-config.js";
 export type { RotorRole, RotorCatalogEntry } from "./contract/rotors.js";
+export { OrgModelsClient } from "./resources/org-models.js";
+export { ModelsClient } from "./resources/models.js";
+export type {
+  OrgModel,
+  AvailableModel,
+  ModelSource,
+  ModelAuditQuery,
+  ModelAuditEntry,
+  ModelAuditPage,
+} from "./contract/models.js";
 export type {
   ModelTransport,
   RoleBinding,

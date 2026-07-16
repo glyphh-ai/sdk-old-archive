@@ -40,6 +40,25 @@ export function registerUsage(reg: CommandRegistry): void {
   });
 
   reg.register({
+    path: "usage by-model",
+    summary: "usage attributed by model (org_admin sees the org; members see self)",
+    usage: "usage by-model [--from <YYYY-MM-DD>] [--to <YYYY-MM-DD>] [--user <userId>]",
+    covers: ["usage.byModel"],
+    async run(ctx, args) {
+      const from = flagStr(args, "from");
+      const to = flagStr(args, "to");
+      const userId = flagStr(args, "user");
+      ctx.printJson(
+        await ctx.client.usage.byModel({
+          ...(from ? { from } : {}),
+          ...(to ? { to } : {}),
+          ...(userId ? { userId } : {}),
+        }),
+      );
+    },
+  });
+
+  reg.register({
     path: "usage daily",
     summary: "per-day org usage series for a date range",
     usage: "usage daily <from:YYYY-MM-DD> <to:YYYY-MM-DD> [--tz <IANA>] [--user <userId>]",

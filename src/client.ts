@@ -36,6 +36,8 @@ import { HostingClient } from "./resources/hosting.js";
 import { LibraryClient } from "./resources/library.js";
 import { RelayClient } from "./resources/relay.js";
 import { RotorConfigClient } from "./resources/rotor-config.js";
+import { OrgModelsClient } from "./resources/org-models.js";
+import { ModelsClient } from "./resources/models.js";
 import type { Identity, StoredSession } from "./contract/auth.js";
 
 export interface ClientOptions {
@@ -120,6 +122,10 @@ export interface Client {
   relay: RelayClient;
   /** Rotor catalog + role→model bindings + the resolved runtime registry. */
   rotorConfig: RotorConfigClient;
+  /** The org's SUPPORTED model set + model-governance audit (org_admin). */
+  orgModels: OrgModelsClient;
+  /** The caller's EFFECTIVE model set — what they may actually use right now. */
+  models: ModelsClient;
   /** The bearer supplier for authenticated calls / the rotor transport. */
   token: TokenProvider;
   /** Force a session refresh (rotation). Resolves false if signed out. */
@@ -176,6 +182,8 @@ export function createClient(opts: ClientOptions): Client {
     messageSessions: new LibraryClient(authed, "message_session"),
     relay: new RelayClient(authed),
     rotorConfig: new RotorConfigClient(authed),
+    orgModels: new OrgModelsClient(authed),
+    models: new ModelsClient(authed),
     token,
     refresh: async () => (await refresh.refresh()) !== null,
     getSession: () => store.load(),
