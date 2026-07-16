@@ -19,6 +19,22 @@ export function registerConnections(reg: CommandRegistry): void {
   });
 
   reg.register({
+    path: "connections apps",
+    summary: "search the connector catalog for connectable apps",
+    usage: "connections apps [--search <query>] [--limit <n>]",
+    covers: ["connections.apps"],
+    async run(ctx, args) {
+      const search = flagStr(args, "search");
+      const limitRaw = flagStr(args, "limit");
+      const limit = limitRaw ? Number.parseInt(limitRaw, 10) : undefined;
+      ctx.printJson(await ctx.client.connections.apps({
+        ...(search ? { search } : {}),
+        ...(limit != null && Number.isFinite(limit) ? { limit } : {}),
+      }));
+    },
+  });
+
+  reg.register({
     path: "connections mcp add",
     summary: "install a custom MCP server (org_admin)",
     usage: "connections mcp add <slug> --name <name> --url <url> [--header 'K: V' ...]",

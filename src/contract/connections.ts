@@ -31,3 +31,10 @@ export interface CustomMcpInput {
 export interface ConnectLink {
   url: string;
 }
+
+/** One connectable app from the connector catalog (the "Add Connection" picker). */
+export interface ConnectorApp {
+  id: string;
+  name: string;
+  icon: string | null;
+}

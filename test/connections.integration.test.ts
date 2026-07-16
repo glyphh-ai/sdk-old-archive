@@ -45,4 +45,16 @@ describe("@glyphh/client — connections", () => {
     const { url } = await (await signIn()).connections.pipedreamConnectLink();
     expect(url).toMatch(/^https:\/\/pipedream\.com\//);
   });
+
+  it("apps() searches the connector catalog and returns typed { apps } (degrades to [] when unconfigured)", async () => {
+    const client = await signIn();
+    const { apps } = await client.connections.apps({ search: "slack", limit: 5 });
+    expect(Array.isArray(apps)).toBe(true);
+    // Whether Pipedream is live-configured or not, every row matches ConnectorApp.
+    for (const a of apps) {
+      expect(typeof a.id).toBe("string");
+      expect(typeof a.name).toBe("string");
+      expect(a.icon === null || typeof a.icon === "string").toBe(true);
+    }
+  });
 });
