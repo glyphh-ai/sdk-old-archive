@@ -1,0 +1,160 @@
+/**
+ * @license Proprietary — © Glyphh. All rights reserved.
+ *
+ * contract/admin.ts — the super_admin platform-console wire shapes. These mirror
+ * the server's admin endpoints, which back the admin pages that read snake_case
+ * fields directly, so (unlike the camelCase billing/catalog contracts) the admin
+ * shapes are snake_case — the SDK is a faithful typed passthrough. Credits are
+ * micro-credits here (the pages divide by 1e6); the daily token buckets are
+ * camelCase to match the chart series the Usage page consumes.
+ */
+
+export interface AdminStats {
+  users: { total: number; active: number };
+  orgCount: number;
+}
+
+// ── orgs ─────────────────────────────────────────────────────────────────────
+export interface AdminOrgListItem {
+  id: string;
+  name: string;
+  tier: string;
+  billing_status: string;
+  member_count: number;
+}
+export interface AdminOrgsPage {
+  orgs: AdminOrgListItem[];
+  total: number;
+}
+export interface AdminOrgMember {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  role: string;
+  status: string;
+}
+export interface AdminOrgDetail extends AdminOrgListItem {
+  max_seats: number;
+  created_at: string;
+  credits: { balance: number }; // micro-credits
+  members: AdminOrgMember[];
+}
+export interface AdminOrgPatch {
+  name?: string;
+  tier?: string;
+  billingStatus?: string;
+}
+
+// ── users ────────────────────────────────────────────────────────────────────
+export interface AdminUser {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+  status: string;
+  org_id: string | null;
+  org_name: string | null;
+  tier: string | null;
+  billing_status: string | null;
+  created_at: string;
+}
+export interface AdminUsersPage {
+  users: AdminUser[];
+  total: number;
+}
+export interface AdminUserPatch {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  role?: string;
+  status?: string;
+  tier?: string;
+  billingStatus?: string;
+}
+
+// ── plans / models pricing ────────────────────────────────────────────────────
+export interface AdminPlan {
+  tier: string;
+  display_name: string;
+  monthly_usd_cents: number;
+  included_credits: number; // micro-credits per seat per month
+  active: boolean;
+}
+export interface AdminPlanUpdate {
+  display_name?: string;
+  monthly_usd_cents?: number;
+  included_credits?: number;
+  active?: boolean;
+}
+export interface AdminModel {
+  provider: string;
+  model: string;
+  display_name: string;
+  input_credits_per_mtok: number | null; // micro-credits/MTok; null = not per-token priced
+  output_credits_per_mtok: number | null;
+  active: boolean;
+}
+export interface AdminModelUpdate {
+  display_name?: string;
+  active?: boolean;
+  input_credits_per_mtok?: number | null;
+  output_credits_per_mtok?: number | null;
+}
+
+// ── audit ────────────────────────────────────────────────────────────────────
+export interface AuditEntry {
+  id: string;
+  action: string;
+  actor_id: string | null;
+  actor_email: string | null;
+  target_id: string | null;
+  target_email: string | null;
+  metadata: unknown;
+  created_at: string;
+}
+export interface AuditPage {
+  entries: AuditEntry[];
+  total: number;
+}
+export interface AuditQuery {
+  action?: string | undefined;
+  actor?: string | undefined;
+  days?: number | undefined;
+  page?: number | undefined;
+  limit?: number | undefined;
+}
+
+// ── usage ────────────────────────────────────────────────────────────────────
+export interface AdminUsageByUser {
+  userId: string;
+  email: string;
+  name: string;
+  requests: number;
+  credits: number; // micro-credits
+  tokens: number;
+}
+export interface AdminUsageDay {
+  day: string; // YYYY-MM-DD
+  credits: number; // micro-credits
+  requests: number;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheCreationTokens: number;
+}
+export interface AdminDailyQuery {
+  from: string; // YYYY-MM-DD
+  to: string; // YYYY-MM-DD
+  tz?: string | undefined;
+  orgId?: string | undefined;
+  userId?: string | undefined;
+}
+
+/** Common list query for the paginated/searchable admin tables. */
+export interface AdminListQuery {
+  q?: string | undefined;
+  page?: number | undefined;
+  limit?: number | undefined;
+}

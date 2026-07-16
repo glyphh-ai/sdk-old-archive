@@ -24,6 +24,8 @@ import { BillingClient } from "./resources/billing.js";
 import { CatalogClient } from "./resources/catalog.js";
 import { ProvidersClient } from "./resources/providers.js";
 import { AdminClient } from "./resources/admin.js";
+import { MarketingClient } from "./resources/marketing.js";
+import { LoopsClient } from "./resources/loops.js";
 import { ConnectionsClient } from "./resources/connections.js";
 import { UsageClient } from "./resources/usage.js";
 import { ApiKeysClient } from "./resources/api-keys.js";
@@ -84,6 +86,10 @@ export interface Client {
   providers: ProvidersClient;
   /** Glyphh platform administration (super_admin). */
   admin: AdminClient;
+  /** Marketing link tracking + click analytics (super_admin). */
+  marketing: MarketingClient;
+  /** The org's agent-loop library (members read; org_admin builds). */
+  loops: LoopsClient;
   /** Connectors — Pipedream accounts + custom MCP servers (org_admin manages). */
   connections: ConnectionsClient;
   /** Usage rollups — credits consumed/saved by user, workspace, org. */
@@ -153,6 +159,8 @@ export function createClient(opts: ClientOptions): Client {
     catalog: new CatalogClient(authed),
     providers: new ProvidersClient(authed),
     admin: new AdminClient(authed),
+    marketing: new MarketingClient(authed),
+    loops: new LoopsClient(authed),
     connections: new ConnectionsClient(authed),
     usage: new UsageClient(authed),
     apiKeys: new ApiKeysClient(authed),

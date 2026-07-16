@@ -42,6 +42,24 @@ export interface OrgUpdate {
   billingContact?: BillingContact | null;
 }
 
+/**
+ * Org-wide runtime guardrails (org_admin). All fields optional non-negative
+ * integers; the runtime enforces them under its own floor (a policy only tightens).
+ */
+export interface GuardrailsPolicy {
+  maxInputTokens?: number;
+  maxOutputTokens?: number;
+  windowSeconds?: number;
+  windowTokens?: number;
+  windowCalls?: number;
+  maxConcurrent?: number;
+}
+
+/** The guardrails wire envelope — a policy, or null when the org set none. */
+export interface Guardrails {
+  guardrails_policy: GuardrailsPolicy | null;
+}
+
 export type MemberRole = "org_admin" | "user";
 
 export interface Member {

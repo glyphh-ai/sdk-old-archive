@@ -63,7 +63,47 @@ export type {
   ProviderCreate,
   ModelCreate,
   ModelPricing,
+  HfRepo,
+  HfRecommended,
+  HfSearchResult,
+  HfQuant,
 } from "./contract/catalog.js";
+export type {
+  AdminStats,
+  AdminOrgListItem,
+  AdminOrgsPage,
+  AdminOrgMember,
+  AdminOrgDetail,
+  AdminOrgPatch,
+  AdminUser,
+  AdminUsersPage,
+  AdminUserPatch,
+  AdminPlan,
+  AdminPlanUpdate,
+  AdminModel,
+  AdminModelUpdate,
+  AuditEntry,
+  AuditPage,
+  AuditQuery,
+  AdminUsageByUser,
+  AdminUsageDay,
+  AdminDailyQuery,
+  AdminListQuery,
+} from "./contract/admin.js";
+export { MarketingClient } from "./resources/marketing.js";
+export type {
+  MarketingLink,
+  MarketingClick,
+  ClicksByDay,
+  MarketingLinksPage,
+  MarketingStats,
+  CreateLinkInput,
+  UpdateLinkInput,
+  LinksQuery,
+  MarketingStatsQuery,
+} from "./contract/marketing.js";
+export { LoopsClient } from "./resources/loops.js";
+export type { Loop, LoopSummary, CreateLoopInput, UpdateLoopInput } from "./contract/loops.js";
 export { ConnectionsClient } from "./resources/connections.js";
 export type { Connection, ConnectionKind, CustomMcpInput, ConnectLink } from "./contract/connections.js";
 export { UsageClient } from "./resources/usage.js";
@@ -120,4 +160,6 @@ export type {
   Invite,
   CreatedInvite,
   InvitePreview,
+  GuardrailsPolicy,
+  Guardrails,
 } from "./contract/org.js";

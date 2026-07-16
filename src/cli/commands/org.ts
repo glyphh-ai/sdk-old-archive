@@ -6,11 +6,26 @@
  */
 
 import type { CommandRegistry } from "../registry.js";
+import type { CliArgs } from "../args.js";
 import { flagStr } from "../args.js";
-import type { MemberRole } from "../../contract/org.js";
+import type { MemberRole, GuardrailsPolicy } from "../../contract/org.js";
 
 function asRole(v: string | undefined): MemberRole {
   return v === "org_admin" ? "org_admin" : "user";
+}
+
+/** Build a guardrails policy from numeric flags (undefined fields are omitted). */
+function guardrailsFromFlags(args: CliArgs): GuardrailsPolicy {
+  const policy: GuardrailsPolicy = {};
+  const keys: (keyof GuardrailsPolicy)[] = ["maxInputTokens", "maxOutputTokens", "windowSeconds", "windowTokens", "windowCalls", "maxConcurrent"];
+  for (const k of keys) {
+    const v = flagStr(args, k);
+    if (v !== undefined) {
+      const n = Number(v);
+      if (Number.isFinite(n)) policy[k] = n;
+    }
+  }
+  return policy;
 }
 
 export function registerOrg(reg: CommandRegistry): void {
@@ -79,6 +94,31 @@ export function registerOrg(reg: CommandRegistry): void {
       const [userId, role] = args.positional;
       if (!userId || !role) throw new Error("usage: members role <userId> <org_admin|user>");
       ctx.printJson(await ctx.client.members.setRole(userId, asRole(role)));
+    },
+  });
+
+  reg.register({
+    path: "org guardrails",
+    summary: "the org's runtime guardrails policy (org_admin)",
+    covers: ["org.guardrails"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.org.guardrails());
+    },
+  });
+
+  reg.register({
+    path: "org guardrails set",
+    summary: "set/clear the org guardrails policy (org_admin)",
+    usage: "org guardrails set [--clear] [--maxInputTokens n] [--maxOutputTokens n] [--windowSeconds n] [--windowTokens n] [--windowCalls n] [--maxConcurrent n]",
+    covers: ["org.setGuardrails"],
+    async run(ctx, args) {
+      if ("clear" in args.flags) {
+        ctx.printJson(await ctx.client.org.setGuardrails(null));
+        return;
+      }
+      const policy = guardrailsFromFlags(args);
+      if (Object.keys(policy).length === 0) throw new Error("usage: org guardrails set [--clear] [--maxInputTokens n] …");
+      ctx.printJson(await ctx.client.org.setGuardrails(policy));
     },
   });
 

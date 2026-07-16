@@ -58,6 +58,28 @@ export function registerCatalog(reg: CommandRegistry): void {
   });
 
   reg.register({
+    path: "catalog hf-search",
+    summary: "search Hugging Face for GGUF open-weight repos",
+    usage: "catalog hf-search [query]",
+    covers: ["catalog.hfSearch"],
+    async run(ctx, args) {
+      ctx.printJson(await ctx.client.catalog.hfSearch(args.positional[0] ?? ""));
+    },
+  });
+
+  reg.register({
+    path: "catalog hf-quants",
+    summary: "list a Hugging Face repo's GGUF quants",
+    usage: "catalog hf-quants <repo>",
+    covers: ["catalog.hfQuants"],
+    async run(ctx, args) {
+      const repo = args.positional[0];
+      if (!repo) throw new Error("usage: catalog hf-quants <repo>");
+      ctx.printJson(await ctx.client.catalog.hfQuants(repo));
+    },
+  });
+
+  reg.register({
     path: "admin provider",
     summary: "release a provider (super_admin)",
     usage: "admin provider <slug> --name <name> [--kind proxied|open_weight]",

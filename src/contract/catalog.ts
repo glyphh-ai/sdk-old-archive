@@ -58,3 +58,30 @@ export interface ModelPricing {
   outputCreditsPerMTok?: number;
   active?: boolean;
 }
+
+// ── Hugging Face open-weight search (proxied server-side) ─────────────────────
+/** A GGUF repo hit from HF search. */
+export interface HfRepo {
+  repo: string;
+  downloads: number;
+}
+/** A curated open-weight recommendation (shown when the search box is empty). */
+export interface HfRecommended {
+  repo: string;
+  displayName: string;
+  description: string;
+}
+/** The hf-search result: raw repo hits + curated recommendations. */
+export interface HfSearchResult {
+  repos: HfRepo[];
+  recommended: HfRecommended[];
+}
+/** One downloadable GGUF quant within a repo. */
+export interface HfQuant {
+  file: string;
+  url: string;
+  sizeBytes: number;
+  sha256: string;
+  contextTokens: number;
+  minRamGb: number;
+}
