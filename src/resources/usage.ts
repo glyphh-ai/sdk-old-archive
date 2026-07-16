@@ -6,7 +6,7 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
-import type { UsageSummary } from "../contract/usage.js";
+import type { UsageDailyQuery, UsageDay, UsageSummary } from "../contract/usage.js";
 
 export class UsageClient {
   constructor(private readonly http: AuthedHttp) {}
@@ -14,6 +14,17 @@ export class UsageClient {
   /** The caller's own usage. */
   mine(): Promise<UsageSummary> {
     return this.http.get<UsageSummary>("/api/usage/mine");
+  }
+
+  /**
+   * Per-day series for the caller's org over [from, to], bucketed in `tz`. Scoped to
+   * the caller's org; an org_admin may pass `userId` to break it down by member.
+   */
+  daily(query: UsageDailyQuery): Promise<{ days: UsageDay[] }> {
+    const qs = new URLSearchParams({ from: query.from, to: query.to });
+    if (query.tz) qs.set("tz", query.tz);
+    if (query.userId) qs.set("userId", query.userId);
+    return this.http.get<{ days: UsageDay[] }>(`/api/usage/daily?${qs.toString()}`);
   }
 
   /** A workspace rollup (must be in the caller's org). */

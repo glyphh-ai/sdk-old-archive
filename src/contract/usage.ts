@@ -21,3 +21,23 @@ export interface UsageSummary {
   /** Number of ledger events. */
   events: number;
 }
+
+/** One day of the org usage series (credits in micro-credits; only days with usage). */
+export interface UsageDay {
+  day: string; // YYYY-MM-DD
+  credits: number; // micro-credits
+  requests: number;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheCreationTokens: number;
+}
+
+/** Query for the per-day series. `from`/`to` are YYYY-MM-DD; `tz` defaults to UTC. */
+export interface UsageDailyQuery {
+  from: string;
+  to: string;
+  tz?: string;
+  /** org_admin only — break the org series down to one member. */
+  userId?: string;
+}

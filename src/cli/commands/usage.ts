@@ -6,6 +6,7 @@
  */
 
 import type { CommandRegistry } from "../registry.js";
+import { flagStr } from "../args.js";
 
 export function registerUsage(reg: CommandRegistry): void {
   reg.register({
@@ -35,6 +36,28 @@ export function registerUsage(reg: CommandRegistry): void {
     covers: ["usage.org"],
     async run(ctx) {
       ctx.printJson(await ctx.client.usage.org());
+    },
+  });
+
+  reg.register({
+    path: "usage daily",
+    summary: "per-day org usage series for a date range",
+    usage: "usage daily <from:YYYY-MM-DD> <to:YYYY-MM-DD> [--tz <IANA>] [--user <userId>]",
+    covers: ["usage.daily"],
+    async run(ctx, args) {
+      const from = args.positional[0];
+      const to = args.positional[1];
+      if (!from || !to) throw new Error("usage: usage daily <from> <to> [--tz <IANA>] [--user <userId>]");
+      const tz = flagStr(args, "tz");
+      const userId = flagStr(args, "user");
+      ctx.printJson(
+        await ctx.client.usage.daily({
+          from,
+          to,
+          ...(tz ? { tz } : {}),
+          ...(userId ? { userId } : {}),
+        }),
+      );
     },
   });
 }
