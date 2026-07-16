@@ -33,6 +33,7 @@ import { AppsClient } from "./resources/apps.js";
 import { HostingClient } from "./resources/hosting.js";
 import { LibraryClient } from "./resources/library.js";
 import { RelayClient } from "./resources/relay.js";
+import { RotorConfigClient } from "./resources/rotor-config.js";
 import type { Identity, StoredSession } from "./contract/auth.js";
 
 export interface ClientOptions {
@@ -111,6 +112,8 @@ export interface Client {
   messageSessions: LibraryClient;
   /** Drive-my-desktop relay — org policy + per-device opt-in (same-user, revocable). */
   relay: RelayClient;
+  /** Rotor catalog + role→model bindings + the resolved runtime registry. */
+  rotorConfig: RotorConfigClient;
   /** The bearer supplier for authenticated calls / the rotor transport. */
   token: TokenProvider;
   /** Force a session refresh (rotation). Resolves false if signed out. */
@@ -164,6 +167,7 @@ export function createClient(opts: ClientOptions): Client {
     drips: new LibraryClient(authed, "drip"),
     messageSessions: new LibraryClient(authed, "message_session"),
     relay: new RelayClient(authed),
+    rotorConfig: new RotorConfigClient(authed),
     token,
     refresh: async () => (await refresh.refresh()) !== null,
     getSession: () => store.load(),

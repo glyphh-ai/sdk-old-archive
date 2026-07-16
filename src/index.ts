@@ -100,6 +100,16 @@ export type {
   RelayStatus,
   EnableRelayInput,
 } from "./contract/relay.js";
+export { RotorConfigClient } from "./resources/rotor-config.js";
+export type { RotorRole, RotorCatalogEntry } from "./contract/rotors.js";
+export type {
+  ModelTransport,
+  RoleBinding,
+  RotorBinding,
+  SetBindingInput,
+  ResolvedModel,
+  RotorRegistry,
+} from "./contract/bindings.js";
 export type {
   Org,
   OrgUpdate,

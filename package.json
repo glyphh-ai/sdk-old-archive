@@ -29,6 +29,11 @@
       "types": "./dist/runtime.d.ts",
       "import": "./dist/runtime.js",
       "require": "./dist/runtime.cjs"
+    },
+    "./models": {
+      "types": "./dist/models.d.ts",
+      "import": "./dist/models.js",
+      "require": "./dist/models.cjs"
     }
   },
   "files": [

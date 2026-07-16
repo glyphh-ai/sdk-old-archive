@@ -6,6 +6,7 @@ export default defineConfig({
     "storage/memory": "src/storage/memory.ts",
     "storage/file": "src/storage/file.ts",
     runtime: "src/runtime/index.ts",
+    models: "src/models/index.ts",
     cli: "scripts/cli.ts",
   },
   format: ["esm", "cjs"],

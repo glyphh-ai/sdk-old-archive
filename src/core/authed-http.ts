@@ -24,6 +24,9 @@ export class AuthedHttp {
   async patch<T>(path: string, body?: unknown): Promise<T> {
     return this.http.patch<T>(path, body, { bearer: await this.token() });
   }
+  async put<T>(path: string, body?: unknown): Promise<T> {
+    return this.http.put<T>(path, body, { bearer: await this.token() });
+  }
   async del<T>(path: string): Promise<T> {
     return this.http.del<T>(path, { bearer: await this.token() });
   }
