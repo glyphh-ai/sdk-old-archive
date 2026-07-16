@@ -95,6 +95,10 @@ export class AdminClient {
   updateModel(provider: string, model: string, patch: AdminModelUpdate): Promise<{ model: AdminModel }> {
     return this.http.put<{ model: AdminModel }>(`/api/admin/models/${encodeURIComponent(provider)}/${encodeURIComponent(model)}`, patch);
   }
+  /** Hard-delete a catalog model + its org support rows (super_admin). */
+  deleteModel(provider: string, model: string): Promise<void> {
+    return this.http.del<void>(`/api/admin/models/${encodeURIComponent(provider)}/${encodeURIComponent(model)}`);
+  }
 
   // ── usage ────────────────────────────────────────────────────────────────────
   usageByUser(days?: number): Promise<{ users: AdminUsageByUser[] }> {

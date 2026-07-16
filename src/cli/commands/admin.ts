@@ -216,6 +216,18 @@ export function registerAdmin(reg: CommandRegistry): void {
       ctx.printJson(await ctx.client.admin.updateModel(provider, model, patch));
     },
   });
+  reg.register({
+    path: "admin model delete",
+    summary: "remove a catalog model + its org support (super_admin)",
+    usage: "admin model delete <provider> <model>",
+    covers: ["admin.deleteModel"],
+    async run(ctx, args) {
+      const [provider, model] = args.positional;
+      if (!provider || !model) throw new Error("usage: admin model delete <provider> <model>");
+      await ctx.client.admin.deleteModel(provider, model);
+      ctx.print("deleted ✓");
+    },
+  });
 
   // ── usage ────────────────────────────────────────────────────────────────────
   reg.register({
