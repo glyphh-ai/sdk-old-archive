@@ -7,7 +7,10 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
-import type { Plan, Subscription, Balance, HostedUrl } from "../contract/billing.js";
+import type {
+  Plan, Subscription, Balance, HostedUrl,
+  CreditsBreakdown, AutotopupConfig, AutotopupInput, PlanChange, Invoice, TopupInput,
+} from "../contract/billing.js";
 
 export class BillingClient {
   constructor(private readonly http: AuthedHttp) {}
@@ -24,9 +27,39 @@ export class BillingClient {
     return this.http.get<Balance>("/api/billing/balance");
   }
 
+  /** The org's credit breakdown (balance/allowance/grants/purchases, micro-credits). */
+  credits(): Promise<CreditsBreakdown> {
+    return this.http.get<CreditsBreakdown>("/api/billing/credits");
+  }
+
   /** Start a Stripe Checkout for `tier` — returns the hosted URL to open. */
   subscribe(tier: string): Promise<HostedUrl> {
     return this.http.post<HostedUrl>("/api/billing/subscribe", { tier });
+  }
+
+  /** Move the org's plan to `tier` (proration applied server-side); free orgs get a Checkout url. */
+  changePlan(tier: string): Promise<PlanChange> {
+    return this.http.post<PlanChange>("/api/billing/change-plan", { tier });
+  }
+
+  /** Buy a credit top-up — returns the hosted Checkout URL to open. `credits` is micro-credits. */
+  topup(input: TopupInput): Promise<HostedUrl> {
+    return this.http.post<HostedUrl>("/api/billing/topup", input);
+  }
+
+  /** Read the org's auto-top-up rule. */
+  autotopup(): Promise<AutotopupConfig> {
+    return this.http.get<AutotopupConfig>("/api/billing/autotopup");
+  }
+
+  /** Configure the org's auto-top-up rule (upsert). */
+  setAutotopup(input: AutotopupInput): Promise<AutotopupConfig> {
+    return this.http.post<AutotopupConfig>("/api/billing/autotopup", input);
+  }
+
+  /** Recent Stripe invoices for the org. */
+  invoices(): Promise<Invoice[]> {
+    return this.http.get<Invoice[]>("/api/billing/invoices");
   }
 
   /** Open the Stripe Customer Portal (self-serve plan/payment management). */

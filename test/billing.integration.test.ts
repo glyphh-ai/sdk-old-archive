@@ -42,4 +42,39 @@ describe("@glyphh/client — billing", () => {
     const { url } = await client.billing.subscribe("basic");
     expect(url).toMatch(/^https:\/\/checkout\.stripe\.com\//);
   });
+
+  it("credits() returns the micro-credit breakdown for a fresh free org", async () => {
+    const client = await signIn();
+    const c = await client.billing.credits();
+    expect(c.balance).toBe(25_000_000);
+    expect(c.allowance).toBe(25_000_000);
+    expect(c.grants).toBe(25_000_000);
+    expect(c.purchases).toBe(0);
+  });
+
+  it("autotopup() defaults to disabled and setAutotopup() round-trips", async () => {
+    const client = await signIn();
+    expect(await client.billing.autotopup()).toEqual({ enabled: false, thresholdCredits: 0, topupCredits: 0 });
+    const set = await client.billing.setAutotopup({ enabled: true, thresholdCredits: 100_000_000, topupCredits: 500_000_000 });
+    expect(set).toEqual({ enabled: true, thresholdCredits: 100_000_000, topupCredits: 500_000_000 });
+    expect((await client.billing.autotopup()).enabled).toBe(true);
+  });
+
+  it("changePlan() on a free org yields a Checkout fallback URL", async () => {
+    const client = await signIn();
+    const change = await client.billing.changePlan("pro");
+    expect(change.effect).toBe("checkout");
+    expect(change.url).toMatch(/^https:\/\/checkout\.stripe\.com\//);
+  });
+
+  it("topup() returns a Stripe checkout URL", async () => {
+    const client = await signIn();
+    const { url } = await client.billing.topup({ credits: 1_000_000_000 });
+    expect(url).toMatch(/^https:\/\/checkout\.stripe\.com\//);
+  });
+
+  it("invoices() returns an array (empty for a new org)", async () => {
+    const client = await signIn();
+    expect(await client.billing.invoices()).toEqual([]);
+  });
 });
