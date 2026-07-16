@@ -38,6 +38,8 @@ import { RelayClient } from "./resources/relay.js";
 import { RotorConfigClient } from "./resources/rotor-config.js";
 import { OrgModelsClient } from "./resources/org-models.js";
 import { ModelsClient } from "./resources/models.js";
+import { ProfileClient } from "./resources/profile.js";
+import { SupportClient } from "./resources/support.js";
 import type { Identity, StoredSession } from "./contract/auth.js";
 
 export interface ClientOptions {
@@ -72,6 +74,10 @@ export interface OpenSessionOptions extends SessionConfig {
 export interface Client {
   /** The sign-in surface (magic link, Google, Apple, org SSO, sign out). */
   auth: AuthClient;
+  /** The caller's own editable profile (name + timezone). */
+  profile: ProfileClient;
+  /** Submit support tickets (relayed to the configured sink). */
+  support: SupportClient;
   /** The caller's organization (read + org_admin update). */
   org: OrgClient;
   /** Org membership + seats (list, invite, remove, set role). */
@@ -157,6 +163,8 @@ export function createClient(opts: ClientOptions): Client {
   const authed = new AuthedHttp(http, token);
   return {
     auth,
+    profile: new ProfileClient(authed),
+    support: new SupportClient(authed),
     org: new OrgClient(authed),
     members: new MembersClient(authed),
     invites: new InvitesClient(http, authed),

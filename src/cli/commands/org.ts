@@ -8,10 +8,14 @@
 import type { CommandRegistry } from "../registry.js";
 import type { CliArgs } from "../args.js";
 import { flagStr } from "../args.js";
-import type { MemberRole, GuardrailsPolicy } from "../../contract/org.js";
+import type { MemberRole, MemberSystemRole, GuardrailsPolicy } from "../../contract/org.js";
 
 function asRole(v: string | undefined): MemberRole {
   return v === "org_admin" ? "org_admin" : "user";
+}
+
+function asSystemRole(v: string | undefined): MemberSystemRole {
+  return v === "org_admin" ? "org_admin" : v === "admin" ? "admin" : "user";
 }
 
 /** Build a guardrails policy from numeric flags (undefined fields are omitted). */
@@ -87,13 +91,43 @@ export function registerOrg(reg: CommandRegistry): void {
 
   reg.register({
     path: "members role",
-    summary: "set a member's role",
-    usage: "members role <userId> <org_admin|user>",
+    summary: "set a member's system role",
+    usage: "members role <userId> <org_admin|admin|user>",
     covers: ["members.setRole"],
     async run(ctx, args) {
       const [userId, role] = args.positional;
-      if (!userId || !role) throw new Error("usage: members role <userId> <org_admin|user>");
-      ctx.printJson(await ctx.client.members.setRole(userId, asRole(role)));
+      if (!userId || !role) throw new Error("usage: members role <userId> <org_admin|admin|user>");
+      ctx.printJson(await ctx.client.members.setRole(userId, asSystemRole(role)));
+    },
+  });
+
+  reg.register({
+    path: "members profile",
+    summary: "set a member's name (org_admin)",
+    usage: "members profile <userId> [--firstName <s>] [--lastName <s>]",
+    covers: ["members.updateProfile"],
+    async run(ctx, args) {
+      const userId = args.positional[0];
+      if (!userId) throw new Error("usage: members profile <userId> [--firstName <s>] [--lastName <s>]");
+      const patch: { firstName?: string; lastName?: string } = {};
+      const first = flagStr(args, "firstName");
+      const last = flagStr(args, "lastName");
+      if (first !== undefined) patch.firstName = first;
+      if (last !== undefined) patch.lastName = last;
+      ctx.printJson(await ctx.client.members.updateProfile(userId, patch));
+    },
+  });
+
+  reg.register({
+    path: "members workspace",
+    summary: "assign a member to a workspace (or --clear to the base)",
+    usage: "members workspace <userId> <workspaceId | --clear>",
+    covers: ["members.assignWorkspace"],
+    async run(ctx, args) {
+      const userId = args.positional[0];
+      if (!userId) throw new Error("usage: members workspace <userId> <workspaceId | --clear>");
+      const workspaceId = "clear" in args.flags ? null : args.positional[1] ?? null;
+      ctx.printJson(await ctx.client.members.assignWorkspace(userId, workspaceId));
     },
   });
 

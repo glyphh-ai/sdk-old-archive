@@ -62,11 +62,20 @@ export interface Guardrails {
 
 export type MemberRole = "org_admin" | "user";
 
+/** The system role a member may be SET to (org_admin is granted via invite, not here). */
+export type MemberSystemRole = "org_admin" | "admin" | "user";
+
 export interface Member {
   userId: string;
   email: string;
   name: string | null;
   role: string;
+}
+
+/** `members.updateProfile` — set a member's display name from a first/last pair. */
+export interface MemberProfileUpdate {
+  firstName?: string;
+  lastName?: string;
 }
 
 export interface Invite {

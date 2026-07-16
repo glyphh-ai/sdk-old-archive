@@ -28,6 +28,8 @@ import { registerLibrary } from "./commands/library.js";
 import { registerRelay } from "./commands/relay.js";
 import { registerRotorConfig } from "./commands/rotor-config.js";
 import { registerModels } from "./commands/models.js";
+import { registerProfile } from "./commands/profile.js";
+import { registerSupport } from "./commands/support.js";
 
 export function buildRegistry(): CommandRegistry {
   const reg = new CommandRegistry();
@@ -52,6 +54,8 @@ export function buildRegistry(): CommandRegistry {
   registerRelay(reg);
   registerRotorConfig(reg);
   registerModels(reg);
+  registerProfile(reg);
+  registerSupport(reg);
   return reg;
 }
 

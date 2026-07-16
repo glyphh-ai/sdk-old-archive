@@ -44,6 +44,18 @@ export function registerAdmin(reg: CommandRegistry): void {
     },
   });
   reg.register({
+    path: "admin org create",
+    summary: "create a new org (super_admin)",
+    usage: "admin org create --name <name> [--tier <tier>]",
+    covers: ["admin.createOrg"],
+    async run(ctx, args) {
+      const name = flagStr(args, "name");
+      if (!name) throw new Error("usage: admin org create --name <name> [--tier <tier>]");
+      const tier = flagStr(args, "tier");
+      ctx.printJson(await ctx.client.admin.createOrg({ name, ...(tier ? { tier } : {}) }));
+    },
+  });
+  reg.register({
     path: "admin org",
     summary: "an org's detail (super_admin)",
     usage: "admin org <id>",

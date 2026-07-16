@@ -45,6 +45,11 @@ export interface AdminOrgPatch {
   tier?: string;
   billingStatus?: string;
 }
+/** Create a brand-new org from the console (name required, tier defaults to free). */
+export interface AdminCreateOrg {
+  name: string;
+  tier?: string;
+}
 
 // ── users ────────────────────────────────────────────────────────────────────
 export interface AdminUser {

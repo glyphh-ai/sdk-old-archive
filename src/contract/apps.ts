@@ -55,3 +55,17 @@ export interface InstalledApp {
   version: string;
   installedAt: string;
 }
+
+/**
+ * A deployed panel app — the projection of a hosting deployment the dashboard's
+ * "apps deployed" count reads (a live deployment carries its public `url`).
+ */
+export interface PanelApp {
+  id: string;
+  appSlug: string;
+  url: string | null;
+  status: "queued" | "building" | "live" | "error" | "destroyed";
+  createdAt: string;
+  updatedAt: string;
+  system: boolean;
+}

@@ -38,3 +38,63 @@ export interface ConnectorApp {
   name: string;
   icon: string | null;
 }
+
+/** One tool/action a connector app exposes. */
+export interface ConnectorTool {
+  name: string;
+  description: string | null;
+}
+
+/**
+ * The RICH custom-MCP connection the org admin catalog (Settings → MCP) manages:
+ * endpoint url, logo hash, enabled toggle, the NAMES of the write-only headers
+ * (never values), and the tool count from the last successful probe.
+ */
+export interface OrgMcpConnection {
+  slug: string;
+  name: string;
+  iconSha: string | null;
+  url: string;
+  enabled: boolean;
+  headerKeys: string[];
+  toolCount: number;
+}
+
+/** Publish (create) a custom MCP connection. `headers` are write-only (encrypted). */
+export interface OrgMcpInput {
+  slug: string;
+  name: string;
+  url: string;
+  headers?: Record<string, string>;
+}
+
+/** Partial edit of a custom MCP connection. Omitting `headers` keeps the saved secret. */
+export interface OrgMcpPatch {
+  name?: string;
+  url?: string;
+  headers?: Record<string, string>;
+  enabled?: boolean;
+}
+
+/** The publish result: whether the endpoint was reachable + its advertised tool count. */
+export interface OrgMcpCreateResult {
+  ok: boolean;
+  connection: OrgMcpConnection;
+  toolCount: number;
+  /** The probe failure message when `ok` is false (the connection is still saved). */
+  error?: string;
+}
+
+/**
+ * The RICH org-shared Pipedream connection card (Configure → Connections): identified
+ * by row id, with the app it authorizes, health, and when it was connected.
+ */
+export interface OrgPipedreamConnection {
+  id: string;
+  appSlug: string;
+  appName: string;
+  name: string;
+  icon: string | null;
+  healthy: boolean;
+  createdAt: string;
+}

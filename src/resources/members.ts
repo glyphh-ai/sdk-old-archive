@@ -6,7 +6,7 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
-import type { CreatedInvite, Member, MemberRole } from "../contract/org.js";
+import type { CreatedInvite, Member, MemberRole, MemberSystemRole, MemberProfileUpdate } from "../contract/org.js";
 
 export class MembersClient {
   constructor(private readonly http: AuthedHttp) {}
@@ -23,7 +23,21 @@ export class MembersClient {
     return this.http.del<void>(`/api/org/members/${encodeURIComponent(userId)}`);
   }
 
-  setRole(userId: string, role: MemberRole): Promise<Member> {
-    return this.http.patch<Member>(`/api/org/members/${encodeURIComponent(userId)}`, { role });
+  /** Set a member's display name from a first/last pair (org_admin). */
+  updateProfile(userId: string, patch: MemberProfileUpdate): Promise<Member> {
+    return this.http.patch<Member>(`/api/org/members/${encodeURIComponent(userId)}`, patch);
+  }
+
+  /** Set a member's system role — user | admin | org_admin (org_admin). */
+  setRole(userId: string, role: MemberSystemRole): Promise<Member> {
+    return this.http.patch<Member>(`/api/org/members/${encodeURIComponent(userId)}/role`, { role });
+  }
+
+  /**
+   * Assign a member to a workspace (access role), or clear them back to the org's
+   * base workspace with `null` (org_admin).
+   */
+  assignWorkspace(userId: string, workspaceId: string | null): Promise<Member> {
+    return this.http.patch<Member>(`/api/org/members/${encodeURIComponent(userId)}/org-role`, { roleId: workspaceId });
   }
 }

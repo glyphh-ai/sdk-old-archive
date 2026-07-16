@@ -73,6 +73,15 @@ export function registerApps(reg: CommandRegistry): void {
   });
 
   reg.register({
+    path: "apps deployed",
+    summary: "your deployed panel apps (dashboard count)",
+    covers: ["apps.deployed"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.apps.deployed());
+    },
+  });
+
+  reg.register({
     path: "apps uninstall",
     summary: "uninstall an app from your org",
     usage: "apps uninstall <slug>",

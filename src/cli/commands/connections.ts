@@ -78,4 +78,132 @@ export function registerConnections(reg: CommandRegistry): void {
       ctx.print((await ctx.client.connections.pipedreamConnectLink()).url);
     },
   });
+
+  reg.register({
+    path: "connections apptools",
+    summary: "list a connector app's tools",
+    usage: "connections apptools <slug>",
+    covers: ["connections.appTools"],
+    async run(ctx, args) {
+      const slug = args.positional[0];
+      if (!slug) throw new Error("usage: connections apptools <slug>");
+      ctx.printJson(await ctx.client.connections.appTools(slug));
+    },
+  });
+
+  // ── org custom-MCP catalog (Settings → MCP) ──────────────────────────────────
+  reg.register({
+    path: "connections org-mcp list",
+    summary: "list the org's published custom-MCP connections (rich)",
+    covers: ["connections.orgMcpList"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.connections.orgMcpList());
+    },
+  });
+
+  reg.register({
+    path: "connections org-mcp add",
+    summary: "publish a custom-MCP connection (org_admin)",
+    usage: "connections org-mcp add <slug> --name <name> --url <url> [--header 'K: V,K2: V2']",
+    covers: ["connections.orgMcpCreate"],
+    async run(ctx, args) {
+      const slug = args.positional[0];
+      const name = flagStr(args, "name");
+      const url = flagStr(args, "url");
+      if (!slug || !name || !url) throw new Error("usage: connections org-mcp add <slug> --name <name> --url <url>");
+      const headers = parseHeaderFlag(flagStr(args, "header"));
+      ctx.printJson(await ctx.client.connections.orgMcpCreate({ slug, name, url, ...(headers ? { headers } : {}) }));
+    },
+  });
+
+  reg.register({
+    path: "connections org-mcp update",
+    summary: "edit a custom-MCP connection (org_admin)",
+    usage: "connections org-mcp update <slug> [--name <n>] [--url <u>] [--header 'K: V'] [--enabled true|false]",
+    covers: ["connections.orgMcpUpdate"],
+    async run(ctx, args) {
+      const slug = args.positional[0];
+      if (!slug) throw new Error("usage: connections org-mcp update <slug> [--name <n>] [--url <u>] [--header 'K: V'] [--enabled true|false]");
+      const patch: { name?: string; url?: string; headers?: Record<string, string>; enabled?: boolean } = {};
+      const name = flagStr(args, "name");
+      const url = flagStr(args, "url");
+      const headers = parseHeaderFlag(flagStr(args, "header"));
+      const enabled = flagStr(args, "enabled");
+      if (name !== undefined) patch.name = name;
+      if (url !== undefined) patch.url = url;
+      if (headers) patch.headers = headers;
+      if (enabled !== undefined) patch.enabled = enabled === "true";
+      ctx.printJson(await ctx.client.connections.orgMcpUpdate(slug, patch));
+    },
+  });
+
+  reg.register({
+    path: "connections org-mcp remove",
+    summary: "delete a custom-MCP connection (org_admin)",
+    usage: "connections org-mcp remove <slug>",
+    covers: ["connections.orgMcpRemove"],
+    async run(ctx, args) {
+      const slug = args.positional[0];
+      if (!slug) throw new Error("usage: connections org-mcp remove <slug>");
+      ctx.printJson(await ctx.client.connections.orgMcpRemove(slug));
+    },
+  });
+
+  reg.register({
+    path: "connections org-mcp icon",
+    summary: "set a custom-MCP connection's logo (data URL)",
+    usage: "connections org-mcp icon <slug> --dataUrl <data:...>",
+    covers: ["connections.orgMcpSetIcon"],
+    async run(ctx, args) {
+      const slug = args.positional[0];
+      const dataUrl = flagStr(args, "dataUrl");
+      if (!slug || !dataUrl) throw new Error("usage: connections org-mcp icon <slug> --dataUrl <data:...>");
+      ctx.printJson(await ctx.client.connections.orgMcpSetIcon(slug, dataUrl));
+    },
+  });
+
+  // ── org-shared Pipedream connections (Configure → Connections) ───────────────
+  reg.register({
+    path: "connections org list",
+    summary: "list the org's shared Pipedream connections (rich cards)",
+    covers: ["connections.pipedreamList"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.connections.pipedreamList());
+    },
+  });
+
+  reg.register({
+    path: "connections org connect",
+    summary: "start an org-level OAuth for an app (prints the URL)",
+    usage: "connections org connect <appSlug>",
+    covers: ["connections.pipedreamConnect"],
+    async run(ctx, args) {
+      const appSlug = args.positional[0];
+      if (!appSlug) throw new Error("usage: connections org connect <appSlug>");
+      ctx.print((await ctx.client.connections.pipedreamConnect(appSlug)).connectUrl);
+    },
+  });
+
+  reg.register({
+    path: "connections org disconnect",
+    summary: "disconnect an org Pipedream connection by id (audited)",
+    usage: "connections org disconnect <id>",
+    covers: ["connections.pipedreamDisconnect"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: connections org disconnect <id>");
+      ctx.printJson(await ctx.client.connections.pipedreamDisconnect(id));
+    },
+  });
+}
+
+/** Parse a repeated `--header 'K: V,K2: V2'` flag into a header map (or undefined). */
+function parseHeaderFlag(raw: string | undefined): Record<string, string> | undefined {
+  if (!raw) return undefined;
+  const headers: Record<string, string> = {};
+  for (const pair of raw.split(",")) {
+    const idx = pair.indexOf(":");
+    if (idx !== -1) headers[pair.slice(0, idx).trim()] = pair.slice(idx + 1).trim();
+  }
+  return Object.keys(headers).length ? headers : undefined;
 }

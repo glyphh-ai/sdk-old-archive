@@ -59,6 +59,11 @@ describe("@glyphh/client — apps + hosting", () => {
     expect(got.id).toBe(dep.id);
     expect((await client.hosting.list()).some((d) => d.id === dep.id)).toBe(true);
 
+    // The deployed app shows up in the dashboard's panel-apps projection.
+    const panels = await client.apps.deployed();
+    const panel = panels.find((p) => p.id === dep.id);
+    expect(panel).toMatchObject({ appSlug: slug, url: `https://${slug}.glyphh.app`, system: false });
+
     await client.hosting.destroy(dep.id);
     expect((await client.hosting.status(dep.id)).status).toBe("destroyed");
   });

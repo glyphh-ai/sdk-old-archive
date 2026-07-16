@@ -11,7 +11,7 @@
 import type { AuthedHttp } from "../core/authed-http.js";
 import type { Provider, Model, ProviderCreate, ModelCreate, ModelPricing } from "../contract/catalog.js";
 import type {
-  AdminStats, AdminOrgsPage, AdminOrgDetail, AdminOrgPatch,
+  AdminStats, AdminOrgsPage, AdminOrgListItem, AdminOrgDetail, AdminOrgPatch, AdminCreateOrg,
   AdminUsersPage, AdminUser, AdminUserPatch,
   AdminPlan, AdminPlanUpdate, AdminModel, AdminModelUpdate,
   AuditPage, AuditQuery, AdminUsageByUser, AdminUsageDay, AdminDailyQuery, AdminListQuery,
@@ -47,6 +47,10 @@ export class AdminClient {
   // ── orgs ─────────────────────────────────────────────────────────────────────
   orgs(query: AdminListQuery = {}): Promise<AdminOrgsPage> {
     return this.http.get<AdminOrgsPage>(withQuery("/api/admin/orgs", { q: query.q, page: query.page, limit: query.limit }));
+  }
+  /** Create a brand-new organization (standalone; base workspace + free credits). */
+  createOrg(input: AdminCreateOrg): Promise<AdminOrgListItem> {
+    return this.http.post<AdminOrgListItem>("/api/admin/orgs", input);
   }
   org(id: string): Promise<AdminOrgDetail> {
     return this.http.get<AdminOrgDetail>(`/api/admin/orgs/${encodeURIComponent(id)}`);

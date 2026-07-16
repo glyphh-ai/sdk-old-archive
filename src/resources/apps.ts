@@ -7,7 +7,7 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
-import type { AppListing, InstalledApp, PublishAppInput } from "../contract/apps.js";
+import type { AppListing, InstalledApp, PublishAppInput, PanelApp } from "../contract/apps.js";
 
 export class AppsClient {
   constructor(private readonly http: AuthedHttp) {}
@@ -40,5 +40,10 @@ export class AppsClient {
   /** Uninstall an app from your org. */
   uninstall(slug: string): Promise<void> {
     return this.http.del<void>(`/api/apps/${encodeURIComponent(slug)}/install`);
+  }
+
+  /** The caller's deployed panel apps (backs the dashboard's "apps deployed" count). */
+  deployed(): Promise<PanelApp[]> {
+    return this.http.get<PanelApp[]>("/api/panel-apps");
   }
 }

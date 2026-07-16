@@ -51,4 +51,19 @@ describe("@glyphh/client — accounts", () => {
       httpStatus: 402,
     });
   });
+
+  it("member writes: updateProfile + setRole + assignWorkspace (on self, the sole member)", async () => {
+    const client = await signIn();
+    const me = await client.me();
+
+    const named = await client.members.updateProfile(me.userId, { firstName: "Grace", lastName: "Hopper" });
+    expect(named).toMatchObject({ userId: me.userId, name: "Grace Hopper" });
+
+    const roled = await client.members.setRole(me.userId, "org_admin");
+    expect(roled.role).toBe("org_admin");
+
+    // Clear to the base workspace (null) — a no-op on the sole member, but exercises the route.
+    const assigned = await client.members.assignWorkspace(me.userId, null);
+    expect(assigned.userId).toBe(me.userId);
+  });
 });
