@@ -91,6 +91,39 @@ export function registerConnections(reg: CommandRegistry): void {
     },
   });
 
+  reg.register({
+    path: "connections mcp-tools",
+    summary: "an org custom-MCP connection's advertised tools (org_admin)",
+    usage: "connections mcp-tools <slug>",
+    covers: ["connections.mcpTools"],
+    async run(ctx, args) {
+      const slug = args.positional[0];
+      if (!slug) throw new Error("usage: connections mcp-tools <slug>");
+      ctx.printJson(await ctx.client.connections.mcpTools(slug));
+    },
+  });
+
+  reg.register({
+    path: "connections tools",
+    summary: "the caller's resolved per-connection granted tools",
+    covers: ["connections.resolvedTools"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.connections.resolvedTools());
+    },
+  });
+
+  reg.register({
+    path: "connections mcp-oauth",
+    summary: "start OAuth for a custom-MCP connection (prints the authorize URL)",
+    usage: "connections mcp-oauth <slug>",
+    covers: ["connections.startMcpOAuth"],
+    async run(ctx, args) {
+      const slug = args.positional[0];
+      if (!slug) throw new Error("usage: connections mcp-oauth <slug>");
+      ctx.print((await ctx.client.connections.startMcpOAuth(slug)).authorizeUrl);
+    },
+  });
+
   // ── org custom-MCP catalog (Settings → MCP) ──────────────────────────────────
   reg.register({
     path: "connections org-mcp list",

@@ -48,6 +48,29 @@ describe("@glyphh/client — workspaces", () => {
     await expect(client.workspaces.delete(base.id)).rejects.toMatchObject({ httpStatus: 409 });
   });
 
+  it("allowedConnectionTools round-trips through create + update (defaults to {})", async () => {
+    const client = await signIn();
+    const base = (await client.workspaces.list()).find((w) => w.isBase)!;
+    expect(base.allowedConnectionTools).toEqual({});
+
+    const created = await client.workspaces.create({
+      name: "Scoped",
+      limitConnections: true,
+      allowedConnections: ["mcp-billing"],
+      allowedConnectionTools: { "mcp-billing": ["read_invoice"] },
+    });
+    try {
+      expect(created.allowedConnectionTools).toEqual({ "mcp-billing": ["read_invoice"] });
+
+      const updated = await client.workspaces.update(created.id, {
+        allowedConnectionTools: { "mcp-billing": [] },
+      });
+      expect(updated.allowedConnectionTools).toEqual({ "mcp-billing": [] });
+    } finally {
+      await client.workspaces.delete(created.id);
+    }
+  });
+
   it("an org_admin's effective grants are unlimited (all)", async () => {
     const client = await signIn();
     const grants = await client.workspaces.grants();

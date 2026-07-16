@@ -10,7 +10,7 @@
 import type { CommandRegistry } from "../registry.js";
 import type { CliArgs } from "../args.js";
 import { flagStr } from "../args.js";
-import type { AdminOrgPatch, AdminUserPatch, AdminPlanUpdate, AdminModelUpdate } from "../../contract/admin.js";
+import type { AdminOrgPatch, AdminUserPatch, AdminPlanUpdate, AdminOrgPlanPatch, AdminModelUpdate } from "../../contract/admin.js";
 
 function flagNum(args: CliArgs, name: string): number | undefined {
   const v = flagStr(args, name);
@@ -190,18 +190,65 @@ export function registerAdmin(reg: CommandRegistry): void {
   });
   reg.register({
     path: "admin plan update",
-    summary: "edit a plan (price/credits/active)",
-    usage: "admin plan update <tier> [--name <n>] [--cents <usd_cents>] [--credits <micro>] [--active true|false]",
+    summary: "edit a plan (price/credits/seats/active)",
+    usage: "admin plan update <tier> [--name <n>] [--cents <usd_cents>] [--credits <micro>] [--seats <n>] [--active true|false]",
     covers: ["admin.updatePlan"],
     async run(ctx, args) {
       const tier = args.positional[0];
-      if (!tier) throw new Error("usage: admin plan update <tier> [--name ..] [--cents ..] [--credits ..] [--active ..]");
+      if (!tier) throw new Error("usage: admin plan update <tier> [--name ..] [--cents ..] [--credits ..] [--seats ..] [--active ..]");
       const patch: AdminPlanUpdate = {};
       const name = flagStr(args, "name"); if (name !== undefined) patch.display_name = name;
       const cents = flagNum(args, "cents"); if (cents !== undefined) patch.monthly_usd_cents = cents;
       const credits = flagNum(args, "credits"); if (credits !== undefined) patch.included_credits = credits;
+      const seats = flagNum(args, "seats"); if (seats !== undefined) patch.max_seats = seats;
       const active = flagBool(args, "active"); if (active !== undefined) patch.active = active;
       ctx.printJson(await ctx.client.admin.updatePlan(tier, patch));
+    },
+  });
+
+  // ── per-org bespoke (enterprise) plans ────────────────────────────────────────
+  reg.register({
+    path: "admin org-plan set",
+    summary: "create/replace an org's bespoke plan (super_admin)",
+    usage: "admin org-plan set <orgId> --seats <n> --cents <usd_cents> --credits <micro> --name <displayName>",
+    covers: ["admin.setOrgPlan"],
+    async run(ctx, args) {
+      const orgId = args.positional[0];
+      const seats = flagNum(args, "seats");
+      const cents = flagNum(args, "cents");
+      const credits = flagNum(args, "credits");
+      const name = flagStr(args, "name");
+      if (!orgId || seats === undefined || cents === undefined || credits === undefined || !name) {
+        throw new Error("usage: admin org-plan set <orgId> --seats <n> --cents <usd_cents> --credits <micro> --name <displayName>");
+      }
+      ctx.printJson(await ctx.client.admin.setOrgPlan(orgId, { maxSeats: seats, monthlyUsdCents: cents, monthlyCredits: credits, displayName: name }));
+    },
+  });
+  reg.register({
+    path: "admin org-plan update",
+    summary: "edit an org's bespoke plan (super_admin)",
+    usage: "admin org-plan update <orgId> [--seats <n>] [--cents <usd_cents>] [--credits <micro>] [--name <displayName>]",
+    covers: ["admin.updateOrgPlan"],
+    async run(ctx, args) {
+      const orgId = args.positional[0];
+      if (!orgId) throw new Error("usage: admin org-plan update <orgId> [--seats ..] [--cents ..] [--credits ..] [--name ..]");
+      const patch: AdminOrgPlanPatch = {};
+      const seats = flagNum(args, "seats"); if (seats !== undefined) patch.maxSeats = seats;
+      const cents = flagNum(args, "cents"); if (cents !== undefined) patch.monthlyUsdCents = cents;
+      const credits = flagNum(args, "credits"); if (credits !== undefined) patch.monthlyCredits = credits;
+      const name = flagStr(args, "name"); if (name !== undefined) patch.displayName = name;
+      ctx.printJson(await ctx.client.admin.updateOrgPlan(orgId, patch));
+    },
+  });
+  reg.register({
+    path: "admin org-plan remove",
+    summary: "remove an org's bespoke plan, reverting to its global tier (super_admin)",
+    usage: "admin org-plan remove <orgId>",
+    covers: ["admin.removeOrgPlan"],
+    async run(ctx, args) {
+      const orgId = args.positional[0];
+      if (!orgId) throw new Error("usage: admin org-plan remove <orgId>");
+      ctx.printJson(await ctx.client.admin.removeOrgPlan(orgId));
     },
   });
   reg.register({

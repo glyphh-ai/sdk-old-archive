@@ -13,7 +13,7 @@ import type { Provider, Model, ProviderCreate, ModelCreate, ModelPricing } from 
 import type {
   AdminStats, AdminOrgsPage, AdminOrgListItem, AdminOrgDetail, AdminOrgPatch, AdminCreateOrg,
   AdminUsersPage, AdminUser, AdminUserPatch,
-  AdminPlan, AdminPlanUpdate, AdminModel, AdminModelUpdate, AdminPlanPrice,
+  AdminPlan, AdminPlanUpdate, AdminOrgPlanInput, AdminOrgPlanPatch, AdminModel, AdminModelUpdate, AdminPlanPrice,
   AuditPage, AuditQuery, AdminUsageByUser, AdminUsageDay, AdminDailyQuery, AdminListQuery,
 } from "../contract/admin.js";
 import type { EffectiveContext } from "../contract/membership.js";
@@ -93,6 +93,18 @@ export class AdminClient {
   }
   updatePlan(tier: string, patch: AdminPlanUpdate): Promise<{ plan: AdminPlan }> {
     return this.http.put<{ plan: AdminPlan }>(`/api/admin/plans/${encodeURIComponent(tier)}`, patch);
+  }
+  /** Create/replace an org's bespoke (enterprise) plan — custom seat cap + per-seat price + allowance. */
+  setOrgPlan(orgId: string, input: AdminOrgPlanInput): Promise<{ plan: AdminPlan }> {
+    return this.http.post<{ plan: AdminPlan }>(`/api/admin/orgs/${encodeURIComponent(orgId)}/plan`, input);
+  }
+  /** Edit an org's bespoke plan (must already exist). */
+  updateOrgPlan(orgId: string, patch: AdminOrgPlanPatch): Promise<{ plan: AdminPlan }> {
+    return this.http.patch<{ plan: AdminPlan }>(`/api/admin/orgs/${encodeURIComponent(orgId)}/plan`, patch);
+  }
+  /** Remove an org's bespoke plan, reverting it to its global tier. */
+  removeOrgPlan(orgId: string): Promise<{ ok: boolean }> {
+    return this.http.del<{ ok: boolean }>(`/api/admin/orgs/${encodeURIComponent(orgId)}/plan`);
   }
   models(): Promise<{ models: AdminModel[] }> {
     return this.http.get<{ models: AdminModel[] }>("/api/admin/models");

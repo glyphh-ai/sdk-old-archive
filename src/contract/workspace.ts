@@ -9,6 +9,14 @@
  *   limit<X> = true  → only the `allowed<X>` list is granted.
  */
 
+/**
+ * Per-connection TOOL grants, keyed by connection slug → the granted tool names.
+ * Layers UNDER the connection gate (a connection must first be allowed): an absent
+ * slug ⇒ ALL of that connection's tools; a present slug ⇒ only the listed tools
+ * (an empty array ⇒ none).
+ */
+export type ConnectionToolGrants = Record<string, string[]>;
+
 export interface Workspace {
   id: string;
   orgId: string;
@@ -22,6 +30,8 @@ export interface Workspace {
   allowedModels: string[];
   limitConnections: boolean;
   allowedConnections: string[];
+  /** Per-connection tool scoping. Absent slug ⇒ all tools; present ⇒ only listed. */
+  allowedConnectionTools: ConnectionToolGrants;
   limitApps: boolean;
   allowedApps: string[];
   limitAppHosting: boolean;
@@ -44,6 +54,7 @@ export interface WorkspaceInput {
   allowedModels?: string[];
   limitConnections?: boolean;
   allowedConnections?: string[];
+  allowedConnectionTools?: ConnectionToolGrants;
   limitApps?: boolean;
   allowedApps?: string[];
   limitAppHosting?: boolean;

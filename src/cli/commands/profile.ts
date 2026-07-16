@@ -33,4 +33,16 @@ export function registerProfile(reg: CommandRegistry): void {
       ctx.printJson(await ctx.client.profile.update(patch));
     },
   });
+
+  reg.register({
+    path: "profile set-image",
+    summary: "set (or clear) your avatar image URL",
+    usage: "profile set-image <url|null>",
+    covers: ["profile.update"],
+    async run(ctx, args) {
+      const url = args.positional[0];
+      if (!url) throw new Error("usage: profile set-image <url|null>");
+      ctx.printJson(await ctx.client.profile.update({ imageUrl: url === "null" ? null : url }));
+    },
+  });
 }

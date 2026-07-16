@@ -10,6 +10,7 @@ import type { AuthedHttp } from "../core/authed-http.js";
 import type {
   Connection, CustomMcpInput, ConnectLink, ConnectorApp, ConnectorTool,
   OrgMcpConnection, OrgMcpInput, OrgMcpPatch, OrgMcpCreateResult, OrgPipedreamConnection,
+  ResolvedConnection, McpOAuthStart,
 } from "../contract/connections.js";
 
 export class ConnectionsClient {
@@ -49,6 +50,34 @@ export class ConnectionsClient {
   /** The tools/actions a connector app exposes (best-effort; empty when unconfigured). */
   appTools(slug: string): Promise<{ tools: ConnectorTool[] }> {
     return this.http.get<{ tools: ConnectorTool[] }>(`/api/connectors/apps/${encodeURIComponent(slug)}/tools`);
+  }
+
+  /**
+   * One org custom-MCP connection's advertised tool NAMES (org_admin). Probes the
+   * stored endpoint with its decrypted auth; best-effort — an unreachable endpoint
+   * degrades to `[]`. 404s a slug the org doesn't own.
+   */
+  async mcpTools(slug: string): Promise<ConnectorTool[]> {
+    const { tools } = await this.http.get<{ tools: ConnectorTool[] }>(`/api/org/mcp-connections/${encodeURIComponent(slug)}/tools`);
+    return tools;
+  }
+
+  /**
+   * The caller's RESOLVED per-connection tools — every enabled connection their
+   * workspace may reach, each with its tools narrowed by the workspace tool grant.
+   * Best-effort per connection (an unreachable endpoint yields an empty tool list).
+   */
+  resolvedTools(): Promise<{ connections: ResolvedConnection[] }> {
+    return this.http.get<{ connections: ResolvedConnection[] }>("/api/connections/tools");
+  }
+
+  /**
+   * Start an OAuth 2.1 authorization for a custom-MCP connection (org_admin); runs
+   * discovery + dynamic client registration as needed and returns the authorize URL
+   * to open. Tokens land later at the browser callback (no SDK method).
+   */
+  startMcpOAuth(slug: string): Promise<McpOAuthStart> {
+    return this.http.post<McpOAuthStart>(`/api/org/mcp-connections/${encodeURIComponent(slug)}/oauth/start`);
   }
 
   // ── Settings → MCP: the RICH org custom-MCP catalog (org_admin) ──────────────

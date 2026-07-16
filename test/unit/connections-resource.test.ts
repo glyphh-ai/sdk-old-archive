@@ -62,6 +62,26 @@ describe("ConnectionsClient — org custom-MCP catalog", () => {
     await client.appTools("google/sheets");
     expect(calls).toEqual([{ method: "GET", path: "/api/connectors/apps/google%2Fsheets/tools" }]);
   });
+
+  it("mcpTools GETs the org-mcp tools route and unwraps { tools }", async () => {
+    const tools = [{ name: "send", description: null }];
+    const { calls, client } = recorder({ tools });
+    expect(await client.mcpTools("mcp-a/x")).toEqual(tools);
+    expect(calls).toEqual([{ method: "GET", path: "/api/org/mcp-connections/mcp-a%2Fx/tools" }]);
+  });
+
+  it("resolvedTools GETs /api/connections/tools and keeps the { connections } shape", async () => {
+    const connections = [{ slug: "mcp-a", name: "A", kind: "custom_mcp", tools: [] }];
+    const { calls, client } = recorder({ connections });
+    expect(await client.resolvedTools()).toEqual({ connections });
+    expect(calls).toEqual([{ method: "GET", path: "/api/connections/tools" }]);
+  });
+
+  it("startMcpOAuth POSTs the oauth/start route, URL-encoded", async () => {
+    const { calls, client } = recorder();
+    await client.startMcpOAuth("mcp-a/x");
+    expect(calls).toEqual([{ method: "POST", path: "/api/org/mcp-connections/mcp-a%2Fx/oauth/start", body: undefined }]);
+  });
 });
 
 describe("ConnectionsClient — org-shared Pipedream", () => {

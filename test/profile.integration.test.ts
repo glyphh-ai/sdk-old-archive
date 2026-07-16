@@ -30,4 +30,19 @@ describe("@glyphh/client — profile", () => {
     const updated = await client.profile.update({ firstName: "Ada", lastName: "Lovelace", timezone: "America/New_York" });
     expect(updated).toMatchObject({ name: "Ada Lovelace", firstName: "Ada", lastName: "Lovelace", timezone: "America/New_York" });
   });
+
+  it("avatar: imageUrl defaults null (avatarUrl → gravatar); set() sets both; null clears back to gravatar", async () => {
+    const client = await signIn();
+    const before = await client.profile.get();
+    expect(before.imageUrl).toBeNull();
+    expect(before.avatarUrl).toMatch(/^https:\/\/www\.gravatar\.com\/avatar\//);
+
+    const set = await client.profile.update({ imageUrl: "https://cdn.example.com/me.png" });
+    expect(set.imageUrl).toBe("https://cdn.example.com/me.png");
+    expect(set.avatarUrl).toBe("https://cdn.example.com/me.png");
+
+    const cleared = await client.profile.update({ imageUrl: null });
+    expect(cleared.imageUrl).toBeNull();
+    expect(cleared.avatarUrl).toMatch(/^https:\/\/www\.gravatar\.com\/avatar\//);
+  });
 });

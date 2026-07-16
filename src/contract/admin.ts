@@ -83,15 +83,39 @@ export interface AdminUserPatch {
 export interface AdminPlan {
   tier: string;
   display_name: string;
-  monthly_usd_cents: number;
+  monthly_usd_cents: number; // per-seat price
   included_credits: number; // micro-credits per seat per month
+  max_seats: number;
   active: boolean;
+  /** NULL for a global catalog plan; the org id for a bespoke per-org plan. */
+  org_id: string | null;
 }
 export interface AdminPlanUpdate {
   display_name?: string;
   monthly_usd_cents?: number;
   included_credits?: number;
+  max_seats?: number;
   active?: boolean;
+}
+
+/**
+ * A per-org bespoke (enterprise) plan. Unlike the snake_case global-plan shapes above,
+ * the org-plan write payloads are camelCase — they mirror the server's org-plan
+ * endpoints (which take camelCase directly). `monthlyCredits` is the per-seat
+ * micro-credit allowance; `monthlyUsdCents` is the per-seat price.
+ */
+export interface AdminOrgPlanInput {
+  maxSeats: number;
+  monthlyUsdCents: number;
+  monthlyCredits: number;
+  displayName: string;
+}
+/** Partial edit of an org's bespoke plan (every field optional). */
+export interface AdminOrgPlanPatch {
+  maxSeats?: number;
+  monthlyUsdCents?: number;
+  monthlyCredits?: number;
+  displayName?: string;
 }
 export interface AdminModel {
   provider: string;

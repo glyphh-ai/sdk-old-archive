@@ -41,6 +41,25 @@ describe("@glyphh/client — admin impersonation gate", () => {
   });
 });
 
+describe("@glyphh/client — admin org-plan gate (super_admin)", () => {
+  it("setOrgPlan is forbidden for a non-platform-admin", async () => {
+    const client = await signIn();
+    await expect(
+      client.admin.setOrgPlan(randomUUID(), { maxSeats: 10, monthlyUsdCents: 5000, monthlyCredits: 1_000_000, displayName: "Bespoke" }),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it("updateOrgPlan is forbidden for a non-platform-admin", async () => {
+    const client = await signIn();
+    await expect(client.admin.updateOrgPlan(randomUUID(), { maxSeats: 20 })).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it("removeOrgPlan is forbidden for a non-platform-admin", async () => {
+    const client = await signIn();
+    await expect(client.admin.removeOrgPlan(randomUUID())).rejects.toBeInstanceOf(ForbiddenError);
+  });
+});
+
 describe("@glyphh/client — admin plan-price gate (super_admin)", () => {
   it("planPrices read is forbidden for a non-platform-admin", async () => {
     const client = await signIn();

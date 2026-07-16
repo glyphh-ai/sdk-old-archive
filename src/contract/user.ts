@@ -14,6 +14,10 @@ export interface SelfProfile {
   lastName: string;
   timezone: string;
   role: string;
+  /** The user-set image URL, or null when unset (zero-storage: only the URL is kept). */
+  imageUrl: string | null;
+  /** The resolved avatar: `imageUrl` when set, else a Gravatar identicon for the email. */
+  avatarUrl: string;
 }
 
 /** The editable fields. `name` (when given) wins; otherwise first/last are joined. */
@@ -22,4 +26,6 @@ export interface SelfProfileUpdate {
   lastName?: string;
   name?: string;
   timezone?: string;
+  /** An http(s) URL to use as the avatar, or `null` to clear it (fall back to Gravatar). */
+  imageUrl?: string | null;
 }

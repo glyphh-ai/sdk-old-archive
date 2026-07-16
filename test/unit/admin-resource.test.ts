@@ -45,6 +45,27 @@ describe("AdminClient catalog mutations", () => {
   });
 });
 
+describe("AdminClient per-org bespoke plans", () => {
+  it("setOrgPlan POSTs the camelCase input to /api/admin/orgs/:orgId/plan", async () => {
+    const { calls, client } = recorder();
+    const input = { maxSeats: 50, monthlyUsdCents: 9900, monthlyCredits: 1_000_000, displayName: "Globex Enterprise" };
+    await client.setOrgPlan("org-9", input);
+    expect(calls).toEqual([{ method: "POST", path: "/api/admin/orgs/org-9/plan", body: input }]);
+  });
+
+  it("updateOrgPlan PATCHes the org plan route", async () => {
+    const { calls, client } = recorder();
+    await client.updateOrgPlan("org-9", { maxSeats: 75 });
+    expect(calls).toEqual([{ method: "PATCH", path: "/api/admin/orgs/org-9/plan", body: { maxSeats: 75 } }]);
+  });
+
+  it("removeOrgPlan DELETEs the org plan route, URL-encoded", async () => {
+    const { calls, client } = recorder();
+    await client.removeOrgPlan("org/9");
+    expect(calls).toEqual([{ method: "DELETE", path: "/api/admin/orgs/org%2F9/plan" }]);
+  });
+});
+
 describe("AdminClient plan-price history", () => {
   it("planPrices GETs the tier route, URL-encoded", async () => {
     const { calls, client } = recorder();

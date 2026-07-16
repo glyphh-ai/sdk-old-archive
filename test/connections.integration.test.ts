@@ -91,4 +91,33 @@ describe("@glyphh/client — connections", () => {
     expect(await client.connections.pipedreamList()).toEqual([]);
     await expect(client.connections.pipedreamDisconnect(randomUUID())).rejects.toMatchObject({ httpStatus: 404 });
   });
+
+  it("mcpTools (org_admin): degrades to [] for an unreachable connection; 404s an unknown slug", async () => {
+    const client = await signIn(); // a personal-org org_admin
+    await client.connections.orgMcpCreate({
+      slug: "tools-probe",
+      name: "Tools Probe",
+      url: "https://mcp.example.invalid/probe",
+      headers: { Authorization: "Bearer sk-secret-value" },
+    });
+    try {
+      // The endpoint is unreachable here, so the best-effort probe degrades to an empty list.
+      expect(await client.connections.mcpTools("mcp-tools-probe")).toEqual([]);
+      await expect(client.connections.mcpTools("mcp-does-not-exist")).rejects.toMatchObject({ httpStatus: 404 });
+    } finally {
+      await client.connections.orgMcpRemove("mcp-tools-probe");
+    }
+  });
+
+  it("resolvedTools returns the { connections } shape (empty for a fresh org)", async () => {
+    const client = await signIn();
+    const resolved = await client.connections.resolvedTools();
+    expect(Array.isArray(resolved.connections)).toBe(true);
+    expect(resolved.connections).toEqual([]);
+  });
+
+  it("startMcpOAuth (org_admin) 404s a connection the org doesn't own", async () => {
+    const client = await signIn();
+    await expect(client.connections.startMcpOAuth("mcp-nope")).rejects.toMatchObject({ httpStatus: 404 });
+  });
 });

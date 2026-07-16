@@ -46,6 +46,23 @@ export interface ConnectorTool {
 }
 
 /**
+ * One enabled connection the caller may reach, with its advertised tools already
+ * narrowed by the caller's workspace tool grant. Both connection kinds share this
+ * shape; custom-MCP tools come from a live probe, Pipedream tools from the catalog.
+ */
+export interface ResolvedConnection {
+  slug: string;
+  name: string;
+  kind: ConnectionKind;
+  tools: ConnectorTool[];
+}
+
+/** The authorize URL to open to start a custom-MCP OAuth 2.1 authorization. */
+export interface McpOAuthStart {
+  authorizeUrl: string;
+}
+
+/**
  * The RICH custom-MCP connection the org admin catalog (Settings → MCP) manages:
  * endpoint url, logo hash, enabled toggle, the NAMES of the write-only headers
  * (never values), and the tool count from the last successful probe.
