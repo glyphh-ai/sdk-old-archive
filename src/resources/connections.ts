@@ -116,9 +116,13 @@ export class ConnectionsClient {
     return connections;
   }
 
-  /** Start an org-level OAuth for one app; returns the URL to open. */
-  async pipedreamConnect(appSlug: string): Promise<{ connectUrl: string }> {
-    return this.http.post<{ connectUrl: string }>("/api/org/connections/connect", { appSlug });
+  /**
+   * Start an org-level Pipedream Connect session for one app. Returns the
+   * short-lived Connect `token` (authorizes the browser SDK's inline connect
+   * dialog for this app) plus the hosted `connectUrl` fallback.
+   */
+  async pipedreamConnect(appSlug: string): Promise<{ token: string; connectUrl: string }> {
+    return this.http.post<{ token: string; connectUrl: string }>("/api/org/connections/connect", { appSlug });
   }
 
   /** Disconnect an org Pipedream account by id (audited server-side). */
