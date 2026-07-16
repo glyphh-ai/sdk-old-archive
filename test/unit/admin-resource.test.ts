@@ -44,3 +44,43 @@ describe("AdminClient catalog mutations", () => {
     expect(calls).toEqual([{ method: "POST", path: "/api/admin/orgs", body: { name: "Globex", tier: "pro" } }]);
   });
 });
+
+describe("AdminClient plan-price history", () => {
+  it("planPrices GETs the tier route, URL-encoded", async () => {
+    const { calls, client } = recorder();
+    await client.planPrices("pro");
+    expect(calls).toEqual([{ method: "GET", path: "/api/admin/plans/pro/prices" }]);
+  });
+
+  it("addPlanPrice POSTs { stripePriceId } to the tier route", async () => {
+    const { calls, client } = recorder();
+    await client.addPlanPrice("pro", "price_123");
+    expect(calls).toEqual([{ method: "POST", path: "/api/admin/plans/pro/prices", body: { stripePriceId: "price_123" } }]);
+  });
+
+  it("activatePlanPrice PATCHes /prices/:id/activate", async () => {
+    const { calls, client } = recorder();
+    await client.activatePlanPrice("pp1");
+    expect(calls).toEqual([{ method: "PATCH", path: "/api/admin/plans/prices/pp1/activate", body: undefined }]);
+  });
+
+  it("removePlanPrice DELETEs /prices/:id", async () => {
+    const { calls, client } = recorder();
+    await client.removePlanPrice("pp1");
+    expect(calls).toEqual([{ method: "DELETE", path: "/api/admin/plans/prices/pp1" }]);
+  });
+});
+
+describe("AdminClient impersonation", () => {
+  it("impersonate POSTs { orgId } to /api/admin/impersonate", async () => {
+    const { calls, client } = recorder();
+    await client.impersonate("org-9");
+    expect(calls).toEqual([{ method: "POST", path: "/api/admin/impersonate", body: { orgId: "org-9" } }]);
+  });
+
+  it("stopImpersonate DELETEs /api/admin/impersonate", async () => {
+    const { calls, client } = recorder();
+    await client.stopImpersonate();
+    expect(calls).toEqual([{ method: "DELETE", path: "/api/admin/impersonate" }]);
+  });
+});

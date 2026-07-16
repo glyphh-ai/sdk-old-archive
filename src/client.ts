@@ -18,6 +18,7 @@ import { SseTransport } from "./transport/sse-transport.js";
 import { Session, type SessionConfig } from "./session/session.js";
 import { OrgClient } from "./resources/org.js";
 import { MembersClient } from "./resources/members.js";
+import { MembershipsClient } from "./resources/memberships.js";
 import { InvitesClient } from "./resources/invites.js";
 import { WorkspacesClient } from "./resources/workspaces.js";
 import { BillingClient } from "./resources/billing.js";
@@ -82,6 +83,8 @@ export interface Client {
   org: OrgClient;
   /** Org membership + seats (list, invite, remove, set role). */
   members: MembersClient;
+  /** The caller's own memberships + the session's active-org scope (the org-switcher). */
+  memberships: MembershipsClient;
   /** Accept an org invite. */
   invites: InvitesClient;
   /** Workspaces — governance (models/connections/apps/limits) + member assignment. */
@@ -167,6 +170,7 @@ export function createClient(opts: ClientOptions): Client {
     support: new SupportClient(authed),
     org: new OrgClient(authed),
     members: new MembersClient(authed),
+    memberships: new MembershipsClient(authed),
     invites: new InvitesClient(http, authed),
     workspaces: new WorkspacesClient(authed),
     billing: new BillingClient(authed),

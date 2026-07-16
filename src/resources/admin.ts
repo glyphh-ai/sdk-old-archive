@@ -13,9 +13,10 @@ import type { Provider, Model, ProviderCreate, ModelCreate, ModelPricing } from 
 import type {
   AdminStats, AdminOrgsPage, AdminOrgListItem, AdminOrgDetail, AdminOrgPatch, AdminCreateOrg,
   AdminUsersPage, AdminUser, AdminUserPatch,
-  AdminPlan, AdminPlanUpdate, AdminModel, AdminModelUpdate,
+  AdminPlan, AdminPlanUpdate, AdminModel, AdminModelUpdate, AdminPlanPrice,
   AuditPage, AuditQuery, AdminUsageByUser, AdminUsageDay, AdminDailyQuery, AdminListQuery,
 } from "../contract/admin.js";
+import type { EffectiveContext } from "../contract/membership.js";
 
 /** Append defined params to a path as a query string. */
 function withQuery(path: string, params: Record<string, string | number | undefined>): string {
@@ -102,6 +103,34 @@ export class AdminClient {
   /** Hard-delete a catalog model + its org support rows (super_admin). */
   deleteModel(provider: string, model: string): Promise<void> {
     return this.http.del<void>(`/api/admin/models/${encodeURIComponent(provider)}/${encodeURIComponent(model)}`);
+  }
+
+  // ── plan price history (super_admin) ──────────────────────────────────────────
+  /** A plan tier's Stripe price history (newest first), active flag included. */
+  planPrices(tier: string): Promise<AdminPlanPrice[]> {
+    return this.http.get<AdminPlanPrice[]>(`/api/admin/plans/${encodeURIComponent(tier)}/prices`);
+  }
+  /** Append a Stripe price to a tier's history (audited); the first becomes active. */
+  addPlanPrice(tier: string, stripePriceId: string): Promise<AdminPlanPrice> {
+    return this.http.post<AdminPlanPrice>(`/api/admin/plans/${encodeURIComponent(tier)}/prices`, { stripePriceId });
+  }
+  /** Mark a price the active one for NEW checkouts of its tier (audited). */
+  activatePlanPrice(id: string): Promise<AdminPlanPrice> {
+    return this.http.patch<AdminPlanPrice>(`/api/admin/plans/prices/${encodeURIComponent(id)}/activate`);
+  }
+  /** Remove a price from a tier's history (audited). */
+  removePlanPrice(id: string): Promise<void> {
+    return this.http.del<void>(`/api/admin/plans/prices/${encodeURIComponent(id)}`);
+  }
+
+  // ── impersonation (platform admin reaches into an org they don't belong to) ───
+  /** Start impersonating `orgId` on this session; returns the new effective scope. */
+  impersonate(orgId: string): Promise<EffectiveContext> {
+    return this.http.post<EffectiveContext>("/api/admin/impersonate", { orgId });
+  }
+  /** Stop impersonating; the session falls back to the caller's real scope. */
+  stopImpersonate(): Promise<EffectiveContext> {
+    return this.http.del<EffectiveContext>("/api/admin/impersonate");
   }
 
   // ── usage ────────────────────────────────────────────────────────────────────

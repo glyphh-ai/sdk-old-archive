@@ -12,6 +12,7 @@ import { registerSession } from "./commands/session.js";
 import { registerRotor } from "./commands/rotor.js";
 import { registerMeta } from "./commands/meta.js";
 import { registerOrg } from "./commands/org.js";
+import { registerMemberships } from "./commands/memberships.js";
 import { registerWorkspaces } from "./commands/workspaces.js";
 import { registerBilling } from "./commands/billing.js";
 import { registerCatalog } from "./commands/catalog.js";
@@ -38,6 +39,7 @@ export function buildRegistry(): CommandRegistry {
   registerRotor(reg);
   registerMeta(reg);
   registerOrg(reg);
+  registerMemberships(reg);
   registerWorkspaces(reg);
   registerBilling(reg);
   registerCatalog(reg);

@@ -241,6 +241,74 @@ export function registerAdmin(reg: CommandRegistry): void {
     },
   });
 
+  // ── plan price history ────────────────────────────────────────────────────────
+  reg.register({
+    path: "admin plan prices",
+    summary: "a plan tier's Stripe price history (super_admin)",
+    usage: "admin plan prices <tier>",
+    covers: ["admin.planPrices"],
+    async run(ctx, args) {
+      const tier = args.positional[0];
+      if (!tier) throw new Error("usage: admin plan prices <tier>");
+      ctx.printJson(await ctx.client.admin.planPrices(tier));
+    },
+  });
+  reg.register({
+    path: "admin price add",
+    summary: "append a Stripe price to a tier's history (super_admin)",
+    usage: "admin price add <tier> <stripePriceId>",
+    covers: ["admin.addPlanPrice"],
+    async run(ctx, args) {
+      const [tier, priceId] = args.positional;
+      if (!tier || !priceId) throw new Error("usage: admin price add <tier> <stripePriceId>");
+      ctx.printJson(await ctx.client.admin.addPlanPrice(tier, priceId));
+    },
+  });
+  reg.register({
+    path: "admin price activate",
+    summary: "mark a price active for new checkouts (super_admin)",
+    usage: "admin price activate <id>",
+    covers: ["admin.activatePlanPrice"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: admin price activate <id>");
+      ctx.printJson(await ctx.client.admin.activatePlanPrice(id));
+    },
+  });
+  reg.register({
+    path: "admin price remove",
+    summary: "remove a price from a tier's history (super_admin)",
+    usage: "admin price remove <id>",
+    covers: ["admin.removePlanPrice"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: admin price remove <id>");
+      await ctx.client.admin.removePlanPrice(id);
+      ctx.print("removed ✓");
+    },
+  });
+
+  // ── impersonation ─────────────────────────────────────────────────────────────
+  reg.register({
+    path: "admin impersonate",
+    summary: "impersonate an org on this session (super_admin)",
+    usage: "admin impersonate <orgId>",
+    covers: ["admin.impersonate"],
+    async run(ctx, args) {
+      const orgId = args.positional[0];
+      if (!orgId) throw new Error("usage: admin impersonate <orgId>");
+      ctx.printJson(await ctx.client.admin.impersonate(orgId));
+    },
+  });
+  reg.register({
+    path: "admin unimpersonate",
+    summary: "stop impersonating (back to your real scope)",
+    covers: ["admin.stopImpersonate"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.admin.stopImpersonate());
+    },
+  });
+
   // ── usage ────────────────────────────────────────────────────────────────────
   reg.register({
     path: "admin usage by-user",

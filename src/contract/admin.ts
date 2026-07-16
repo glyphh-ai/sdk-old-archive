@@ -108,6 +108,18 @@ export interface AdminModelUpdate {
   output_credits_per_mtok?: number | null;
 }
 
+/**
+ * One entry of a plan's Stripe price history (super_admin). Unlike the other admin
+ * shapes this is camelCase — it mirrors the billing wire contract, where the price
+ * history is served alongside the checkout surface. `createdAt` is an ISO timestamp.
+ */
+export interface AdminPlanPrice {
+  id: string;
+  stripePriceId: string;
+  active: boolean;
+  createdAt: string;
+}
+
 // ── audit ────────────────────────────────────────────────────────────────────
 export interface AuditEntry {
   id: string;

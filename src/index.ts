@@ -47,6 +47,8 @@ export type {
 
 export { OrgClient } from "./resources/org.js";
 export { MembersClient } from "./resources/members.js";
+export { MembershipsClient } from "./resources/memberships.js";
+export type { Membership, EffectiveContext } from "./contract/membership.js";
 export { InvitesClient } from "./resources/invites.js";
 export { WorkspacesClient } from "./resources/workspaces.js";
 export type { Workspace, WorkspaceInput, EffectiveGrants, Grant } from "./contract/workspace.js";
@@ -82,6 +84,7 @@ export type {
   AdminPlanUpdate,
   AdminModel,
   AdminModelUpdate,
+  AdminPlanPrice,
   AuditEntry,
   AuditPage,
   AuditQuery,
