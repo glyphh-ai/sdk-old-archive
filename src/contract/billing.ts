@@ -10,6 +10,9 @@ export interface Plan {
   tier: string;
   displayName: string;
   monthlyUsdCents: number;
+  /** The TRUE active Stripe price amount (cents) for this tier, when resolvable —
+   *  falls back to monthlyUsdCents. Prefer this for display. */
+  activeUsdCents?: number;
   monthlyCredits: number;
   maxSeats: number;
   sso: boolean;

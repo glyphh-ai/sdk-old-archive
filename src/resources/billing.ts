@@ -23,6 +23,12 @@ export class BillingClient {
     return this.http.get<Subscription>("/api/billing/status");
   }
 
+  /** Force a reconcile from Stripe (self-heals a missed webhook) and return the
+   *  refreshed subscription status. */
+  reconcile(): Promise<Subscription> {
+    return this.http.post<Subscription>("/api/billing/reconcile");
+  }
+
   balance(): Promise<Balance> {
     return this.http.get<Balance>("/api/billing/balance");
   }

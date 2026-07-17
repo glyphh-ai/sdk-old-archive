@@ -109,6 +109,8 @@ export interface AdminOrgPlanInput {
   monthlyUsdCents: number;
   monthlyCredits: number;
   displayName: string;
+  /** The specific Stripe price the org is billed on (enterprise is provisioned/invoiced). */
+  stripePriceId?: string;
 }
 /** Partial edit of an org's bespoke plan (every field optional). */
 export interface AdminOrgPlanPatch {
@@ -116,6 +118,7 @@ export interface AdminOrgPlanPatch {
   monthlyUsdCents?: number;
   monthlyCredits?: number;
   displayName?: string;
+  stripePriceId?: string;
 }
 export interface AdminModel {
   provider: string;

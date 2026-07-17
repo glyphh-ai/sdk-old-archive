@@ -27,6 +27,15 @@ export function registerBilling(reg: CommandRegistry): void {
   });
 
   reg.register({
+    path: "billing reconcile",
+    summary: "self-heal the org's billing from Stripe (missed webhook) → refreshed status",
+    covers: ["billing.reconcile"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.billing.reconcile());
+    },
+  });
+
+  reg.register({
     path: "billing balance",
     summary: "the org's credit balance",
     covers: ["billing.balance"],
