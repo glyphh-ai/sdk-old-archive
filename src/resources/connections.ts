@@ -129,4 +129,21 @@ export class ConnectionsClient {
   pipedreamDisconnect(id: string): Promise<{ ok: boolean }> {
     return this.http.del<{ ok: boolean }>(`/api/org/connections/${encodeURIComponent(id)}`);
   }
+
+  /** The org-level tool caps per connection — `{ slug: allowedTools[] }`. A slug
+   *  absent ⇒ all its tools are org-allowed; workspaces further restrict from this. */
+  orgConnectionTools(): Promise<Record<string, string[]>> {
+    return this.http.get<Record<string, string[]>>("/api/org/connections/tools");
+  }
+
+  /** Set the org-level allowed tools for a connection (the org cap; audited). */
+  setOrgConnectionTools(slug: string, tools: string[]): Promise<{ ok: boolean; slug: string; tools: string[] }> {
+    return this.http.put<{ ok: boolean; slug: string; tools: string[] }>(`/api/org/connections/${encodeURIComponent(slug)}/tools`, { tools });
+  }
+
+  /** Rename an org Pipedream connection (sets its display label). */
+  async renameOrgConnection(id: string, label: string): Promise<OrgPipedreamConnection> {
+    const { connection } = await this.http.patch<{ ok: boolean; connection: OrgPipedreamConnection }>(`/api/org/connections/${encodeURIComponent(id)}`, { label });
+    return connection;
+  }
 }

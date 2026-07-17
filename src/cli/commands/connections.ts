@@ -124,6 +124,40 @@ export function registerConnections(reg: CommandRegistry): void {
     },
   });
 
+  reg.register({
+    path: "connections org-tools",
+    summary: "the org-level allowed-tool caps per connection { slug: tools[] }",
+    covers: ["connections.orgConnectionTools"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.connections.orgConnectionTools());
+    },
+  });
+
+  reg.register({
+    path: "connections set-org-tools",
+    summary: "set a connection's org-level allowed tools — the org cap (org_admin)",
+    usage: "connections set-org-tools <slug> [tool...]",
+    covers: ["connections.setOrgConnectionTools"],
+    async run(ctx, args) {
+      const [slug, ...tools] = args.positional;
+      if (!slug) throw new Error("usage: connections set-org-tools <slug> [tool...]");
+      ctx.printJson(await ctx.client.connections.setOrgConnectionTools(slug, tools));
+    },
+  });
+
+  reg.register({
+    path: "connections rename",
+    summary: "rename an org Pipedream connection — set its label (org_admin)",
+    usage: "connections rename <id> <label...>",
+    covers: ["connections.renameOrgConnection"],
+    async run(ctx, args) {
+      const [id, ...rest] = args.positional;
+      const label = rest.join(" ");
+      if (!id || !label) throw new Error("usage: connections rename <id> <label...>");
+      ctx.printJson(await ctx.client.connections.renameOrgConnection(id, label));
+    },
+  });
+
   // ── org custom-MCP catalog (Settings → MCP) ──────────────────────────────────
   reg.register({
     path: "connections org-mcp list",
