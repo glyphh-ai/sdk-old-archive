@@ -54,7 +54,28 @@ export interface ResolvedConnection {
   slug: string;
   name: string;
   kind: ConnectionKind;
+  /** `"org"` = the org-shared connector; `"personal"` = the caller's own (per-user
+   *  Pipedream). The runtime picks the external id (`org_<id>` vs `user_<id>`) from this. */
+  scope: "org" | "personal";
   tools: ConnectorTool[];
+}
+
+/** A member's OWN (personal) Pipedream connection — connected with their own auth,
+ *  private to them, governed by their workspace's personal-connection allow-list. */
+export interface PersonalConnection {
+  id: string;
+  appSlug: string;
+  appName: string;
+  name: string;
+  label: string | null;
+  healthy: boolean;
+}
+
+/** The result of starting a personal Pipedream connect session (`url` === `connectUrl`). */
+export interface PersonalConnectSession {
+  token: string;
+  connectUrl: string;
+  url: string;
 }
 
 /** The authorize URL to open to start a custom-MCP OAuth 2.1 authorization. */

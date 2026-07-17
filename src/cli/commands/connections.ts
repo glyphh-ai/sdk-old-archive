@@ -262,6 +262,40 @@ export function registerConnections(reg: CommandRegistry): void {
       ctx.printJson(await ctx.client.connections.pipedreamDisconnect(id));
     },
   });
+
+  // ── personal (member-made) connections — the caller's OWN Pipedream auth ──────
+  reg.register({
+    path: "connections personal list",
+    summary: "list the caller's own personal connections",
+    covers: ["connections.personalList"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.connections.personalList());
+    },
+  });
+
+  reg.register({
+    path: "connections personal connect",
+    summary: "start a personal OAuth for an app (prints the URL; workspace-governed)",
+    usage: "connections personal connect <appSlug>",
+    covers: ["connections.personalConnect"],
+    async run(ctx, args) {
+      const appSlug = args.positional[0];
+      if (!appSlug) throw new Error("usage: connections personal connect <appSlug>");
+      ctx.print((await ctx.client.connections.personalConnect(appSlug)).connectUrl);
+    },
+  });
+
+  reg.register({
+    path: "connections personal disconnect",
+    summary: "disconnect one of the caller's own personal connections by id",
+    usage: "connections personal disconnect <id>",
+    covers: ["connections.personalDisconnect"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: connections personal disconnect <id>");
+      ctx.printJson(await ctx.client.connections.personalDisconnect(id));
+    },
+  });
 }
 
 /** Parse a repeated `--header 'K: V,K2: V2'` flag into a header map (or undefined). */

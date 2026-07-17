@@ -10,7 +10,7 @@ import type { AuthedHttp } from "../core/authed-http.js";
 import type {
   Connection, CustomMcpInput, ConnectLink, ConnectorApp, ConnectorTool,
   OrgMcpConnection, OrgMcpInput, OrgMcpPatch, OrgMcpCreateResult, OrgPipedreamConnection,
-  ResolvedConnection, McpOAuthStart,
+  ResolvedConnection, McpOAuthStart, PersonalConnection, PersonalConnectSession,
 } from "../contract/connections.js";
 
 export class ConnectionsClient {
@@ -145,5 +145,24 @@ export class ConnectionsClient {
   async renameOrgConnection(id: string, label: string): Promise<OrgPipedreamConnection> {
     const { connection } = await this.http.patch<{ ok: boolean; connection: OrgPipedreamConnection }>(`/api/org/connections/${encodeURIComponent(id)}`, { label });
     return connection;
+  }
+
+  // ── Personal (member-made) connections — the member's OWN Pipedream auth ──────
+
+  /** The caller's personal Pipedream connections (best-effort synced from Pipedream). */
+  async personalList(): Promise<PersonalConnection[]> {
+    const { connections } = await this.http.get<{ connections: PersonalConnection[] }>("/api/connections/personal");
+    return connections;
+  }
+
+  /** Start a personal Pipedream Connect session for one app — refused (403) when the
+   *  caller's workspace does not permit personally connecting it. */
+  personalConnect(app: string): Promise<PersonalConnectSession> {
+    return this.http.post<PersonalConnectSession>("/api/connections/personal/pipedream/connect", { app });
+  }
+
+  /** Disconnect one of the caller's OWN personal connections by id. */
+  personalDisconnect(id: string): Promise<{ ok: boolean }> {
+    return this.http.del<{ ok: boolean }>(`/api/connections/personal/${encodeURIComponent(id)}`);
   }
 }

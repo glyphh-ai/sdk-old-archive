@@ -32,6 +32,11 @@ export interface Workspace {
   allowedConnections: string[];
   /** Per-connection tool scoping. Absent slug ⇒ all tools; present ⇒ only listed. */
   allowedConnectionTools: ConnectionToolGrants;
+  /** PERSONAL (member-made) connections — which apps a member may connect with their
+   *  OWN auth, and each app's tool scoping. Independent of the shared `connections` gate. */
+  limitPersonalConnections: boolean;
+  allowedPersonalConnections: string[];
+  allowedPersonalConnectionTools: ConnectionToolGrants;
   limitApps: boolean;
   allowedApps: string[];
   limitAppHosting: boolean;
@@ -55,6 +60,9 @@ export interface WorkspaceInput {
   limitConnections?: boolean;
   allowedConnections?: string[];
   allowedConnectionTools?: ConnectionToolGrants;
+  limitPersonalConnections?: boolean;
+  allowedPersonalConnections?: string[];
+  allowedPersonalConnectionTools?: ConnectionToolGrants;
   limitApps?: boolean;
   allowedApps?: string[];
   limitAppHosting?: boolean;
@@ -74,6 +82,8 @@ export interface EffectiveGrants {
   providers: Grant;
   models: Grant;
   connections: Grant;
+  /** Which apps a member may PERSONALLY connect (their own auth). */
+  personalConnections: Grant;
   apps: Grant;
   hosting: Grant;
   allowCustomMcp: boolean;
