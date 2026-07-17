@@ -90,6 +90,8 @@ export interface Invite {
 export interface CreatedInvite {
   invite: Invite;
   token: string;
+  /** The platform accept-invite URL carrying the token — email it, or share directly. */
+  acceptUrl?: string;
 }
 
 /** `invites.peek(token)` — the unauthenticated accept-page view. */
