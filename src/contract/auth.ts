@@ -18,6 +18,10 @@ export interface Identity {
   isPlatformAdmin: boolean;
   /** Present only while a platform admin is impersonating an org; otherwise null. */
   impersonating: { orgId: string } | null;
+  /** The user-set profile image URL, or null when unset. */
+  imageUrl: string | null;
+  /** The resolved avatar: `imageUrl` when set, else a Gravatar identicon for the email. */
+  avatarUrl: string;
 }
 
 /** What every auth method returns from the server: an opaque session pair. */
