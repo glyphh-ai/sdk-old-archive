@@ -17,6 +17,9 @@ import type {
   AuditPage, AuditQuery, AdminUsageByUser, AdminUsageDay, AdminDailyQuery, AdminListQuery,
 } from "../contract/admin.js";
 import type { EffectiveContext } from "../contract/membership.js";
+import type {
+  AdminSupportPage, AdminSupportThread, AdminSupportTicket, AdminSupportQuery, SupportUnread,
+} from "../contract/support.js";
 
 /** Append defined params to a path as a query string. */
 function withQuery(path: string, params: Record<string, string | number | undefined>): string {
@@ -160,5 +163,33 @@ export class AdminClient {
     return this.http.get<AuditPage>(
       withQuery("/api/admin/audit", { action: query.action, actor: query.actor, days: query.days, page: query.page, limit: query.limit }),
     );
+  }
+
+  // ── support console (super_admin) ──────────────────────────────────────────────
+  /** Browse every org's tickets (search + status filter + pagination). Shapes are snake_case. */
+  supportTickets(query: AdminSupportQuery = {}): Promise<AdminSupportPage> {
+    return this.http.get<AdminSupportPage>(
+      withQuery("/api/admin/support/tickets", { q: query.q, status: query.status, page: query.page, limit: query.limit }),
+    );
+  }
+  /** One ticket + its full thread (any org). */
+  supportTicket(id: string): Promise<AdminSupportThread> {
+    return this.http.get<AdminSupportThread>(`/api/admin/support/tickets/${encodeURIComponent(id)}`);
+  }
+  /** Append an admin reply (moves the ticket → 'pending'); returns the updated thread. */
+  supportReply(id: string, body: string): Promise<AdminSupportThread> {
+    return this.http.post<AdminSupportThread>(`/api/admin/support/tickets/${encodeURIComponent(id)}/messages`, { body });
+  }
+  /** Set a ticket's status (audited: open|pending|resolved|closed). */
+  setSupportStatus(id: string, status: string): Promise<AdminSupportTicket> {
+    return this.http.patch<AdminSupportTicket>(`/api/admin/support/tickets/${encodeURIComponent(id)}`, { status });
+  }
+  /** Mark a ticket read by the admin (clears its attention flag; never reorders the list). */
+  markSupportRead(id: string): Promise<{ ok: boolean }> {
+    return this.http.post<{ ok: boolean }>(`/api/admin/support/tickets/${encodeURIComponent(id)}/read`);
+  }
+  /** Count of tickets needing admin attention (open|pending AND unread-for-admin). */
+  supportUnreadCount(): Promise<SupportUnread> {
+    return this.http.get<SupportUnread>("/api/admin/support/unread");
   }
 }

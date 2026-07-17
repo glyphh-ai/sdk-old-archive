@@ -391,4 +391,71 @@ export function registerAdmin(reg: CommandRegistry): void {
       }));
     },
   });
+
+  // ── support console ────────────────────────────────────────────────────────────
+  reg.register({
+    path: "admin support list",
+    summary: "browse every org's tickets (super_admin)",
+    usage: "admin support list [--q <search>] [--status <s>] [--page <n>] [--limit <n>]",
+    covers: ["admin.supportTickets"],
+    async run(ctx, args) {
+      ctx.printJson(await ctx.client.admin.supportTickets({
+        q: flagStr(args, "q"), status: flagStr(args, "status"),
+        page: flagNum(args, "page"), limit: flagNum(args, "limit"),
+      }));
+    },
+  });
+  reg.register({
+    path: "admin support show",
+    summary: "one ticket + its full thread (super_admin)",
+    usage: "admin support show <id>",
+    covers: ["admin.supportTicket"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: admin support show <id>");
+      ctx.printJson(await ctx.client.admin.supportTicket(id));
+    },
+  });
+  reg.register({
+    path: "admin support reply",
+    summary: "append an admin reply to a ticket (super_admin)",
+    usage: "admin support reply <id> <body...>",
+    covers: ["admin.supportReply"],
+    async run(ctx, args) {
+      const [id, ...rest] = args.positional;
+      const body = rest.join(" ").trim();
+      if (!id || !body) throw new Error("usage: admin support reply <id> <body...>");
+      ctx.printJson(await ctx.client.admin.supportReply(id, body));
+    },
+  });
+  reg.register({
+    path: "admin support status",
+    summary: "set a ticket's status (super_admin)",
+    usage: "admin support status <id> <open|pending|resolved|closed>",
+    covers: ["admin.setSupportStatus"],
+    async run(ctx, args) {
+      const [id, status] = args.positional;
+      if (!id || !status) throw new Error("usage: admin support status <id> <open|pending|resolved|closed>");
+      ctx.printJson(await ctx.client.admin.setSupportStatus(id, status));
+    },
+  });
+  reg.register({
+    path: "admin support read",
+    summary: "mark a ticket read by the admin (super_admin)",
+    usage: "admin support read <id>",
+    covers: ["admin.markSupportRead"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: admin support read <id>");
+      ctx.printJson(await ctx.client.admin.markSupportRead(id));
+    },
+  });
+  reg.register({
+    path: "admin support unread",
+    summary: "count of tickets needing admin attention (super_admin)",
+    covers: ["admin.supportUnreadCount"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.admin.supportUnreadCount());
+    },
+  });
 }

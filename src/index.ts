@@ -167,6 +167,21 @@ export type {
   RotorRegistry,
 } from "./contract/bindings.js";
 export type {
+  SupportTicketInput,
+  SupportTicketAck,
+  SupportTicketStatus,
+  SupportUnread,
+  SupportMessage,
+  SupportTicket,
+  SupportThread,
+  SupportTicketCreate,
+  AdminSupportMessage,
+  AdminSupportTicket,
+  AdminSupportThread,
+  AdminSupportPage,
+  AdminSupportQuery,
+} from "./contract/support.js";
+export type {
   Org,
   OrgUpdate,
   Address,
