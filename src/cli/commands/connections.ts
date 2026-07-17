@@ -296,6 +296,23 @@ export function registerConnections(reg: CommandRegistry): void {
       ctx.printJson(await ctx.client.connections.personalDisconnect(id));
     },
   });
+
+  reg.register({
+    path: "connections run",
+    summary: "run a governed connection tool (scope-derived external id)",
+    usage: "connections run <slug> <tool> [props-json]",
+    covers: ["connections.runTool"],
+    async run(ctx, args) {
+      const [slug, tool, propsRaw] = args.positional;
+      if (!slug || !tool) throw new Error("usage: connections run <slug> <tool> [props-json]");
+      let props;
+      if (propsRaw) {
+        try { props = JSON.parse(propsRaw); }
+        catch { throw new Error("props must be a JSON object, e.g. '{\"text\":\"hi\"}'"); }
+      }
+      ctx.printJson(await ctx.client.connections.runTool({ slug, tool, ...(props ? { props } : {}) }));
+    },
+  });
 }
 
 /** Parse a repeated `--header 'K: V,K2: V2'` flag into a header map (or undefined). */

@@ -41,8 +41,16 @@ export interface ConnectorApp {
 
 /** One tool/action a connector app exposes. */
 export interface ConnectorTool {
+  /** The invocation identity passed to `runTool` — the Pipedream component key
+   *  (e.g. `gmail-send-email`) or, for custom MCP, the tool name. */
+  key: string;
   name: string;
   description: string | null;
+}
+
+/** The result of running a connection tool (`ret` is the action's return value). */
+export interface RunToolResult {
+  result: { ret: unknown; exports?: unknown; os?: unknown };
 }
 
 /**

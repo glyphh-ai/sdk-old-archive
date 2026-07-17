@@ -10,7 +10,7 @@ import type { AuthedHttp } from "../core/authed-http.js";
 import type {
   Connection, CustomMcpInput, ConnectLink, ConnectorApp, ConnectorTool,
   OrgMcpConnection, OrgMcpInput, OrgMcpPatch, OrgMcpCreateResult, OrgPipedreamConnection,
-  ResolvedConnection, McpOAuthStart, PersonalConnection, PersonalConnectSession,
+  ResolvedConnection, McpOAuthStart, PersonalConnection, PersonalConnectSession, RunToolResult,
 } from "../contract/connections.js";
 
 export class ConnectionsClient {
@@ -164,5 +164,15 @@ export class ConnectionsClient {
   /** Disconnect one of the caller's OWN personal connections by id. */
   personalDisconnect(id: string): Promise<{ ok: boolean }> {
     return this.http.del<{ ok: boolean }>(`/api/connections/personal/${encodeURIComponent(id)}`);
+  }
+
+  /**
+   * Run one governed connection tool. `slug` names a connection from the caller's resolved
+   * set; `tool` is the tool key or name; `props` are the action inputs. Scope is derived
+   * server-side from the resolved connection — a PERSONAL connection runs under the member's
+   * own external id (`user_<userId>`), an org-shared one under `org_<orgId>`.
+   */
+  runTool(input: { slug: string; tool: string; props?: Record<string, unknown> }): Promise<RunToolResult> {
+    return this.http.post<RunToolResult>("/api/connections/run", input);
   }
 }
