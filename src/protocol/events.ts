@@ -2,7 +2,7 @@
  * @license Proprietary — © Glyphh. All rights reserved.
  *
  * protocol/events.ts — the `rotor.stream/v1` wire contract, mirrored from the
- * runtime (openrotor transport/events.ts). A run streams an ordered sequence, each
+ * runtime (rrotor transport/events.ts). A run streams an ordered sequence, each
  * frame carrying a monotonic `seq` cursor (the resume key):
  *
  *   open → step* → (answer | interrupt | error) → done

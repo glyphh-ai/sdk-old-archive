@@ -68,7 +68,7 @@ export class UnsupportedError extends SdkError {
 /**
  * The rotor runtime's error taxonomy codes, re-exported so a client can branch on a
  * run's error code WITHOUT importing the runtime package. Kept in sync with
- * openrotor's `errors.ts`.
+ * rrotor's `errors.ts`.
  */
 export const RUNTIME_ERROR_CODES = [
   "E_MISSING_INPUT", "E_TYPE", "E_SCHEMA", "E_UNKNOWN_STEP", "E_NO_HANDLER", "E_NO_TOOL",

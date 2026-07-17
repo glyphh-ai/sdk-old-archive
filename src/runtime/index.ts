@@ -15,7 +15,7 @@ export {
 } from "./supervisor.js";
 export type { RuntimeRecord } from "./discovery.js";
 
-// The governed model bridge: resolve a rotor's role→model binding into openrotor's
+// The governed model bridge: resolve a rotor's role→model binding into rrotor's
 // endpoint map, plus per-session model switching with an audit trail.
 export {
   resolveModels,

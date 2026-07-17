@@ -1,9 +1,9 @@
 /**
  * @license Proprietary — © Glyphh. All rights reserved.
  *
- * runtime/models.ts — the governed SDK↔openrotor MODEL bridge (Node-only). Resolves a
+ * runtime/models.ts — the governed SDK↔rrotor MODEL bridge (Node-only). Resolves a
  * rotor's role→model binding (enforced server-side by `rotorConfig.registry`) into the
- * endpoint map openrotor injects: gateway roles get the metering gateway url + the caller's
+ * endpoint map rrotor injects: gateway roles get the metering gateway url + the caller's
  * bearer (`metered:true`); local roles get an on-device `llama-server` url (`metered:false`).
  * Plus per-session model SWITCHING with an audit trail — an in-process override store the
  * next `resolveModels` layers on, so opus→haiku→opus is both live and fully auditable.
@@ -18,9 +18,9 @@ import type { ModelSwitchSurface } from "../contract/runtime.js";
 import { ensureLocalModel } from "../models/manager.js";
 
 /**
- * A runtime-agnostic model endpoint. Structurally matches openrotor's `ModelEndpoint`
+ * A runtime-agnostic model endpoint. Structurally matches rrotor's `ModelEndpoint`
  * (its `BasicModelsOptions.registry` value) — the CLI passes `{ registry }` straight to
- * `runInProcess({ models })`. Defined here so the SDK never imports openrotor.
+ * `runInProcess({ models })`. Defined here so the SDK never imports rrotor.
  */
 export interface ModelEndpoint {
   /** OpenAI-compatible chat-completions base url. */
@@ -33,7 +33,7 @@ export interface ModelEndpoint {
   metered?: boolean;
 }
 
-/** The registry shape openrotor consumes: `Record<role, ModelEndpoint>`. */
+/** The registry shape rrotor consumes: `Record<role, ModelEndpoint>`. */
 export interface ResolvedModels {
   registry: Record<string, ModelEndpoint>;
 }
@@ -96,7 +96,7 @@ async function endpointForRole(
 }
 
 /**
- * Resolve `rotorSlug`'s governed role→model binding into the endpoint map openrotor injects.
+ * Resolve `rotorSlug`'s governed role→model binding into the endpoint map rrotor injects.
  * Governance is enforced server-side by `rotorConfig.registry` (org-supported ∩ workspace-
  * allowed). Returns `undefined` when nothing is bound (the rotor then streams its basic-tier
  * stub) or the control plane can't resolve the rotor.

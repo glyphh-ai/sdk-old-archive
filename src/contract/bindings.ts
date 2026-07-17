@@ -4,7 +4,7 @@
  * contract/bindings.ts — the ROLE→MODEL binding (per workspace, per rotor) + the resolved
  * REGISTRY the runtime consumes. A binding says "the planner role uses catalog model X over
  * the gateway; the coder role uses local model Y." The control plane resolves that binding
- * (against the catalog + governance) into a registry openrotor injects: gateway models come
+ * (against the catalog + governance) into a registry rrotor injects: gateway models come
  * back fully addressed; local models come back with a null url the SDK fills from the machine.
  */
 

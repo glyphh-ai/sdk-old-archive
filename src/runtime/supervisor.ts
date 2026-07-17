@@ -11,7 +11,7 @@
  * Shape:
  *   1. read ~/.glyphh/runtime.json → health-check → attach (the common case)
  *   2. else take the mkdir lock (breaking a dead holder), double-check, then spawn
- *      `openrotor serve -p <freeport>` detached, poll health, write the discovery record.
+ *      `rrotor serve -p <freeport>` detached, poll health, write the discovery record.
  */
 
 import { spawn as nodeSpawn, type ChildProcess } from "node:child_process";
@@ -44,7 +44,7 @@ type SpawnLike = (
 export interface EnsureRuntimeOptions {
   /** State dir (default `$GLYPHH_HOME` or `~/.glyphh`). */
   home?: string;
-  /** The `openrotor` executable (default resolves `openrotor` on PATH). */
+  /** The `rrotor` executable (default resolves `rrotor` on PATH). */
   bin?: string;
   /** Extra args appended after `serve -p <port>`. */
   args?: string[];
@@ -153,7 +153,7 @@ function context(opts: EnsureRuntimeOptions): Ctx {
     recPath: join(home, "runtime.json"),
     lockDir: join(home, "runtime.lock"),
     logPath: join(home, "runtime.log"),
-    bin: opts.bin ?? process.env.GLYPHH_ROTOR_BIN ?? "openrotor",
+    bin: opts.bin ?? process.env.GLYPHH_ROTOR_BIN ?? "rrotor",
     args: opts.args ?? [],
     startTimeoutMs: opts.startTimeoutMs ?? 15_000,
     fetchImpl: opts.fetchImpl ?? fetch,

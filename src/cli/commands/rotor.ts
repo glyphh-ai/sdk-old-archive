@@ -3,7 +3,7 @@
  *
  * commands/rotor.ts — run a rotor turn against a runtime and stream its events.
  * Covers `client.session` (the rotor transport). Fleshed out in the sessions phase;
- * already works end-to-end against `openrotor serve`.
+ * already works end-to-end against `rrotor serve`.
  */
 
 import { readFileSync } from "node:fs";
