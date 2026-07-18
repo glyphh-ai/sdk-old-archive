@@ -10,6 +10,18 @@ import { flagStr } from "../args.js";
 
 export function registerAuth(reg: CommandRegistry): void {
   reg.register({
+    path: "auth approve-device",
+    summary: "approve another device's pending login code (as the signed-in user)",
+    usage: "auth approve-device <user-code>",
+    covers: ["auth.approveDevice"],
+    async run(ctx, args) {
+      const userCode = args.positional[0];
+      if (!userCode) throw new Error("usage: auth approve-device <user-code>");
+      ctx.printJson(await ctx.client.auth.approveDevice(userCode));
+    },
+  });
+
+  reg.register({
     path: "auth login",
     summary: "sign in from this terminal (device flow — approve in a browser)",
     covers: ["auth.deviceLogin"],

@@ -8,6 +8,7 @@
  */
 
 import type { HttpClient } from "../core/http.js";
+import type { AuthedHttp } from "../core/authed-http.js";
 import type { RefreshManager } from "./refresh-manager.js";
 import { AuthError } from "../core/errors.js";
 import type {
@@ -47,6 +48,9 @@ export class AuthClient {
   constructor(
     private readonly http: HttpClient,
     private readonly refresh: RefreshManager,
+    /** Authenticated transport — only the device-APPROVE leg needs it (it is performed
+     *  by the already-signed-in user, unlike start/poll which are unauthenticated). */
+    private readonly authed?: AuthedHttp,
   ) {}
 
   async #adopt(issued: IssuedSession): Promise<StoredSession> {
@@ -116,6 +120,17 @@ export class AuthClient {
       }
     }
     throw deviceFail("device login timed out");
+  }
+
+  /**
+   * Approve a pending device code AS THE SIGNED-IN USER — the browser half of the
+   * grant, for a surface the user is already authenticated on (the platform's device
+   * page). A CLI/TUI blocked in `deviceLogin`'s poll completes once this lands. The
+   * server also renders a standalone `/device` form for users who aren't signed in.
+   */
+  approveDevice(userCode: string): Promise<{ ok: boolean }> {
+    if (!this.authed) throw deviceFail("device approval requires an authenticated client");
+    return this.authed.post<{ ok: boolean }>("/api/auth/device/approve", { userCode });
   }
 
   // ── organization OAuth/SSO (WorkOS, browser handoff) ────────────────────────

@@ -161,9 +161,11 @@ export function createClient(opts: ClientOptions): Client {
     ...(opts.refreshMarginMs !== undefined ? { refreshMarginMs: opts.refreshMarginMs } : {}),
     ...(opts.onSignedOut ? { onSignedOut: opts.onSignedOut } : {}),
   });
-  const auth = new AuthClient(http, refresh);
   const token: TokenProvider = opts.apiKey ? staticTokenProvider(opts.apiKey) : sessionTokenProvider(refresh);
   const authed = new AuthedHttp(http, token);
+  // `authed` is built first: the device grant's APPROVE leg is performed BY the
+  // signed-in user, so AuthClient needs an authenticated transport for it.
+  const auth = new AuthClient(http, refresh, authed);
   return {
     auth,
     profile: new ProfileClient(authed),
