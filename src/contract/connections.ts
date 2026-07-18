@@ -65,7 +65,13 @@ export interface ResolvedConnection {
   /** `"org"` = the org-shared connector; `"personal"` = the caller's own (per-user
    *  Pipedream). The runtime picks the external id (`org_<id>` vs `user_<id>`) from this. */
   scope: "org" | "personal";
+  /** What the RUNTIME may call: advertised ∩ org ∩ workspace ∩ the member's own cap. */
   tools: ConnectorTool[];
+  /** What the MEMBER may choose from: everything the layers ABOVE them allow, before
+   *  their own cap. A tool-limiting UI must use THIS as the universe — using `tools`
+   *  would make an earlier self-restriction permanent, since a tool they had unchecked
+   *  would no longer be listed to re-check. */
+  availableTools: ConnectorTool[];
 }
 
 /** A member's OWN (personal) Pipedream connection — connected with their own auth,
