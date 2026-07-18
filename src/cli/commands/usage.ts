@@ -19,6 +19,27 @@ export function registerUsage(reg: CommandRegistry): void {
   });
 
   reg.register({
+    path: "usage allocation",
+    summary: "your spend allowance — workspace cap, spend so far, and reset interval",
+    covers: ["usage.allocation"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.usage.allocation());
+    },
+  });
+
+  reg.register({
+    path: "usage summary",
+    summary: "windowed totals (org for an admin, your own otherwise)",
+    usage: "usage summary [--from <ISO|YYYY-MM-DD>] [--to <ISO|YYYY-MM-DD>]",
+    covers: ["usage.summary"],
+    async run(ctx, args) {
+      const from = flagStr(args, "from");
+      const to = flagStr(args, "to");
+      ctx.printJson(await ctx.client.usage.summary({ ...(from ? { from } : {}), ...(to ? { to } : {}) }));
+    },
+  });
+
+  reg.register({
     path: "usage workspace",
     summary: "a workspace's usage rollup",
     usage: "usage workspace <workspaceId>",

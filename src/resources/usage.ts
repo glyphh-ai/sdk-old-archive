@@ -6,7 +6,10 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
-import type { UsageDailyQuery, UsageDay, UsageSummary, UsageByModelRow, UsageByModelQuery } from "../contract/usage.js";
+import type {
+  UsageDailyQuery, UsageDay, UsageSummary, UsageByModelRow, UsageByModelQuery,
+  CreditAllocation, UsageSummaryQuery,
+} from "../contract/usage.js";
 
 export class UsageClient {
   constructor(private readonly http: AuthedHttp) {}
@@ -14,6 +17,28 @@ export class UsageClient {
   /** The caller's own usage. */
   mine(): Promise<UsageSummary> {
     return this.http.get<UsageSummary>("/api/usage/mine");
+  }
+
+  /**
+   * The caller's SPEND ALLOWANCE — the workspace credit cap their org admin set, what
+   * they've spent this window, and the interval it resets on. This is what a non-admin
+   * member's dashboard shows instead of the org plan.
+   */
+  allocation(): Promise<CreditAllocation> {
+    return this.http.get<CreditAllocation>("/api/me/allocation");
+  }
+
+  /**
+   * WINDOWED totals over [from, to) — defaults to the current calendar month. Role-scoped
+   * server-side: an org_admin gets the whole org, every other member gets ONLY their own
+   * spend, so a member's "this month" is theirs alone.
+   */
+  summary(query: UsageSummaryQuery = {}): Promise<UsageSummary> {
+    const qs = new URLSearchParams();
+    if (query.from) qs.set("from", query.from);
+    if (query.to) qs.set("to", query.to);
+    const s = qs.toString();
+    return this.http.get<UsageSummary>(`/api/usage/summary${s ? `?${s}` : ""}`);
   }
 
   /**

@@ -23,6 +23,31 @@ export interface UsageSummary {
 }
 
 /** One day of the org usage series (credits in micro-credits; only days with usage). */
+/**
+ * The caller's own SPEND ALLOWANCE — whole credits. What a non-admin member sees in
+ * place of the org plan: the credit cap their org admin set on their workspace, what
+ * they've spent in the current window, and the interval it resets on. Reported by the
+ * same code path that ENFORCES the cap, so the number shown is the number enforced.
+ */
+export interface CreditAllocation {
+  /** True when the workspace has no cap — spend is unlimited (cap/remaining are 0). */
+  uncapped: boolean;
+  capCredits: number;
+  spentCredits: number;
+  remainingCredits: number;
+  /** The admin-set interval: 1 (daily) | 7 (weekly) | 30 (monthly). */
+  periodDays: number;
+  windowStart: string;
+  windowEnd: string;
+  workspaceName: string;
+}
+
+/** A reporting window for {@link UsageClient.summary}; both bounds ISO or YYYY-MM-DD. */
+export interface UsageSummaryQuery {
+  from?: string;
+  to?: string;
+}
+
 export interface UsageDay {
   day: string; // YYYY-MM-DD
   credits: number; // micro-credits
