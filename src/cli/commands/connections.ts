@@ -298,6 +298,84 @@ export function registerConnections(reg: CommandRegistry): void {
   });
 
   reg.register({
+    path: "connections personal mcp list",
+    summary: "list the caller's own custom-MCP endpoints",
+    covers: ["connections.personalMcpList"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.connections.personalMcpList());
+    },
+  });
+
+  reg.register({
+    path: "connections personal mcp add",
+    summary: "register your own custom-MCP endpoint (workspace must allow it)",
+    usage: "connections personal mcp add <slug> --name <name> --url <url> [--header 'K: V,K2: V2']",
+    covers: ["connections.personalMcpCreate"],
+    async run(ctx, args) {
+      const slug = args.positional[0];
+      const name = flagStr(args, "name");
+      const url = flagStr(args, "url");
+      if (!slug || !name || !url) throw new Error("usage: connections personal mcp add <slug> --name <name> --url <url>");
+      const headers = parseHeaderFlag(flagStr(args, "header"));
+      ctx.printJson(await ctx.client.connections.personalMcpCreate({ slug, name, url, ...(headers ? { headers } : {}) }));
+    },
+  });
+
+  reg.register({
+    path: "connections personal mcp update",
+    summary: "edit one of your own custom-MCP endpoints",
+    usage: "connections personal mcp update <slug> [--name <n>] [--url <u>] [--header 'K: V'] [--enabled true|false]",
+    covers: ["connections.personalMcpUpdate"],
+    async run(ctx, args) {
+      const slug = args.positional[0];
+      if (!slug) throw new Error("usage: connections personal mcp update <slug> [--name <n>] [--url <u>]");
+      const patch: { name?: string; url?: string; headers?: Record<string, string>; enabled?: boolean } = {};
+      const name = flagStr(args, "name");
+      const url = flagStr(args, "url");
+      const headers = parseHeaderFlag(flagStr(args, "header"));
+      const enabled = flagStr(args, "enabled");
+      if (name !== undefined) patch.name = name;
+      if (url !== undefined) patch.url = url;
+      if (headers) patch.headers = headers;
+      if (enabled !== undefined) patch.enabled = enabled === "true";
+      ctx.printJson(await ctx.client.connections.personalMcpUpdate(slug, patch));
+    },
+  });
+
+  reg.register({
+    path: "connections personal mcp remove",
+    summary: "delete one of your own custom-MCP endpoints",
+    usage: "connections personal mcp remove <slug>",
+    covers: ["connections.personalMcpRemove"],
+    async run(ctx, args) {
+      const slug = args.positional[0];
+      if (!slug) throw new Error("usage: connections personal mcp remove <slug>");
+      ctx.printJson(await ctx.client.connections.personalMcpRemove(slug));
+    },
+  });
+
+  reg.register({
+    path: "connections personal tools",
+    summary: "your OWN per-connection tool caps { slug: tools[] }",
+    covers: ["connections.personalConnectionTools"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.connections.personalConnectionTools());
+    },
+  });
+
+  reg.register({
+    path: "connections personal set-tools",
+    summary: "narrow which of a connection's tools YOUR agents may call",
+    usage: "connections personal set-tools <slug> [tool...]",
+    covers: ["connections.setPersonalConnectionTools"],
+    async run(ctx, args) {
+      const [slug, ...tools] = args.positional;
+      if (!slug) throw new Error("usage: connections personal set-tools <slug> [tool...]");
+      ctx.printJson(await ctx.client.connections.setPersonalConnectionTools(slug, tools));
+    },
+  });
+
+  reg.register({
     path: "connections run",
     summary: "run a governed connection tool (scope-derived external id)",
     usage: "connections run <slug> <tool> [props-json]",

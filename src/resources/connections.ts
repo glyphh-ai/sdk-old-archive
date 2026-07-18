@@ -166,6 +166,41 @@ export class ConnectionsClient {
     return this.http.del<{ ok: boolean }>(`/api/connections/personal/${encodeURIComponent(id)}`);
   }
 
+  // ── the member's OWN custom-MCP endpoints (workspace-gated) ──────────────────
+
+  /** The caller's own custom-MCP endpoints (never the org-shared catalog). */
+  async personalMcpList(): Promise<OrgMcpConnection[]> {
+    const { connections } = await this.http.get<{ connections: OrgMcpConnection[] }>("/api/connections/personal/mcp");
+    return connections;
+  }
+
+  /** Register a custom-MCP endpoint of the caller's own; the server probes it for
+   *  reachability. Refused (403) unless their workspace allows custom MCP. */
+  personalMcpCreate(input: OrgMcpInput): Promise<OrgMcpCreateResult> {
+    return this.http.post<OrgMcpCreateResult>("/api/connections/personal/mcp", input);
+  }
+
+  /** Edit one of the caller's own endpoints (omit `headers` to keep the saved secret). */
+  personalMcpUpdate(slug: string, patch: OrgMcpPatch): Promise<{ ok: boolean; connection: OrgMcpConnection }> {
+    return this.http.patch<{ ok: boolean; connection: OrgMcpConnection }>(`/api/connections/personal/mcp/${encodeURIComponent(slug)}`, patch);
+  }
+
+  /** Delete one of the caller's own endpoints. */
+  personalMcpRemove(slug: string): Promise<{ ok: boolean }> {
+    return this.http.del<{ ok: boolean }>(`/api/connections/personal/mcp/${encodeURIComponent(slug)}`);
+  }
+
+  /** The caller's OWN per-connection tool caps — `{ slug: allowedTools[] }`. The last
+   *  narrowing layer under the org cap and the workspace grant; an absent slug ⇒ no cap. */
+  personalConnectionTools(): Promise<Record<string, string[]>> {
+    return this.http.get<Record<string, string[]>>("/api/connections/personal/tools");
+  }
+
+  /** Narrow which of a connection's tools the caller's own agents may call. */
+  setPersonalConnectionTools(slug: string, tools: string[]): Promise<{ ok: boolean; slug: string; tools: string[] }> {
+    return this.http.put<{ ok: boolean; slug: string; tools: string[] }>(`/api/connections/personal/${encodeURIComponent(slug)}/tools`, { tools });
+  }
+
   /**
    * Run one governed connection tool. `slug` names a connection from the caller's resolved
    * set; `tool` is the tool key or name; `props` are the action inputs. Scope is derived
