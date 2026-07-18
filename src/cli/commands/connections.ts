@@ -286,6 +286,19 @@ export function registerConnections(reg: CommandRegistry): void {
   });
 
   reg.register({
+    path: "connections personal rename",
+    summary: "label one of your own connections",
+    usage: "connections personal rename <id> <label...>",
+    covers: ["connections.renamePersonalConnection"],
+    async run(ctx, args) {
+      const [id, ...rest] = args.positional;
+      const label = rest.join(" ");
+      if (!id || !label) throw new Error("usage: connections personal rename <id> <label...>");
+      ctx.printJson(await ctx.client.connections.renamePersonalConnection(id, label));
+    },
+  });
+
+  reg.register({
     path: "connections personal disconnect",
     summary: "disconnect one of the caller's own personal connections by id",
     usage: "connections personal disconnect <id>",

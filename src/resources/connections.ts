@@ -161,6 +161,12 @@ export class ConnectionsClient {
     return this.http.post<PersonalConnectSession>("/api/connections/personal/pipedream/connect", { app });
   }
 
+  /** Label one of the caller's OWN connections (e.g. "My work Gmail"). */
+  async renamePersonalConnection(id: string, label: string): Promise<PersonalConnection> {
+    const { connection } = await this.http.patch<{ ok: boolean; connection: PersonalConnection }>(`/api/connections/personal/${encodeURIComponent(id)}`, { label });
+    return connection;
+  }
+
   /** Disconnect one of the caller's OWN personal connections by id. */
   personalDisconnect(id: string): Promise<{ ok: boolean }> {
     return this.http.del<{ ok: boolean }>(`/api/connections/personal/${encodeURIComponent(id)}`);
