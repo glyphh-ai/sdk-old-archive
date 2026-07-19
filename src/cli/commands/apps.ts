@@ -310,4 +310,43 @@ export function registerApps(reg: CommandRegistry): void {
       }));
     },
   });
+  reg.register({
+    path: "apps secrets",
+    summary: "the config-var KEYS set on an app (values are write-only)",
+    usage: "apps secrets --slug <s>",
+    covers: ["apps.secrets"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      if (!slug) throw new Error("usage: apps secrets --slug <s>");
+      ctx.printJson(await ctx.client.apps.secrets(slug));
+    },
+  });
+
+  reg.register({
+    path: "apps secret set",
+    summary: "set a config var (encrypted; injected as env at deploy)",
+    usage: "apps secret set --slug <s> --key STRIPE_SECRET_KEY --value <v>",
+    covers: ["apps.setSecret"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      const key = flagStr(args, "key");
+      const value = flagStr(args, "value");
+      if (!slug || !key || !value) throw new Error("usage: apps secret set --slug <s> --key <K> --value <v>");
+      ctx.printJson(await ctx.client.apps.setSecret(slug, key, value));
+    },
+  });
+
+  reg.register({
+    path: "apps secret remove",
+    summary: "remove a config var",
+    usage: "apps secret remove --slug <s> --key <K>",
+    covers: ["apps.removeSecret"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      const key = flagStr(args, "key");
+      if (!slug || !key) throw new Error("usage: apps secret remove --slug <s> --key <K>");
+      await ctx.client.apps.removeSecret(slug, key);
+      ctx.printJson({ ok: true, key });
+    },
+  });
 }

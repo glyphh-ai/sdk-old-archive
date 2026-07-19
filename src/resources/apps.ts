@@ -8,7 +8,7 @@
 
 import type { AuthedHttp } from "../core/authed-http.js";
 import type { AppListing, InstalledApp, PublishAppInput, PanelApp,
-  OrgApp, CreateAppEntryInput, UpdateAppEntryInput, AppVariant, AppRelease, AppAuditEntry, AppUsageDay,
+  OrgApp, CreateAppEntryInput, UpdateAppEntryInput, AppVariant, AppRelease, AppAuditEntry, AppUsageDay, AppSecretKey,
 } from "../contract/apps.js";
 
 export class AppsClient {
@@ -128,5 +128,25 @@ export class AppsClient {
     if (query.limit) qs.set("limit", String(query.limit));
     const q = qs.toString();
     return this.http.get<{ entries: AppAuditEntry[]; page: number; limit: number }>(`/api/apps/audit${q ? `?${q}` : ""}`);
+  }
+
+  // ── config vars: write-only per-app secrets ─────────────────────────────────
+
+  /** The KEYS set on an app — values are never returned by any read path. */
+  async secrets(slug: string): Promise<AppSecretKey[]> {
+    const { keys } = await this.http.get<{ keys: AppSecretKey[] }>(`/api/apps/${encodeURIComponent(slug)}/secrets`);
+    return keys;
+  }
+
+  /** Set or overwrite one config var (UPPER_SNAKE_CASE). Encrypted at rest,
+   *  injected as env at deploy. */
+  setSecret(slug: string, key: string, value: string): Promise<{ ok: boolean; key: string }> {
+    return this.http.put<{ ok: boolean; key: string }>(
+      `/api/apps/${encodeURIComponent(slug)}/secrets/${encodeURIComponent(key)}`, { value },
+    );
+  }
+
+  removeSecret(slug: string, key: string): Promise<void> {
+    return this.http.del<void>(`/api/apps/${encodeURIComponent(slug)}/secrets/${encodeURIComponent(key)}`);
   }
 }

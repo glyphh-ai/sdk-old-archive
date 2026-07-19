@@ -65,7 +65,17 @@ export interface OrgApp {
   nativeRef: string | null;
   deployed: boolean;
   variants: AppVariant[];
+  /** Manifest-declared connections, each flagged connected or still required. */
+  requiredConnections: { slug: string; actAs: string; connected: boolean }[];
+  /** Credits if the app ran 24/7 for 30 days at its size — the ceiling, not a bill. */
+  worstCaseMonthlyCredits: number;
   createdAt: string;
+  updatedAt: string;
+}
+
+/** One config var KEY set on an app. Values are write-only and never returned. */
+export interface AppSecretKey {
+  key: string;
   updatedAt: string;
 }
 
