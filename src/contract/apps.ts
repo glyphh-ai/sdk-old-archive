@@ -14,7 +14,12 @@
 /** App visibility in the marketplace. */
 export type AppVisibility = "public" | "org" | "unlisted";
 
-export type AppKind = "hosted" | "web" | "native";
+export type AppKind = "hosted" | "web" | "native" | "http" | "llm";
+
+/** Kind-shaped launcher config — HOW the desktop opens the app, mirroring its form:
+ *  web {browser, openAs} · native {archetype, windowMode, shell, profile, cwd,
+ *  initCommands, args, folder} · http {target} · llm {provider, model}. */
+export type AppLauncherConfig = Record<string, unknown>;
 export type AppSize = "small" | "medium" | "large";
 export type AppAccess = "public" | "members";
 
@@ -64,6 +69,8 @@ export interface OrgApp {
   /** native only: the path / bundle id the desktop launches. */
   nativeRef: string | null;
   deployed: boolean;
+  /** Kind-shaped launcher config (validated server-side per kind). */
+  config: AppLauncherConfig;
   variants: AppVariant[];
   /** Manifest-declared connections, each flagged connected or still required. */
   requiredConnections: { slug: string; actAs: string; connected: boolean }[];
@@ -81,12 +88,13 @@ export interface AppSecretKey {
 
 /** Create a web or native entry (hosted apps arrive via publish, not here). */
 export interface CreateAppEntryInput {
-  kind: "web" | "native";
+  kind: "web" | "native" | "http" | "llm";
   slug: string;
   name: string;
   url?: string;
   nativeRef?: string;
   description?: string;
+  config?: AppLauncherConfig;
 }
 
 export interface UpdateAppEntryInput {
@@ -94,6 +102,8 @@ export interface UpdateAppEntryInput {
   url?: string;
   nativeRef?: string;
   description?: string;
+  /** Replaces the whole config when present. */
+  config?: AppLauncherConfig;
 }
 
 /** One immutable build of a hosted app. */

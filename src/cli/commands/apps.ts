@@ -151,19 +151,21 @@ export function registerApps(reg: CommandRegistry): void {
   reg.register({
     path: "apps add",
     summary: "add a web (url) or native (path) app entry",
-    usage: "apps add --kind web|native --slug <s> --name <s> [--url <u>] [--ref <path>]",
+    usage: "apps add --kind web|native|http|llm --slug <s> --name <s> [--url <u>] [--ref <path>] [--config '{json}']",
     covers: ["apps.createEntry"],
     async run(ctx, args) {
-      const kind = flagStr(args, "kind") as "web" | "native";
+      const kind = flagStr(args, "kind") as "web" | "native" | "http" | "llm";
       const slug = flagStr(args, "slug");
       const name = flagStr(args, "name");
-      if (!kind || !slug || !name) throw new Error("usage: apps add --kind web|native --slug <s> --name <s>");
+      if (!kind || !slug || !name) throw new Error("usage: apps add --kind web|native|http|llm --slug <s> --name <s>");
       const url = flagStr(args, "url");
       const nativeRef = flagStr(args, "ref");
+      const configRaw = flagStr(args, "config");
       ctx.printJson(await ctx.client.apps.createEntry({
         kind, slug, name,
         ...(url ? { url } : {}),
         ...(nativeRef ? { nativeRef } : {}),
+        ...(configRaw ? { config: JSON.parse(configRaw) } : {}),
       }));
     },
   });
@@ -171,7 +173,7 @@ export function registerApps(reg: CommandRegistry): void {
   reg.register({
     path: "apps edit",
     summary: "edit a web/native entry",
-    usage: "apps edit --slug <s> [--name <s>] [--url <u>] [--ref <path>]",
+    usage: "apps edit --slug <s> [--name <s>] [--url <u>] [--ref <path>] [--config '{json}']",
     covers: ["apps.updateEntry"],
     async run(ctx, args) {
       const slug = flagStr(args, "slug");
@@ -179,8 +181,10 @@ export function registerApps(reg: CommandRegistry): void {
       const name = flagStr(args, "name");
       const url = flagStr(args, "url");
       const nativeRef = flagStr(args, "ref");
+      const configRaw = flagStr(args, "config");
       ctx.printJson(await ctx.client.apps.updateEntry(slug, {
         ...(name ? { name } : {}), ...(url ? { url } : {}), ...(nativeRef ? { nativeRef } : {}),
+        ...(configRaw ? { config: JSON.parse(configRaw) } : {}),
       }));
     },
   });
