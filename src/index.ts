@@ -28,6 +28,8 @@ export {
   ProtocolError, UnsupportedError, RUNTIME_ERROR_CODES,
 } from "./core/errors.js";
 export type { RuntimeErrorCode } from "./core/errors.js";
+export { createTtlCache } from "./core/cache.js";
+export type { TtlCache, TtlCacheOptions } from "./core/cache.js";
 export { createLogger } from "./core/logger.js";
 export type { Logger, LogSink, LogEntry, LogLevel, LogFields, LoggerOptions } from "./core/logger.js";
 
@@ -109,7 +111,24 @@ export type {
 export { LoopsClient } from "./resources/loops.js";
 export type { Loop, LoopSummary, CreateLoopInput, UpdateLoopInput } from "./contract/loops.js";
 export { ConnectionsClient } from "./resources/connections.js";
-export type { Connection, ConnectionKind, CustomMcpInput, ConnectLink } from "./contract/connections.js";
+export type {
+  Connection,
+  ConnectionKind,
+  CustomMcpInput,
+  ConnectLink,
+  ConnectorApp,
+  ConnectorTool,
+  ResolvedConnection,
+  RunToolResult,
+  PersonalConnection,
+  PersonalConnectSession,
+  OrgMcpConnection,
+  OrgMcpInput,
+  OrgMcpPatch,
+  OrgMcpCreateResult,
+  OrgPipedreamConnection,
+  McpOAuthStart,
+} from "./contract/connections.js";
 export { UsageClient } from "./resources/usage.js";
 export type { UsageSummary, UsageDay, UsageDailyQuery, UsageByModelRow, UsageByModelQuery } from "./contract/usage.js";
 export { ApiKeysClient } from "./resources/api-keys.js";
@@ -134,6 +153,17 @@ export type {
   AppVisibility,
   PublishAppInput,
   InstalledApp,
+  AppKind,
+  AppLauncherConfig,
+  AppVariant,
+  OrgApp,
+  PanelApp,
+  AppSecretKey,
+  CreateAppEntryInput,
+  UpdateAppEntryInput,
+  AppRelease,
+  AppUsageDay,
+  AppAuditEntry,
 } from "./contract/apps.js";
 export { HostingClient } from "./resources/hosting.js";
 export type { Deployment, DeployStatus, DeployInput } from "./contract/hosting.js";
