@@ -63,7 +63,10 @@ export class HttpClient {
   private async request<T>(method: string, path: string, body: unknown, opts: RequestOptions): Promise<T> {
     const url = `${this.baseUrl}${path}`;
     const headers: Record<string, string> = { accept: "application/json" };
-    if (body !== undefined) headers["content-type"] = "application/json";
+    // A Uint8Array body goes over the wire AS-IS (app source archives); everything
+    // else is JSON. One request path, so auth/timeout/error handling stay identical.
+    const raw = body instanceof Uint8Array;
+    if (body !== undefined) headers["content-type"] = raw ? "application/octet-stream" : "application/json";
     if (opts.bearer) headers["authorization"] = `Bearer ${opts.bearer}`;
 
     // Timeout via AbortController, composed with any caller-supplied signal.
@@ -73,7 +76,7 @@ export class HttpClient {
     opts.signal?.addEventListener("abort", onAbort);
 
     const init: RequestInit = { method, headers, signal: controller.signal };
-    if (body !== undefined) init.body = JSON.stringify(body);
+    if (body !== undefined) init.body = raw ? (body as Uint8Array<ArrayBuffer>) : JSON.stringify(body);
 
     let res: Response;
     try {

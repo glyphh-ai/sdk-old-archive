@@ -7,6 +7,7 @@
 
 export { createClient } from "./client.js";
 export type { Client, ClientOptions, OpenSessionOptions } from "./client.js";
+export type { AuthedHttp } from "./core/authed-http.js";
 
 export { Session } from "./session/session.js";
 export type { SessionConfig } from "./session/session.js";

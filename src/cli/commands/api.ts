@@ -1,0 +1,46 @@
+/**
+ * @license Proprietary — © Glyphh. All rights reserved.
+ *
+ * commands/api.ts — raw authenticated requests against the control plane, the CLI
+ * face of the `client.http` escape hatch. For endpoints no typed command covers
+ * yet; the response prints as JSON verbatim.
+ */
+
+import type { CommandRegistry } from "../registry.js";
+import type { CliContext } from "../context.js";
+import type { CliArgs } from "../args.js";
+
+const METHODS = ["get", "post", "patch", "put", "del"] as const;
+type Method = (typeof METHODS)[number];
+
+function parseBody(raw: string | undefined, ctx: CliContext): unknown {
+  if (!raw) return undefined;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    ctx.print("body must be valid JSON");
+    throw new Error("invalid --body JSON");
+  }
+}
+
+export function registerApi(reg: CommandRegistry): void {
+  reg.register({
+    path: "api",
+    summary: "raw authenticated request: api <get|post|patch|put|del> </api/path> [json-body]",
+    usage: "api <method> <path> [<json-body>]",
+    covers: METHODS.map((m) => `http.${m}`),
+    async run(ctx: CliContext, args: CliArgs) {
+      const [methodRaw, path, body] = args.positional;
+      const method = methodRaw?.toLowerCase() as Method | undefined;
+      if (!method || !METHODS.includes(method) || !path?.startsWith("/")) {
+        return ctx.print("usage: api <get|post|patch|put|del> </api/path> [<json-body>]");
+      }
+      const parsed = parseBody(body, ctx);
+      const result =
+        method === "get" || method === "del"
+          ? await ctx.client.http[method](path)
+          : await ctx.client.http[method](path, parsed);
+      ctx.printJson(result);
+    },
+  });
+}

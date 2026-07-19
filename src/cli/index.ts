@@ -32,10 +32,12 @@ import { registerModels } from "./commands/models.js";
 import { registerProfile } from "./commands/profile.js";
 import { registerSupport } from "./commands/support.js";
 import { registerOAuth } from "./commands/oauth.js";
+import { registerApi } from "./commands/api.js";
 
 export function buildRegistry(): CommandRegistry {
   const reg = new CommandRegistry();
   registerAuth(reg);
+  registerApi(reg);
   registerSession(reg);
   registerRotor(reg);
   registerMeta(reg);

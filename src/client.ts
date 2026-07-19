@@ -74,6 +74,12 @@ export interface OpenSessionOptions extends SessionConfig {
 }
 
 export interface Client {
+  /**
+   * Escape hatch: authenticated raw HTTP against the control plane (bearer +
+   * refresh handled). For endpoints a typed resource client doesn't cover yet —
+   * prefer the typed clients; migrate callers off this as coverage lands.
+   */
+  http: AuthedHttp;
   /** The sign-in surface (magic link, Google, Apple, org SSO, sign out). */
   auth: AuthClient;
   /** The caller's own editable profile (name + timezone). */
@@ -170,6 +176,7 @@ export function createClient(opts: ClientOptions): Client {
   // signed-in user, so AuthClient needs an authenticated transport for it.
   const auth = new AuthClient(http, refresh, authed);
   return {
+    http: authed,
     auth,
     profile: new ProfileClient(authed),
     support: new SupportClient(authed),

@@ -39,12 +39,10 @@ export function registerApps(reg: CommandRegistry): void {
     covers: ["apps.publish"],
     async run(ctx, args) {
       const manifestPath = flagStr(args, "manifest");
-      const bundleUrl = flagStr(args, "bundle");
-      if (!manifestPath || !bundleUrl) {
-        throw new Error("usage: apps publish --manifest <file.json> --bundle <url>");
-      }
+      if (!manifestPath) throw new Error("usage: apps publish --manifest <file.json>");
       const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as AppManifest;
-      const input: PublishAppInput = { manifest, bundleUrl };
+      // No bundle: source is uploaded per-release (`apps upload-source`), not at publish.
+      const input: PublishAppInput = { manifest };
       const visibility = flagStr(args, "visibility");
       if (visibility) input.visibility = visibility as AppVisibility;
       ctx.printJson(await ctx.client.apps.publish(input));
@@ -138,6 +136,178 @@ export function registerApps(reg: CommandRegistry): void {
       if (!id) throw new Error("usage: hosting destroy <id>");
       await ctx.client.hosting.destroy(id);
       ctx.printJson({ destroyed: id });
+    },
+  });
+  // ── the Apps page surface: entries, variants, releases, usage, audit ─────────
+  reg.register({
+    path: "apps mine",
+    summary: "your org's apps — all kinds, with prod URL, variants, deploy state",
+    covers: ["apps.mine"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.apps.mine());
+    },
+  });
+
+  reg.register({
+    path: "apps add",
+    summary: "add a web (url) or native (path) app entry",
+    usage: "apps add --kind web|native --slug <s> --name <s> [--url <u>] [--ref <path>]",
+    covers: ["apps.createEntry"],
+    async run(ctx, args) {
+      const kind = flagStr(args, "kind") as "web" | "native";
+      const slug = flagStr(args, "slug");
+      const name = flagStr(args, "name");
+      if (!kind || !slug || !name) throw new Error("usage: apps add --kind web|native --slug <s> --name <s>");
+      const url = flagStr(args, "url");
+      const nativeRef = flagStr(args, "ref");
+      ctx.printJson(await ctx.client.apps.createEntry({
+        kind, slug, name,
+        ...(url ? { url } : {}),
+        ...(nativeRef ? { nativeRef } : {}),
+      }));
+    },
+  });
+
+  reg.register({
+    path: "apps edit",
+    summary: "edit a web/native entry",
+    usage: "apps edit --slug <s> [--name <s>] [--url <u>] [--ref <path>]",
+    covers: ["apps.updateEntry"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      if (!slug) throw new Error("usage: apps edit --slug <s> [--name] [--url] [--ref]");
+      const name = flagStr(args, "name");
+      const url = flagStr(args, "url");
+      const nativeRef = flagStr(args, "ref");
+      ctx.printJson(await ctx.client.apps.updateEntry(slug, {
+        ...(name ? { name } : {}), ...(url ? { url } : {}), ...(nativeRef ? { nativeRef } : {}),
+      }));
+    },
+  });
+
+  reg.register({
+    path: "apps remove",
+    summary: "delete an app (refused while a deployment is live)",
+    usage: "apps remove --slug <s>",
+    covers: ["apps.removeEntry"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      if (!slug) throw new Error("usage: apps remove --slug <s>");
+      await ctx.client.apps.removeEntry(slug);
+      ctx.printJson({ ok: true, slug });
+    },
+  });
+
+  reg.register({
+    path: "apps variant add",
+    summary: "add a slug → url address (e.g. crm-dev → localhost:3001)",
+    usage: "apps variant add --app <slug> --slug <s> --url <u> [--label dev]",
+    covers: ["apps.addVariant"],
+    async run(ctx, args) {
+      const app = flagStr(args, "app");
+      const slug = flagStr(args, "slug");
+      const url = flagStr(args, "url");
+      if (!app || !slug || !url) throw new Error("usage: apps variant add --app <slug> --slug <s> --url <u>");
+      const label = flagStr(args, "label");
+      ctx.printJson(await ctx.client.apps.addVariant(app, { slug, url, ...(label ? { label } : {}) }));
+    },
+  });
+
+  reg.register({
+    path: "apps variant edit",
+    summary: "update a variant's url or label",
+    usage: "apps variant edit --app <slug> --id <id> [--url <u>] [--label <s>]",
+    covers: ["apps.updateVariant"],
+    async run(ctx, args) {
+      const app = flagStr(args, "app");
+      const id = flagStr(args, "id");
+      if (!app || !id) throw new Error("usage: apps variant edit --app <slug> --id <id>");
+      const url = flagStr(args, "url");
+      const label = flagStr(args, "label");
+      ctx.printJson(await ctx.client.apps.updateVariant(app, id, {
+        ...(url ? { url } : {}), ...(label ? { label } : {}),
+      }));
+    },
+  });
+
+  reg.register({
+    path: "apps variant remove",
+    summary: "remove a variant address",
+    usage: "apps variant remove --app <slug> --id <id>",
+    covers: ["apps.removeVariant"],
+    async run(ctx, args) {
+      const app = flagStr(args, "app");
+      const id = flagStr(args, "id");
+      if (!app || !id) throw new Error("usage: apps variant remove --app <slug> --id <id>");
+      await ctx.client.apps.removeVariant(app, id);
+      ctx.printJson({ ok: true });
+    },
+  });
+
+  reg.register({
+    path: "apps releases",
+    summary: "a hosted app's builds, newest first",
+    usage: "apps releases --slug <s>",
+    covers: ["apps.releases"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      if (!slug) throw new Error("usage: apps releases --slug <s>");
+      ctx.printJson(await ctx.client.apps.releases(slug));
+    },
+  });
+
+  reg.register({
+    path: "apps release new",
+    summary: "open a release (pending until source is uploaded)",
+    usage: "apps release new --slug <s> [--version <semver>]",
+    covers: ["apps.createRelease"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      if (!slug) throw new Error("usage: apps release new --slug <s>");
+      const version = flagStr(args, "version");
+      ctx.printJson(await ctx.client.apps.createRelease(slug, version ? { version } : {}));
+    },
+  });
+
+  reg.register({
+    path: "apps upload-source",
+    summary: "upload a release's source archive and build it",
+    usage: "apps upload-source --slug <s> --release <id> --file <archive.tar.gz>",
+    covers: ["apps.uploadSource"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      const release = flagStr(args, "release");
+      const file = flagStr(args, "file");
+      if (!slug || !release || !file) throw new Error("usage: apps upload-source --slug <s> --release <id> --file <path>");
+      const archive = new Uint8Array(readFileSync(file));
+      ctx.printJson(await ctx.client.apps.uploadSource(slug, release, archive));
+    },
+  });
+
+  reg.register({
+    path: "apps usage",
+    summary: "an app's daily credit burn (default 30 days)",
+    usage: "apps usage --slug <s> [--days 30]",
+    covers: ["apps.usage"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      if (!slug) throw new Error("usage: apps usage --slug <s>");
+      const days = flagStr(args, "days");
+      ctx.printJson(await ctx.client.apps.usage(slug, days ? Number(days) : 30));
+    },
+  });
+
+  reg.register({
+    path: "apps audit",
+    summary: "the org's app audit feed (app.* actions)",
+    usage: "apps audit [--page 1] [--limit 50]",
+    covers: ["apps.audit"],
+    async run(ctx, args) {
+      const page = flagStr(args, "page");
+      const limit = flagStr(args, "limit");
+      ctx.printJson(await ctx.client.apps.audit({
+        ...(page ? { page: Number(page) } : {}), ...(limit ? { limit: Number(limit) } : {}),
+      }));
     },
   });
 }

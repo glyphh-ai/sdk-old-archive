@@ -26,7 +26,6 @@ describe("@glyphh/client — apps + hosting", () => {
 
     const listing = await client.apps.publish({
       manifest: { slug, name: "Demo", version: "1.0.0", description: "a demo app" },
-      bundleUrl: "https://bundles.glyphh.app/demo.tgz",
       visibility: "org",
     });
     expect(listing.slug).toBe(slug);
@@ -48,7 +47,6 @@ describe("@glyphh/client — apps + hosting", () => {
     const slug = `host-${randomUUID().slice(0, 8)}`;
     await client.apps.publish({
       manifest: { slug, name: "Host Me", version: "0.1.0" },
-      bundleUrl: "https://bundles.glyphh.app/host.tgz",
     });
 
     const dep = await client.hosting.deploy({ appSlug: slug });
@@ -73,7 +71,6 @@ describe("@glyphh/client — apps + hosting", () => {
     await expect(
       client.apps.publish({
         manifest: { slug: "Not Kebab!", name: "Bad", version: "not-semver" },
-        bundleUrl: "https://bundles.glyphh.app/bad.tgz",
       }),
     ).rejects.toMatchObject({ code: "E_VALIDATION" });
   });
