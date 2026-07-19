@@ -31,6 +31,7 @@ import { registerRotorConfig } from "./commands/rotor-config.js";
 import { registerModels } from "./commands/models.js";
 import { registerProfile } from "./commands/profile.js";
 import { registerSupport } from "./commands/support.js";
+import { registerOAuth } from "./commands/oauth.js";
 
 export function buildRegistry(): CommandRegistry {
   const reg = new CommandRegistry();
@@ -58,6 +59,7 @@ export function buildRegistry(): CommandRegistry {
   registerModels(reg);
   registerProfile(reg);
   registerSupport(reg);
+  registerOAuth(reg);
   return reg;
 }
 
