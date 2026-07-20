@@ -81,7 +81,6 @@ function registerKind(
 
 export function registerLibrary(reg: CommandRegistry): void {
   registerKind(reg, "rotors", "rotors", (ctx) => ctx.client.rotors);
-  registerKind(reg, "agents", "agents", (ctx) => ctx.client.agents);
   registerKind(reg, "layouts", "layouts", (ctx) => ctx.client.layouts);
   registerKind(reg, "drips", "drips", (ctx) => ctx.client.drips);
   registerKind(reg, "msgs", "messageSessions", (ctx) => ctx.client.messageSessions);

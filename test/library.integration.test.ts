@@ -41,16 +41,16 @@ describe("@glyphh/client — library", () => {
 
   it("org-scoped item is shared (author is org_admin)", async () => {
     const client = await signIn();
-    const item = await client.agents.save({ name: "shared-agent", data: {}, scope: "org" });
+    const item = await client.drips.save({ name: "shared-agent", data: {}, scope: "org" });
     expect(item.scope).toBe("org");
     expect(item.ownerUserId).toBeNull();
-    expect((await client.agents.list()).some((s) => s.id === item.id)).toBe(true);
+    expect((await client.drips.list()).some((s) => s.id === item.id)).toBe(true);
   });
 
   it("a duplicate name within a kind is a conflict", async () => {
     const client = await signIn();
-    await client.agents.save({ name: "dup", data: {} });
-    await expect(client.agents.save({ name: "dup", data: {} })).rejects.toMatchObject({ code: "E_CONFLICT" });
+    await client.drips.save({ name: "dup", data: {} });
+    await expect(client.drips.save({ name: "dup", data: {} })).rejects.toMatchObject({ code: "E_CONFLICT" });
     // The same name under a different kind is fine.
     const ok = await client.layouts.save({ name: "dup", data: {} });
     expect(ok.name).toBe("dup");

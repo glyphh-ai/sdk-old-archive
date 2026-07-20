@@ -36,3 +36,8 @@ export function flagStr(args: CliArgs, name: string): string | undefined {
   const v = args.flags[name];
   return typeof v === "string" ? v : undefined;
 }
+
+/** A bare switch (`--live`). Present-without-a-value parses as `true`. */
+export function flagBool(args: CliArgs, name: string): boolean {
+  return args.flags[name] === true;
+}

@@ -39,6 +39,7 @@ import { RelayClient } from "./resources/relay.js";
 import { RotorConfigClient } from "./resources/rotor-config.js";
 import { GatewayClient } from "./resources/gateway.js";
 import { SkillsClient } from "./resources/skills.js";
+import { AgentsClient } from "./resources/agents.js";
 import { OrgModelsClient } from "./resources/org-models.js";
 import { ModelsClient } from "./resources/models.js";
 import { ProfileClient } from "./resources/profile.js";
@@ -130,8 +131,8 @@ export interface Client {
   rotors: LibraryClient;
   /** Skill library — manifest + prompt + optional program (org_admin builds). */
   skills: SkillsClient;
-  /** Agent library (personal + org). */
-  agents: LibraryClient;
+  /** Standing workers: an agent runs a loop and fires scheduled tasks. */
+  agents: AgentsClient;
   /** Workbench layout library (personal + org). */
   layouts: LibraryClient;
   /** Drip (scheduled prompt) library (personal + org). */
@@ -205,7 +206,7 @@ export function createClient(opts: ClientOptions): Client {
     hosting: new HostingClient(authed),
     rotors: new LibraryClient(authed, "rotor"),
     skills: new SkillsClient(authed),
-    agents: new LibraryClient(authed, "agent"),
+    agents: new AgentsClient(authed),
     layouts: new LibraryClient(authed, "layout"),
     drips: new LibraryClient(authed, "drip"),
     messageSessions: new LibraryClient(authed, "message_session"),

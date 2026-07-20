@@ -181,6 +181,21 @@ export { RotorConfigClient } from "./resources/rotor-config.js";
 export type { RotorRole, RotorCatalogEntry } from "./contract/rotors.js";
 export { OrgModelsClient } from "./resources/org-models.js";
 export { ModelsClient } from "./resources/models.js";
+export { AgentsClient } from "./resources/agents.js";
+export type {
+  Agent,
+  AgentSummary,
+  AgentScope,
+  AgentSelections,
+  AgentTask,
+  AgentTaskKind,
+  LiveAgent,
+  GuardrailsPolicy as AgentGuardrailsPolicy,
+  CreateAgentInput,
+  UpdateAgentInput,
+  CreateAgentTaskInput,
+  UpdateAgentTaskInput,
+} from "./contract/agents.js";
 export { SkillsClient } from "./resources/skills.js";
 export type {
   Skill,

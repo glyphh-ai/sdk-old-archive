@@ -35,6 +35,7 @@ import { registerOAuth } from "./commands/oauth.js";
 import { registerApi } from "./commands/api.js";
 import { registerGateway } from "./commands/gateway.js";
 import { registerSkills } from "./commands/skills.js";
+import { registerAgents } from "./commands/agents.js";
 
 export function buildRegistry(): CommandRegistry {
   const reg = new CommandRegistry();
@@ -42,6 +43,7 @@ export function buildRegistry(): CommandRegistry {
   registerApi(reg);
   registerGateway(reg);
   registerSkills(reg);
+  registerAgents(reg);
   registerSession(reg);
   registerRotor(reg);
   registerMeta(reg);
