@@ -61,6 +61,25 @@ export function registerLoops(reg: CommandRegistry): void {
   });
 
   reg.register({
+    path: "loops roles",
+    summary: "the model slots a loop declares, resolved for you (what a picker shows)",
+    usage: "loops roles <slug|id> [--select <role>:<modelId>]",
+    covers: ["loops.roles"],
+    async run(ctx, args) {
+      const ref = args.positional[0];
+      if (!ref) throw new Error("usage: loops roles <slug|id> [--select <role>:<modelId>]");
+      const selections: Record<string, string> = {};
+      const raw = flagStr(args, "select");
+      if (raw) {
+        const at = raw.indexOf(":");
+        if (at <= 0) throw new Error("--select must be <role>:<modelId>");
+        selections[raw.slice(0, at)] = raw.slice(at + 1);
+      }
+      ctx.printJson(await ctx.client.loops.roles(ref, selections));
+    },
+  });
+
+  reg.register({
     path: "loops pull",
     summary: "write a loop's program + manifest to disk",
     usage: "loops pull <slug|id> [--code <path>] [--manifest <path>]",

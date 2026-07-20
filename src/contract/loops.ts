@@ -16,18 +16,31 @@
  */
 
 /**
- * WHAT a loop may reach.
+ * One model slot a loop declares. The program refers to it by `name`
+ * (`ctx.agent("planner", …)`); everything else exists so a picker can render it.
  *
- * `roles` is the model-slot map: the program refers to roles by name and the
- * manifest binds each to a catalog model, so the same loop can run on different
- * models without touching its code. A binding is not a grant — the caller's
- * workspace allow-list still decides at run time.
+ * A role DECLARES a slot, it does not bind one — `default` is a suggestion, and a
+ * caller whose workspace disallows it simply falls back. A loop declaring one role
+ * gets one dropdown; a planner-and-coder loop gets two, each labelled with what it
+ * is for.
  */
+export interface LoopRole {
+  /** Stable key the program uses. */
+  name: string;
+  /** Human label for the picker. Defaults to `name`. */
+  label?: string;
+  /** What this slot is FOR — shown beside the dropdown. */
+  description?: string;
+  /** Catalog model id to prefer. Falls back to the platform default. */
+  default?: string | null;
+}
+
+/** WHAT a loop may reach. */
 export interface LoopManifest {
   /** Manifest shape version, for forward migration. */
   version?: number;
-  /** Role name → catalog model id (`provider::model`). */
-  roles?: Record<string, string>;
+  /** The model slots this loop declares. */
+  roles?: LoopRole[];
   /** Skill slugs the loop may call. */
   skills?: string[];
   /** Connection slugs the loop may use. */
@@ -69,4 +82,29 @@ export interface UpdateLoopInput {
   description?: string;
   manifest?: LoopManifest;
   code?: string;
+}
+
+/** One slot, resolved for a caller: what it is, what it is set to, what it could be. */
+export interface ResolvedLoopRole {
+  name: string;
+  label: string;
+  description: string;
+  /** The model this role will run on. Null when the caller may use none. */
+  modelId: string | null;
+  /**
+   * Where that answer came from. A picker shows this so a user can tell an
+   * inherited default from their own choice:
+   *   selection — the caller picked it   loop — the loop author suggested it
+   *   platform  — the super_admin default fallback — first allowed, nothing else set
+   */
+  source: "selection" | "loop" | "platform" | "fallback" | "none";
+  /** Everything the caller could choose, already governance-filtered. */
+  choices: Array<{
+    id: string;
+    name: string;
+    providerSlug: string;
+    contextWindow: number | null;
+    maxOutputTokens: number | null;
+    isPlatformDefault: boolean;
+  }>;
 }

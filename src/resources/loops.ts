@@ -11,7 +11,7 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
-import type { Loop, LoopSummary, CreateLoopInput, UpdateLoopInput } from "../contract/loops.js";
+import type { Loop, LoopSummary, CreateLoopInput, UpdateLoopInput, ResolvedLoopRole } from "../contract/loops.js";
 
 export class LoopsClient {
   constructor(private readonly http: AuthedHttp) {}
@@ -22,6 +22,21 @@ export class LoopsClient {
   get(ref: string): Promise<Loop> {
     return this.http.get<Loop>(`/api/loops/${encodeURIComponent(ref)}`);
   }
+  /**
+   * Everything a model picker needs, in one call: the slots this loop declares,
+   * what each is for, what it resolves to now, and every model the caller could
+   * choose. Pass `selections` to preview a choice before saving it.
+   *
+   * The dropdown and the run agree by construction, because both read this.
+   */
+  async roles(ref: string, selections: Record<string, string> = {}): Promise<ResolvedLoopRole[]> {
+    const qs = Object.entries(selections).map(([role, model]) => `select=${encodeURIComponent(`${role}:${model}`)}`);
+    const { roles } = await this.http.get<{ roles: ResolvedLoopRole[] }>(
+      `/api/loops/${encodeURIComponent(ref)}/roles${qs.length ? `?${qs.join("&")}` : ""}`,
+    );
+    return roles;
+  }
+
   create(input: CreateLoopInput): Promise<Loop> {
     return this.http.post<Loop>("/api/loops", input);
   }
