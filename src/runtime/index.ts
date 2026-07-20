@@ -1,9 +1,10 @@
 /**
  * @license Proprietary — © Glyphh. All rights reserved.
  *
- * @glyphh/client/runtime — the local runtime supervisor (Node-only). One runtime per
- * machine, shared by every local client (CLI, desktop), started transparently on first
- * use. Import from `@glyphh/client/runtime`; do not pull into a browser/RN bundle.
+ * @glyphh/client/runtime — the Node-only local runtime: the per-machine supervisor,
+ * the governed model bridge, and the RUNNER that executes loops and skills. Shared by
+ * every local client (CLI, desktop). Import from `@glyphh/client/runtime`; do not pull
+ * into a browser/RN bundle.
  */
 
 export {
@@ -27,3 +28,18 @@ export {
   type ResolveModelsOptions,
   type SwitchModelOptions,
 } from "./models.js";
+
+// The loop/skill runner: one engine, one capability gate, one model egress.
+export {
+  runProgram,
+  CapabilityError,
+  type ProgramSource,
+  type ProgramCapabilities,
+  type RunProgramOptions,
+  type RunnerHost,
+  type RunResult,
+  type RunUsage,
+  type ProgressEvent,
+  type ProgressType,
+  type ProgressStatus,
+} from "./runner.js";
