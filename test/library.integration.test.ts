@@ -39,12 +39,12 @@ describe("@glyphh/client — library", () => {
     expect((await client.rotors.list()).some((r) => r.id === saved.id)).toBe(false);
   });
 
-  it("org-scoped skill is shared (author is org_admin)", async () => {
+  it("org-scoped item is shared (author is org_admin)", async () => {
     const client = await signIn();
-    const item = await client.skills.save({ name: "shared-skill", data: {}, scope: "org" });
+    const item = await client.agents.save({ name: "shared-agent", data: {}, scope: "org" });
     expect(item.scope).toBe("org");
     expect(item.ownerUserId).toBeNull();
-    expect((await client.skills.list()).some((s) => s.id === item.id)).toBe(true);
+    expect((await client.agents.list()).some((s) => s.id === item.id)).toBe(true);
   });
 
   it("a duplicate name within a kind is a conflict", async () => {

@@ -38,6 +38,7 @@ import { LibraryClient } from "./resources/library.js";
 import { RelayClient } from "./resources/relay.js";
 import { RotorConfigClient } from "./resources/rotor-config.js";
 import { GatewayClient } from "./resources/gateway.js";
+import { SkillsClient } from "./resources/skills.js";
 import { OrgModelsClient } from "./resources/org-models.js";
 import { ModelsClient } from "./resources/models.js";
 import { ProfileClient } from "./resources/profile.js";
@@ -127,8 +128,8 @@ export interface Client {
   hosting: HostingClient;
   /** Rotor-loop library (personal + org). */
   rotors: LibraryClient;
-  /** Skill library (personal + org). */
-  skills: LibraryClient;
+  /** Skill library — manifest + prompt + optional program (org_admin builds). */
+  skills: SkillsClient;
   /** Agent library (personal + org). */
   agents: LibraryClient;
   /** Workbench layout library (personal + org). */
@@ -203,7 +204,7 @@ export function createClient(opts: ClientOptions): Client {
     apps: new AppsClient(authed),
     hosting: new HostingClient(authed),
     rotors: new LibraryClient(authed, "rotor"),
-    skills: new LibraryClient(authed, "skill"),
+    skills: new SkillsClient(authed),
     agents: new LibraryClient(authed, "agent"),
     layouts: new LibraryClient(authed, "layout"),
     drips: new LibraryClient(authed, "drip"),

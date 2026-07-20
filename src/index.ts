@@ -181,6 +181,15 @@ export { RotorConfigClient } from "./resources/rotor-config.js";
 export type { RotorRole, RotorCatalogEntry } from "./contract/rotors.js";
 export { OrgModelsClient } from "./resources/org-models.js";
 export { ModelsClient } from "./resources/models.js";
+export { SkillsClient } from "./resources/skills.js";
+export type {
+  Skill,
+  SkillSummary,
+  SkillManifest,
+  SkillIO,
+  CreateSkillInput,
+  UpdateSkillInput,
+} from "./contract/skills.js";
 export { GatewayClient } from "./resources/gateway.js";
 export type {
   GatewayMessage,

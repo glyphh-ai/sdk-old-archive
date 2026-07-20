@@ -34,12 +34,14 @@ import { registerSupport } from "./commands/support.js";
 import { registerOAuth } from "./commands/oauth.js";
 import { registerApi } from "./commands/api.js";
 import { registerGateway } from "./commands/gateway.js";
+import { registerSkills } from "./commands/skills.js";
 
 export function buildRegistry(): CommandRegistry {
   const reg = new CommandRegistry();
   registerAuth(reg);
   registerApi(reg);
   registerGateway(reg);
+  registerSkills(reg);
   registerSession(reg);
   registerRotor(reg);
   registerMeta(reg);

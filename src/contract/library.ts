@@ -8,7 +8,7 @@
  * (writable by an org_admin). One uniform CRUD surface backs every kind.
  */
 
-export type LibraryKind = "rotor" | "skill" | "agent" | "layout" | "drip" | "message_session";
+export type LibraryKind = "rotor" | "agent" | "layout" | "drip" | "message_session";
 
 export type LibraryScope = "personal" | "org";
 
