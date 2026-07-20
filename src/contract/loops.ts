@@ -98,13 +98,16 @@ export interface ResolvedLoopRole {
    *   platform  — the super_admin default fallback — first allowed, nothing else set
    */
   source: "selection" | "loop" | "platform" | "fallback" | "none";
-  /** Everything the caller could choose, already governance-filtered. */
+  /** Everything the caller could choose, already governance-filtered and priced —
+   *  a picker that shows a model without its cost makes the choice blind. */
   choices: Array<{
     id: string;
     name: string;
     providerSlug: string;
     contextWindow: number | null;
     maxOutputTokens: number | null;
+    inputCreditsPerMTok: number;
+    outputCreditsPerMTok: number;
     isPlatformDefault: boolean;
   }>;
 }

@@ -18,14 +18,22 @@ import { runProgram } from "../../src/runtime/runner.js";
 import type { Client } from "../../src/client.js";
 
 let BASE_LOOP = "";
-beforeAll(() => {
+let PLAN_BUILD = "";
+
+/** Read a shipped loop program out of the server, so the program under test is
+ *  the one that actually runs. A copied fixture drifts and proves nothing. */
+function shippedLoop(file: string, constName: string): string {
   const here = dirname(fileURLToPath(import.meta.url));
-  const file = join(here, "../../../server/src/domains/loops/base-loop.ts");
-  const raw = readFileSync(file, "utf8");
-  const match = /export const BASE_LOOP_SOURCE = `([\s\S]*)`;\s*$/.exec(raw);
-  if (!match) throw new Error("could not extract BASE_LOOP_SOURCE — has base-loop.ts changed shape?");
+  const raw = readFileSync(join(here, `../../../server/src/domains/loops/${file}`), "utf8");
+  const match = new RegExp(`export const ${constName} = \`([\\s\\S]*)\`;\\s*$`).exec(raw);
+  if (!match) throw new Error(`could not extract ${constName} — has ${file} changed shape?`);
   // Undo the escaping the server file needs to hold a template literal.
-  BASE_LOOP = match[1]!.replace(/\\`/g, "`").replace(/\\\$/g, "$");
+  return match[1]!.replace(/\\`/g, "`").replace(/\\\$/g, "$");
+}
+
+beforeAll(() => {
+  BASE_LOOP = shippedLoop("base-loop.ts", "BASE_LOOP_SOURCE");
+  PLAN_BUILD = shippedLoop("plan-build.ts", "PLAN_BUILD_SOURCE");
 });
 
 /** A client whose turns are scripted, so a loop's control flow is what is tested. */
@@ -181,5 +189,58 @@ describe("base loop", () => {
     });
     expect(res.output).toContain("Stopped after 3 tool rounds");
     expect(client.gateway.turn).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe("plan-build loop (two models)", () => {
+  const twoSlot = { roles: { planner: "anthropic::claude-sonnet-5", builder: "anthropic::claude-sonnet-5" }, connections: ["gmail"] };
+
+  it("plans on one model, then builds on the other", async () => {
+    const { client, seen } = clientWith([
+      { text: "1. do a thing\n2. do another" },
+      { text: "built it" },
+    ]);
+    const res = await runProgram(client, {
+      program: { slug: "plan-build", code: PLAN_BUILD },
+      capabilities: twoSlot,
+      input: { prompt: "ship a feature" },
+    });
+
+    expect(res.error).toBeUndefined();
+    expect(res.output).toBe("built it");
+    // The planner gets NO tools — a planner holding tools starts doing the work.
+    expect(seen[0]!.tools ?? []).toHaveLength(0);
+    // The plan reaches the builder, or the second model is working blind.
+    expect(String((seen[1]!.messages as Array<{ content: string }>)[0]!.content)).toContain("1. do a thing");
+  });
+
+  it("runs the builder's tools and stops when it is done", async () => {
+    const { client } = clientWith([
+      { text: "plan" },
+      { text: "working", toolUses: [{ id: "t1", name: "gmail.send", input: { to: "y" } }], stopReason: "tool_use" },
+      { text: "done" },
+    ]);
+    const res = await runProgram(client, {
+      program: { slug: "plan-build", code: PLAN_BUILD },
+      capabilities: twoSlot,
+      input: { prompt: "email y", tools: [{ name: "gmail.send", input_schema: { type: "object" } }] },
+    });
+    expect(res.error).toBeUndefined();
+    expect(res.output).toBe("done");
+    expect(client.connections.runTool).toHaveBeenCalledWith({ slug: "gmail", tool: "send", props: { to: "y" } });
+  });
+
+  it("bounds the build loop and reports the plan when it runs out", async () => {
+    const { client } = clientWith([
+      { text: "the plan" },
+      { text: "again", toolUses: [{ id: "t", name: "gmail.send", input: {} }], stopReason: "tool_use" },
+    ]);
+    const res = await runProgram(client, {
+      program: { slug: "plan-build", code: PLAN_BUILD },
+      capabilities: twoSlot,
+      input: { prompt: "loop forever", tools: [{ name: "gmail.send" }], maxTurns: 2 },
+    });
+    expect(res.output).toContain("Stopped after 2 build rounds");
+    expect(res.output).toContain("the plan");
   });
 });
