@@ -13,6 +13,9 @@ export interface Provider {
   slug: string; // "anthropic", "openai", "openweights"
   name: string;
   kind: ProviderKind;
+  /** OpenAI-compatible base for this provider (e.g. a Gemini or Groq host).
+   *  Null = the built-in default. One converter, many addresses. */
+  baseUrl: string | null;
   /** Is this provider enabled for the caller's org. */
   enabledForOrg: boolean;
   /** Does the org have a BYOK key set (never the key itself). */
@@ -41,6 +44,8 @@ export interface EnableProviderInput {
 
 /** super_admin: release a provider into the platform catalog. */
 export interface ProviderCreate {
+  /** Omit to keep the stored address; null clears it to the default. */
+  baseUrl?: string | null;
   slug: string;
   name: string;
   kind: ProviderKind;
@@ -48,6 +53,8 @@ export interface ProviderCreate {
 
 /** super_admin: release a model + its credit pricing. */
 export interface ModelCreate {
+  contextWindow?: number | null;
+  maxOutputTokens?: number | null;
   id: string;
   providerSlug: string;
   name: string;
@@ -58,6 +65,8 @@ export interface ModelCreate {
 
 /** super_admin: update a model's pricing / availability. */
 export interface ModelPricing {
+  contextWindow?: number | null;
+  maxOutputTokens?: number | null;
   inputCreditsPerMTok?: number;
   outputCreditsPerMTok?: number;
   active?: boolean;
