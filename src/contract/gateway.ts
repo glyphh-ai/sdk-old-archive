@@ -46,3 +46,44 @@ export interface GatewayCompletion {
   choices: GatewayChoice[];
   usage?: GatewayUsage;
 }
+
+// ── Anthropic Messages (the tool-capable turn) ───────────────────────────────
+
+/** A tool the model may call, in Anthropic's shape. */
+export interface MessageTool {
+  name: string;
+  description?: string;
+  input_schema?: unknown;
+}
+
+/** One tool the model decided to call. */
+export interface ToolUse {
+  id: string;
+  name: string;
+  input: Record<string, unknown>;
+}
+
+export interface MessageTurnInput {
+  /** Catalog model id or bare id. */
+  model: string;
+  /** The conversation so far, in Anthropic shape (content string or blocks). */
+  messages: Array<{ role: string; content: unknown }>;
+  system?: string;
+  maxTokens?: number;
+  temperature?: number;
+  tools?: MessageTool[];
+}
+
+/**
+ * A completed turn, flattened to what a loop actually branches on: what the model
+ * said, what it wants to call, and why it stopped. `toolUses` being non-empty with
+ * `stopReason: "tool_use"` is the signal to run tools and come back.
+ */
+export interface MessageTurn {
+  text: string;
+  toolUses: ToolUse[];
+  stopReason: string;
+  usage: { inputTokens: number; outputTokens: number };
+  /** The raw assistant content blocks, to append verbatim to the conversation. */
+  content: unknown[];
+}

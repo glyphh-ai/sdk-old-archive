@@ -212,6 +212,10 @@ export type {
   GatewayChoice,
   GatewayUsage,
   GatewayCompletion,
+  MessageTool,
+  MessageTurn,
+  MessageTurnInput,
+  ToolUse,
 } from "./contract/gateway.js";
 export type {
   OrgModel,

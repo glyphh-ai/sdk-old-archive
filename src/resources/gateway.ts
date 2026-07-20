@@ -14,7 +14,7 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
-import type { GatewayCompletion, GatewayCompletionInput } from "../contract/gateway.js";
+import type { GatewayCompletion, GatewayCompletionInput, MessageTurn, MessageTurnInput, ToolUse } from "../contract/gateway.js";
 
 export class GatewayClient {
   constructor(private readonly http: AuthedHttp) {}
@@ -49,6 +49,50 @@ export class GatewayClient {
     opts: { headers?: Record<string, string>; signal?: AbortSignal } = {},
   ): Promise<Response> {
     return this.http.stream("/api/gateway/v1/messages", body, opts);
+  }
+
+  /**
+   * One tool-capable turn, buffered and flattened.
+   *
+   * `complete()` cannot carry tools: chat-completions has no tool_use blocks, so a
+   * model's decision to call something is lost. This rides the Messages edge
+   * instead, which is why an agent loop uses it and a summary does not.
+   *
+   * Returns what a loop branches on — text, the tools it wants to call, why it
+   * stopped — plus the raw content blocks, which must be appended to the
+   * conversation verbatim so the model sees its own call when the result comes
+   * back.
+   */
+  async turn(input: MessageTurnInput): Promise<MessageTurn> {
+    const { maxTokens, ...rest } = input;
+    const res = await this.messages({
+      ...rest,
+      // Anthropic requires max_tokens; a caller that omits it still gets a turn.
+      max_tokens: maxTokens ?? 4096,
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`model turn failed (${res.status}): ${body.slice(0, 300)}`);
+    }
+    const json = (await res.json()) as {
+      content?: Array<{ type: string; text?: string; id?: string; name?: string; input?: Record<string, unknown> }>;
+      stop_reason?: string;
+      usage?: { input_tokens?: number; output_tokens?: number };
+    };
+    const blocks = json.content ?? [];
+    const toolUses: ToolUse[] = blocks
+      .filter((b) => b.type === "tool_use")
+      .map((b) => ({ id: b.id ?? "", name: b.name ?? "", input: b.input ?? {} }));
+    return {
+      text: blocks.filter((b) => b.type === "text").map((b) => b.text ?? "").join(""),
+      toolUses,
+      stopReason: json.stop_reason ?? "end_turn",
+      usage: {
+        inputTokens: Math.max(0, Math.trunc(json.usage?.input_tokens ?? 0)),
+        outputTokens: Math.max(0, Math.trunc(json.usage?.output_tokens ?? 0)),
+      },
+      content: blocks,
+    };
   }
 
   /** The completion's text, or "" — the common case for utility turns. */

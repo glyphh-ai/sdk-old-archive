@@ -303,6 +303,65 @@ export async function runProgram(
     }
   }
 
+  /**
+   * One TOOL-CAPABLE turn on a declared role — the primitive an agent loop is
+   * built from.
+   *
+   * `agent()` returns a string and cannot carry a model's decision to call
+   * something; this returns the whole turn, so the loop owns the iteration:
+   * call, run the tools it asked for, append the results, call again. That is
+   * what keeps a loop a state machine the author controls rather than an opaque
+   * autonomous run.
+   *
+   * Tools are filtered to what the manifest declared, so a program cannot widen
+   * its reach by handing the model a tool it never asked for.
+   */
+  async function turn(
+    role: string,
+    input: { messages: Array<{ role: string; content: unknown }>; system?: string; tools?: Array<{ name: string; description?: string; input_schema?: unknown }>; maxTokens?: number },
+  ) {
+    assertLive();
+    assertWithinBudget();
+    const modelId = caps.roles?.[role];
+    if (!modelId) {
+      const offered = Object.keys(caps.roles ?? {});
+      throw new CapabilityError(
+        `no model bound to role "${role}"${offered.length ? ` — this program declares: ${offered.join(", ")}` : ""}`,
+      );
+    }
+    const cap = rails?.maxOutputTokens;
+    const asked = input.maxTokens;
+    const maxTokens = cap !== undefined && asked !== undefined ? Math.min(cap, asked) : (cap ?? asked);
+
+    // A tool the manifest never declared is dropped rather than offered: the model
+    // cannot ask for what this program may not run.
+    const allowed = (input.tools ?? []).filter((tool) => {
+      const qualified = tool.name.includes(".") ? tool.name : null;
+      if (!qualified) return true; // a local/loop-defined tool, gated when called
+      const slug = qualified.slice(0, qualified.indexOf("."));
+      if (!caps.connections?.includes(slug)) return false;
+      return !caps.allowedTools || caps.allowedTools.includes(qualified);
+    });
+
+    const event = emit("agent", `${role} → ${bareModel(modelId)}`, currentParent);
+    try {
+      const result = await client.gateway.turn({
+        model: modelId,
+        messages: input.messages,
+        ...(input.system ? { system: input.system } : {}),
+        ...(allowed.length ? { tools: allowed } : {}),
+        ...(maxTokens !== undefined ? { maxTokens } : {}),
+      });
+      usage.calls += 1;
+      usage.outputTokens += result.usage.outputTokens;
+      settle(event);
+      return result;
+    } catch (err) {
+      settle(event, err instanceof Error ? err.message : String(err));
+      throw err;
+    }
+  }
+
   async function callSkill(slug: string, args: Record<string, unknown> = {}): Promise<unknown> {
     assertLive();
     if (!caps.skills?.includes(slug)) {
@@ -385,8 +444,12 @@ export async function runProgram(
     input: opts.input ?? {},
     /** Scratch state for the state machine. Plain object; lives for one run. */
     state,
-    /** Model turn on a declared role. */
+    /** Model turn on a declared role — text in, text out. */
     agent,
+
+    /** A tool-capable turn: the primitive an agent loop drives its own iteration
+     *  with. Returns `{ text, toolUses, stopReason, usage, content }`. */
+    turn,
 
     /**
      * What a role's model can hold — `{ id, name, contextWindow, maxOutputTokens }`,
