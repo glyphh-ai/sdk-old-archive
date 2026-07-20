@@ -23,6 +23,19 @@ export interface OrgModel {
   kind: string; // "proxied" | "open_weight"
   inputCreditsPerMTok: number;
   outputCreditsPerMTok: number;
+  /**
+   * Total tokens the model accepts (prompt + completion). Null when the catalog has
+   * not recorded it — callers must NOT invent a ceiling, since a wrong one fails
+   * turns that would have worked.
+   *
+   * A loop reads this to decide what to send: which tools to introduce and when,
+   * how much history to carry. An agent framework's opening system prompt can run
+   * to tens of thousands of tokens on its own, so a small model needs a smaller
+   * tool surface, not just a shorter conversation.
+   */
+  contextWindow: number | null;
+  /** Largest single completion the model produces. Null = unrecorded. */
+  maxOutputTokens: number | null;
   active: boolean;
   /** Whether the org supports (is licensed / willing to run) this model. */
   supported: boolean;
@@ -40,6 +53,19 @@ export interface AvailableModel {
   kind: string;
   inputCreditsPerMTok: number;
   outputCreditsPerMTok: number;
+  /**
+   * Total tokens the model accepts (prompt + completion). Null when the catalog has
+   * not recorded it — callers must NOT invent a ceiling, since a wrong one fails
+   * turns that would have worked.
+   *
+   * A loop reads this to decide what to send: which tools to introduce and when,
+   * how much history to carry. An agent framework's opening system prompt can run
+   * to tens of thousands of tokens on its own, so a small model needs a smaller
+   * tool surface, not just a shorter conversation.
+   */
+  contextWindow: number | null;
+  /** Largest single completion the model produces. Null = unrecorded. */
+  maxOutputTokens: number | null;
   source: ModelSource;
 }
 

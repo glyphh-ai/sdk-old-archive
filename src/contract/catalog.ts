@@ -26,6 +26,10 @@ export interface Model {
   kind: ProviderKind;
   inputCreditsPerMTok: number;
   outputCreditsPerMTok: number;
+  /** Total tokens the model accepts. Null = unrecorded, not enforced. */
+  contextWindow: number | null;
+  /** Largest single completion. Null = unrecorded. */
+  maxOutputTokens: number | null;
   active: boolean;
 }
 

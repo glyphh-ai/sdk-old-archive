@@ -245,6 +245,29 @@ export async function runProgram(
   const state: Record<string, unknown> = {};
   let currentParent: string | undefined;
 
+  // The catalog answers what a role's model can hold; cached per run because a
+  // loop asks repeatedly while deciding what to send.
+  let availableCache: Awaited<ReturnType<Client["models"]["available"]>> | null = null;
+  async function modelInfo(role: string) {
+    const modelId = caps.roles?.[role];
+    if (!modelId) return null;
+    try {
+      availableCache ??= await client.models.available();
+    } catch {
+      return null; // offline: the loop falls back to its own defaults
+    }
+    const bare = (id: string) => (id.includes("::") ? id.slice(id.indexOf("::") + 2) : id).toLowerCase();
+    const hit = availableCache.find((m) => bare(m.id) === bare(modelId));
+    return hit
+      ? {
+          id: hit.id,
+          name: hit.name,
+          contextWindow: hit.contextWindow,
+          maxOutputTokens: hit.maxOutputTokens,
+        }
+      : null;
+  }
+
   async function agent(role: string, prompt: string, o: { system?: string; maxTokens?: number } = {}): Promise<string> {
     assertLive();
     assertWithinBudget();
@@ -364,6 +387,18 @@ export async function runProgram(
     state,
     /** Model turn on a declared role. */
     agent,
+
+    /**
+     * What a role's model can hold — `{ id, name, contextWindow, maxOutputTokens }`,
+     * or null when the role is unbound or the catalog has not recorded limits.
+     *
+     * This is how a loop adapts instead of failing: an agent framework's opening
+     * system prompt alone can fill a small model, so a program that wants to run on
+     * both introduces fewer tools, or defers them to later steps, when the window is
+     * small. A null answer means "unknown" — carry on with your own defaults rather
+     * than assuming the worst.
+     */
+    model: modelInfo,
     /** Call a declared skill. */
     skill: callSkill,
     tools: { call: callTool },

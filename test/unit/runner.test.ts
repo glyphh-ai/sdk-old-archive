@@ -20,6 +20,11 @@ function fakeClient(over: Record<string, unknown> = {}): Client {
       })),
     },
     skills: { get: vi.fn() },
+    models: { available: vi.fn(async () => [
+      { id: "anthropic::claude-sonnet-5", name: "Sonnet", providerSlug: "anthropic", kind: "proxied",
+        inputCreditsPerMTok: 3, outputCreditsPerMTok: 15, source: "proxy",
+        contextWindow: 200000, maxOutputTokens: 64000 },
+    ]) },
     connections: { runTool: vi.fn(async () => ({ result: { ret: "tool-ok" } })) },
     ...over,
   } as unknown as Client;
@@ -343,5 +348,34 @@ describe("CapabilityError", () => {
   it("is distinguishable from a program's own errors", () => {
     expect(new CapabilityError("x")).toBeInstanceOf(Error);
     expect(new CapabilityError("x").name).toBe("CapabilityError");
+  });
+});
+
+describe("runner model budget", () => {
+  it("tells a program what its role's model can hold", async () => {
+    const code = `
+      export async function start(ctx) {
+        const m = await ctx.model("planner");
+        // A loop uses this to decide its tool surface, not just its history.
+        return { window: m.contextWindow, out: m.maxOutputTokens };
+      }
+    `;
+    const res = await runProgram(fakeClient(), { program: { slug: "p", code }, capabilities: caps });
+    expect(res.error).toBeUndefined();
+    expect(res.output).toEqual({ window: 200000, out: 64000 });
+  });
+
+  it("answers null for an unbound role rather than guessing", async () => {
+    const code = `export async function start(ctx) { return await ctx.model("nobody"); }`;
+    const res = await runProgram(fakeClient(), { program: { slug: "p", code }, capabilities: caps });
+    expect(res.output).toBeNull();
+  });
+
+  it("answers null when the catalog is unreachable, so the loop keeps its defaults", async () => {
+    const client = fakeClient({ models: { available: vi.fn(async () => { throw new Error("offline"); }) } });
+    const code = `export async function start(ctx) { return await ctx.model("planner"); }`;
+    const res = await runProgram(client, { program: { slug: "p", code }, capabilities: caps });
+    expect(res.error).toBeUndefined();
+    expect(res.output).toBeNull();
   });
 });
