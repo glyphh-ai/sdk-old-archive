@@ -14,7 +14,7 @@
 /** App visibility in the marketplace. */
 export type AppVisibility = "public" | "org" | "unlisted";
 
-export type AppKind = "hosted" | "web" | "native" | "http" | "llm";
+export type AppKind = "hosted" | "web" | "native" | "http" | "llm" | "glyphh";
 
 /** Kind-shaped launcher config — HOW the desktop opens the app, mirroring its form:
  *  web {browser, openAs} · native {archetype, windowMode, shell, profile, cwd,
@@ -88,7 +88,7 @@ export interface AppSecretKey {
 
 /** Create a web or native entry (hosted apps arrive via publish, not here). */
 export interface CreateAppEntryInput {
-  kind: "web" | "native" | "http" | "llm";
+  kind: "web" | "native" | "http" | "llm" | "glyphh";
   slug: string;
   name: string;
   url?: string;

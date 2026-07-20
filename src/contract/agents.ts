@@ -49,11 +49,12 @@ export interface AgentSummary {
   loopId: string | null;
   /** Whether this agent should be kept live (process up, tasks armed). */
   live: boolean;
+  /** What it is pointed at — role→model, skills. Cards render the model cast. */
+  selections: AgentSelections;
   updatedAt: string;
 }
 
 export interface Agent extends AgentSummary {
-  selections: AgentSelections;
   /** The agent's OWN policy as set. Null when it just inherits the org's. */
   guardrails: GuardrailsPolicy | null;
   /** The policy it ACTUALLY runs under: org ∧ agent, per key. Enforce this one. */

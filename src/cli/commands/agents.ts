@@ -168,4 +168,19 @@ export function registerAgents(reg: CommandRegistry): void {
       ctx.print("removed ✓");
     },
   });
+
+  reg.register({
+    path: "agents task-run-report",
+    summary: "record a task firing's outcome (what a scheduler writes back)",
+    usage: "agents task-run-report <agent> <taskId> <ok|error> [--error <msg>]",
+    covers: ["agents.reportTaskRun"],
+    async run(ctx, args) {
+      const [agent, taskId, status] = args.positional;
+      if (!agent || !taskId || (status !== "ok" && status !== "error")) {
+        throw new Error("usage: agents task-run-report <agent> <taskId> <ok|error> [--error <msg>]");
+      }
+      const error = flagStr(args, "error");
+      ctx.printJson(await ctx.client.agents.reportTaskRun(agent, taskId, { status, ...(error !== undefined ? { error } : {}) }));
+    },
+  });
 }

@@ -64,6 +64,11 @@ export class AgentsClient {
     );
   }
 
+  /** The scheduler's write-back after firing a task: ok or error + message. */
+  reportTaskRun(ref: string, taskId: string, outcome: { status: "ok" | "error"; error?: string | null }): Promise<{ ok: boolean }> {
+    return this.http.post<{ ok: boolean }>(`/api/agents/${encodeURIComponent(ref)}/tasks/${encodeURIComponent(taskId)}/runs`, outcome);
+  }
+
   removeTask(ref: string, taskId: string): Promise<void> {
     return this.http.del<void>(`/api/agents/${encodeURIComponent(ref)}/tasks/${encodeURIComponent(taskId)}`);
   }

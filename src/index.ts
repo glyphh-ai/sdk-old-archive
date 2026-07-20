@@ -261,3 +261,12 @@ export type {
   GuardrailsPolicy,
   Guardrails,
 } from "./contract/org.js";
+
+// ── App spec + validator — the one contract every app builder shares ────────
+export { GLYPHH_APP_SPEC } from "./app-spec/spec.js";
+export {
+  validateAppBundle, parseAppManifest, lintRemoteAssets,
+  checkCallTargets, checkCronExpressions, extractConnectorCalls,
+  KNOWN_CAPABILITIES,
+} from "./app-spec/validate.js";
+export type { AppBundle, AppValidationResult, ParsedAppManifest, AppManifestTool } from "./app-spec/validate.js";

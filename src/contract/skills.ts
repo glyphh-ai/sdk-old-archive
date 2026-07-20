@@ -49,6 +49,8 @@ export interface SkillSummary {
   description: string;
   /** True when the skill carries a program (not prompt-only). */
   hasCode: boolean;
+  /** Synthesized platform default — immutable, listed for every org. */
+  builtIn?: boolean;
   /** The cron expression, when this skill is scheduled. */
   schedule: string | null;
   updatedAt: string;
