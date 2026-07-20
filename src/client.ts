@@ -37,6 +37,7 @@ import { HostingClient } from "./resources/hosting.js";
 import { LibraryClient } from "./resources/library.js";
 import { RelayClient } from "./resources/relay.js";
 import { RotorConfigClient } from "./resources/rotor-config.js";
+import { GatewayClient } from "./resources/gateway.js";
 import { OrgModelsClient } from "./resources/org-models.js";
 import { ModelsClient } from "./resources/models.js";
 import { ProfileClient } from "./resources/profile.js";
@@ -144,6 +145,8 @@ export interface Client {
   orgModels: OrgModelsClient;
   /** The caller's EFFECTIVE model set — what they may actually use right now. */
   models: ModelsClient;
+  /** The metered model call — the one egress for model traffic. */
+  gateway: GatewayClient;
   /** The bearer supplier for authenticated calls / the rotor transport. */
   token: TokenProvider;
   /** Force a session refresh (rotation). Resolves false if signed out. */
@@ -209,6 +212,7 @@ export function createClient(opts: ClientOptions): Client {
     rotorConfig: new RotorConfigClient(authed),
     orgModels: new OrgModelsClient(authed),
     models: new ModelsClient(authed),
+    gateway: new GatewayClient(authed),
     token,
     refresh: async () => (await refresh.refresh()) !== null,
     getSession: () => store.load(),

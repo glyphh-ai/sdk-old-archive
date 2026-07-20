@@ -24,6 +24,13 @@ export interface RequestOptions {
   /** Bearer token to attach (access token or a static API key). */
   bearer?: string | undefined;
   signal?: AbortSignal | undefined;
+  /**
+   * Return the response body AS-IS instead of unwrapping the `{ data }` success
+   * envelope. For the endpoints that deliberately speak a foreign wire format —
+   * the gateway answers an OpenAI-shaped completion verbatim so an OpenAI client
+   * can call it unchanged.
+   */
+  raw?: boolean | undefined;
 }
 
 interface ErrorEnvelope {
@@ -104,7 +111,9 @@ export class HttpClient {
         ...(env.error?.retryable !== undefined ? { retryable: env.error.retryable } : {}),
       });
     }
-    // Success envelope is `{ data }`; 204/no-body returns undefined.
+    // Success envelope is `{ data }`; 204/no-body returns undefined. `raw`
+    // endpoints answer a foreign shape and are handed back untouched.
+    if (opts.raw) return json as T;
     return (json as { data?: T } | undefined)?.data as T;
   }
 }

@@ -181,6 +181,14 @@ export { RotorConfigClient } from "./resources/rotor-config.js";
 export type { RotorRole, RotorCatalogEntry } from "./contract/rotors.js";
 export { OrgModelsClient } from "./resources/org-models.js";
 export { ModelsClient } from "./resources/models.js";
+export { GatewayClient } from "./resources/gateway.js";
+export type {
+  GatewayMessage,
+  GatewayCompletionInput,
+  GatewayChoice,
+  GatewayUsage,
+  GatewayCompletion,
+} from "./contract/gateway.js";
 export type {
   OrgModel,
   AvailableModel,
