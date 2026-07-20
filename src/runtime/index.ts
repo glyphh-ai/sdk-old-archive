@@ -43,3 +43,11 @@ export {
   type ProgressType,
   type ProgressStatus,
 } from "./runner.js";
+
+// The local Anthropic endpoint an agent loop is pointed at: forward + stream, no
+// decisions. Governance stays server-side, where the keys and the ledger are.
+export {
+  startInterceptor,
+  type Interceptor,
+  type InterceptorOptions,
+} from "./interceptor.js";
