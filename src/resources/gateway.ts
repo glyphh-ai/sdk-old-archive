@@ -34,6 +34,23 @@ export class GatewayClient {
     );
   }
 
+  /**
+   * An Anthropic Messages turn, returned as the RAW streaming response.
+   *
+   * This is what an agent loop rides: the body (SSE or JSON) is relayed to the
+   * caller untouched, and the status is theirs to read — an Agent SDK uses 429/529
+   * to decide when to retry, so reinterpreting them here would break it.
+   *
+   * The caller supplies the Anthropic-shaped body; the SDK supplies the path, the
+   * base URL, and the bearer. Nothing addresses the control plane directly.
+   */
+  messages(
+    body: unknown,
+    opts: { headers?: Record<string, string>; signal?: AbortSignal } = {},
+  ): Promise<Response> {
+    return this.http.stream("/api/gateway/v1/messages", body, opts);
+  }
+
   /** The completion's text, or "" — the common case for utility turns. */
   async text(input: GatewayCompletionInput): Promise<string> {
     const completion = await this.complete(input);

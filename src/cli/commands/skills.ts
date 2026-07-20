@@ -46,15 +46,6 @@ export function registerSkills(reg: CommandRegistry): void {
   });
 
   reg.register({
-    path: "skills scheduled",
-    summary: "every scheduled skill, in full (what a runner arms)",
-    covers: ["skills.scheduled"],
-    async run(ctx) {
-      ctx.printJson(await ctx.client.skills.scheduled());
-    },
-  });
-
-  reg.register({
     path: "skills get",
     summary: "a skill's detail (manifest + prompt + program)",
     usage: "skills get <slug|id>",

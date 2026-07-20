@@ -7,9 +7,9 @@
  * WHY THIS EXISTS. The Claude Agent SDK runs its loop in a subprocess that speaks
  * the Anthropic Messages API over HTTP, addressed by `ANTHROPIC_BASE_URL`. It cannot
  * be handed a function — it needs a real listener. This is that listener, and it is
- * the ONLY thing it does: accept a request on loopback, attach the caller's Glyphh
- * bearer, forward to the control plane's messages endpoint, and stream the reply
- * back byte for byte.
+ * the ONLY thing it does: accept a request on loopback, hand it to the SDK client,
+ * and stream the reply back byte for byte. It holds no URL, no token, and no fetch;
+ * everything outbound goes through `client.gateway.messages()`.
  *
  * It is deliberately NOT a router, a translator, or a policy layer. Everything that
  * decides anything — which models a caller may use, whose key pays, what a turn
@@ -27,16 +27,16 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { randomBytes } from "node:crypto";
 import type { AddressInfo } from "node:net";
-import type { TokenProvider } from "../auth/credential-provider.js";
+import type { Client } from "../client.js";
 
 export interface InterceptorOptions {
-  /** Control-plane base URL — the same one the client was built with. */
-  url: string;
-  /** Supplies the caller's bearer. Refreshed per request, so a long run cannot
-   *  outlive its token. */
-  token: TokenProvider;
-  /** Injectable fetch, for tests. */
-  fetch?: typeof fetch;
+  /**
+   * The SDK client. The interceptor holds NO url, no token, and no fetch of its
+   * own — it forwards through `client.gateway.messages()`, so the base URL, the
+   * bearer, and token refresh all stay where they already live. Nothing here
+   * addresses the control plane directly.
+   */
+  client: Client;
   /** Called when a forwarded turn fails, for logs/telemetry. Never throws. */
   onError?: (error: Error) => void;
 }
@@ -73,8 +73,6 @@ function send(res: ServerResponse, status: number, body: unknown): void {
  * nothing else should hold them.
  */
 export async function startInterceptor(opts: InterceptorOptions): Promise<Interceptor> {
-  const fetchImpl = opts.fetch ?? fetch;
-  const base = opts.url.replace(/\/$/, "");
   // Per-process, never persisted: a restart invalidates it, which is what we want.
   const apiKey = `glyphh-local-${randomBytes(24).toString("hex")}`;
 
@@ -106,19 +104,16 @@ export async function startInterceptor(opts: InterceptorOptions): Promise<Interc
     }
 
     const body = await readBody(req);
-    const bearer = await opts.token();
 
-    const upstream = await fetchImpl(`${base}/api/gateway/v1/messages`, {
-      method: "POST",
+    // Through the SDK: it owns the route, the base URL, and a bearer refreshed
+    // per call, so a long agent run cannot outlive the token it started with.
+    // Version + beta headers are the caller's to choose; pass them through so a
+    // feature the agent opts into is not silently dropped here.
+    const upstream = await opts.client.gateway.messages(body, {
       headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${bearer}`,
-        // Version + beta headers are the caller's to choose; pass them through so
-        // a feature the agent opts into is not silently dropped here.
         ...(req.headers["anthropic-version"] ? { "anthropic-version": String(req.headers["anthropic-version"]) } : {}),
         ...(req.headers["anthropic-beta"] ? { "anthropic-beta": String(req.headers["anthropic-beta"]) } : {}),
       },
-      body,
     });
 
     // Status and body are relayed as-is. The Agent SDK reads upstream statuses to

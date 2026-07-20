@@ -6,6 +6,8 @@
 
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { startInterceptor, type Interceptor } from "../../src/runtime/interceptor.js";
+import { createClient } from "../../src/client.js";
+import { InMemoryTokenStore } from "../../src/auth/token-store.js";
 
 let running: Interceptor | null = null;
 afterEach(async () => {
@@ -25,6 +27,19 @@ function upstream(
   return { fetch: impl, calls };
 }
 
+/**
+ * A real Client over the fake network. The interceptor takes a CLIENT, never a
+ * url or a token — the SDK owns the route and the bearer, which is what these
+ * assertions are really checking.
+ */
+async function clientWith(fetchImpl: typeof fetch, token = "tok-123") {
+  const store = new InMemoryTokenStore();
+  // Well clear of the refresh margin: an expiry sitting on it would send the
+  // client off to refresh through the fake network mid-test.
+  await store.save({ accessToken: token, refreshToken: "r", expiresAt: Date.now() + 3_600_000 });
+  return createClient({ url: "https://api.example.com", fetch: fetchImpl, tokenStore: store });
+}
+
 const jsonReply = () =>
   new Response(JSON.stringify({ type: "message", content: [{ type: "text", text: "hi" }] }), {
     status: 200,
@@ -34,11 +49,7 @@ const jsonReply = () =>
 describe("interceptor", () => {
   it("forwards to the control plane with the caller's bearer", async () => {
     const up = upstream(() => jsonReply());
-    running = await startInterceptor({
-      url: "https://api.example.com",
-      token: async () => "tok-123",
-      fetch: up.fetch,
-    });
+    running = await startInterceptor({ client: await clientWith(up.fetch) });
 
     const res = await fetch(`${running.url}/v1/messages`, {
       method: "POST",
@@ -60,7 +71,7 @@ describe("interceptor", () => {
 
   it("refuses a local caller without the process key", async () => {
     const up = upstream(() => jsonReply());
-    running = await startInterceptor({ url: "https://api.example.com", token: async () => "t", fetch: up.fetch });
+    running = await startInterceptor({ client: await clientWith(up.fetch, "t") });
 
     // Loopback is reachable by anything on the machine; the key is the gate.
     const res = await fetch(`${running.url}/v1/messages`, {
@@ -74,7 +85,7 @@ describe("interceptor", () => {
 
   it("accepts the key as a bearer as well as x-api-key", async () => {
     const up = upstream(() => jsonReply());
-    running = await startInterceptor({ url: "https://api.example.com", token: async () => "t", fetch: up.fetch });
+    running = await startInterceptor({ client: await clientWith(up.fetch, "t") });
 
     const res = await fetch(`${running.url}/v1/messages`, {
       method: "POST",
@@ -103,7 +114,7 @@ describe("interceptor", () => {
           { status: 200, headers: { "content-type": "text/event-stream" } },
         ),
     );
-    running = await startInterceptor({ url: "https://api.example.com", token: async () => "t", fetch: up.fetch });
+    running = await startInterceptor({ client: await clientWith(up.fetch, "t") });
 
     const res = await fetch(`${running.url}/v1/messages`, {
       method: "POST",
@@ -125,7 +136,7 @@ describe("interceptor", () => {
           headers: { "content-type": "application/json" },
         }),
     );
-    running = await startInterceptor({ url: "https://api.example.com", token: async () => "t", fetch: up.fetch });
+    running = await startInterceptor({ client: await clientWith(up.fetch, "t") });
 
     const res = await fetch(`${running.url}/v1/messages`, {
       method: "POST",
@@ -138,7 +149,7 @@ describe("interceptor", () => {
 
   it("passes anthropic version and beta headers through", async () => {
     const up = upstream(() => jsonReply());
-    running = await startInterceptor({ url: "https://api.example.com", token: async () => "t", fetch: up.fetch });
+    running = await startInterceptor({ client: await clientWith(up.fetch, "t") });
 
     await fetch(`${running.url}/v1/messages`, {
       method: "POST",
@@ -154,14 +165,9 @@ describe("interceptor", () => {
     expect(headers["anthropic-beta"]).toBe("tools-2024-04-04");
   });
 
-  it("takes a fresh token per request so a long run cannot outlive one", async () => {
+  it("resolves the bearer per request rather than capturing one at start", async () => {
     const up = upstream(() => jsonReply());
-    let n = 0;
-    running = await startInterceptor({
-      url: "https://api.example.com",
-      token: async () => `tok-${++n}`,
-      fetch: up.fetch,
-    });
+    running = await startInterceptor({ client: await clientWith(up.fetch, "tok-1") });
 
     for (let i = 0; i < 2; i++) {
       await fetch(`${running.url}/v1/messages`, {
@@ -170,13 +176,17 @@ describe("interceptor", () => {
         body: "{}",
       });
     }
-    expect((up.calls[0]!.init.headers as Record<string, string>).authorization).toBe("Bearer tok-1");
-    expect((up.calls[1]!.init.headers as Record<string, string>).authorization).toBe("Bearer tok-2");
+    // Each forward asks the client for a token, so refresh/rotation upstream is
+    // picked up mid-run instead of a long agent run pinning a stale one.
+    expect(up.calls).toHaveLength(2);
+    for (const call of up.calls) {
+      expect((call.init.headers as Record<string, string>).authorization).toBe("Bearer tok-1");
+    }
   });
 
   it("404s a route that is not messages", async () => {
     const up = upstream(() => jsonReply());
-    running = await startInterceptor({ url: "https://api.example.com", token: async () => "t", fetch: up.fetch });
+    running = await startInterceptor({ client: await clientWith(up.fetch, "t") });
 
     const res = await fetch(`${running.url}/v1/complete`, {
       method: "POST",
@@ -190,12 +200,7 @@ describe("interceptor", () => {
   it("reports a transport failure as an api_error without crashing", async () => {
     const onError = vi.fn();
     const up = upstream(() => { throw new Error("network down"); });
-    running = await startInterceptor({
-      url: "https://api.example.com",
-      token: async () => "t",
-      fetch: up.fetch,
-      onError,
-    });
+    running = await startInterceptor({ client: await clientWith(up.fetch, "t"), onError });
 
     const res = await fetch(`${running.url}/v1/messages`, {
       method: "POST",
@@ -209,7 +214,7 @@ describe("interceptor", () => {
 
   it("binds loopback only", async () => {
     const up = upstream(() => jsonReply());
-    running = await startInterceptor({ url: "https://api.example.com", token: async () => "t", fetch: up.fetch });
+    running = await startInterceptor({ client: await clientWith(up.fetch, "t") });
     expect(running.url).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/);
   });
 });

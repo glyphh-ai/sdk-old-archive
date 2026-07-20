@@ -27,6 +27,11 @@ export class AuthedHttp {
   async put<T>(path: string, body?: unknown): Promise<T> {
     return this.http.put<T>(path, body, { bearer: await this.token() });
   }
+  /** A streaming POST with the session bearer attached. See HttpClient.stream. */
+  async stream(path: string, body: unknown, opts: { headers?: Record<string, string>; signal?: AbortSignal } = {}): Promise<Response> {
+    return this.http.stream(path, body, { ...opts, bearer: await this.token() });
+  }
+
   async del<T>(path: string): Promise<T> {
     return this.http.del<T>(path, { bearer: await this.token() });
   }

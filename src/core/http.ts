@@ -63,6 +63,31 @@ export class HttpClient {
   put<T>(path: string, body?: unknown, opts: RequestOptions = {}): Promise<T> {
     return this.request<T>("PUT", path, body, opts);
   }
+  /**
+   * A STREAMING request: the raw `Response`, body untouched.
+   *
+   * Everything else here buffers, parses, and unwraps — right for a control-plane
+   * call, wrong for a model turn, which arrives as SSE over a long-lived
+   * connection. This is also deliberately exempt from the standard timeout: that
+   * clock is sized for a request/response round trip and would cut a streaming
+   * turn off mid-answer. The caller's `signal` is the only cancellation.
+   */
+  async stream(path: string, body: unknown, opts: RequestOptions & { headers?: Record<string, string> } = {}): Promise<Response> {
+    const headers: Record<string, string> = { "content-type": "application/json", ...(opts.headers ?? {}) };
+    if (opts.bearer) headers["authorization"] = `Bearer ${opts.bearer}`;
+    const init: RequestInit = {
+      method: "POST",
+      headers,
+      body: typeof body === "string" ? body : JSON.stringify(body),
+    };
+    if (opts.signal) init.signal = opts.signal;
+    try {
+      return await this.fetchImpl(`${this.baseUrl}${path}`, init);
+    } catch (e) {
+      throw new ConnectError(`request failed: ${(e as Error).message}`);
+    }
+  }
+
   del<T>(path: string, opts: RequestOptions = {}): Promise<T> {
     return this.request<T>("DELETE", path, undefined, opts);
   }

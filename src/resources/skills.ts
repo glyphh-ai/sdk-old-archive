@@ -19,12 +19,6 @@ export class SkillsClient {
     return skills;
   }
 
-  /** Every scheduled skill, in full — what a runner arms on start. */
-  async scheduled(): Promise<Skill[]> {
-    const { skills } = await this.http.get<{ skills: Skill[] }>("/api/skills/scheduled");
-    return skills;
-  }
-
   get(ref: string): Promise<Skill> {
     return this.http.get<Skill>(`/api/skills/${encodeURIComponent(ref)}`);
   }

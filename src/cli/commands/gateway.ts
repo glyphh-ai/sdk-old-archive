@@ -9,6 +9,25 @@ import type { CommandRegistry } from "../registry.js";
 
 export function registerGateway(reg: CommandRegistry): void {
   reg.register({
+    path: "messages",
+    summary: "one Anthropic Messages turn, printed raw (what an agent loop rides)",
+    usage: 'messages <model> "<prompt>" [--max <tokens>] [--stream]',
+    covers: ["gateway.messages"],
+    async run(ctx, args) {
+      const [model, prompt] = args.positional;
+      if (!model || !prompt) return ctx.print('usage: messages <model> "<prompt>" [--max <tokens>] [--stream]');
+      const upstream = await ctx.client.gateway.messages({
+        model,
+        max_tokens: args.flags.max ? Number(args.flags.max) : 1024,
+        ...(args.flags.stream ? { stream: true } : {}),
+        messages: [{ role: "user", content: prompt }],
+      });
+      // Raw on purpose: SSE frames or the JSON body, exactly as the loop sees them.
+      ctx.print(await upstream.text());
+    },
+  });
+
+  reg.register({
     path: "complete",
     summary: "one metered completion on a model you're allowed to use",
     usage: 'complete <model> "<prompt>" [--system "<text>"] [--max <tokens>] [--json]',
