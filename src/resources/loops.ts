@@ -1,9 +1,13 @@
 /**
  * @license Proprietary — © Glyphh. All rights reserved.
  *
- * resources/loops.ts — the org's agent-loop library. Any member lists/reads; only
- * an org_admin creates/edits/deletes (server-enforced). The built-in "Default" loop
- * is read-only — editing or deleting it surfaces as a ForbiddenError.
+ * resources/loops.ts — the org's LOOP library: a manifest + a `.js` program per
+ * loop. Any member lists/reads; only an org_admin creates/edits/deletes
+ * (server-enforced). The built-in "Default" loop is read-only — editing or deleting
+ * it surfaces as a ForbiddenError.
+ *
+ * `get`/`update`/`remove` accept a slug or an id: the UI holds ids, the CLI and a
+ * loop's own references use slugs.
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
@@ -15,8 +19,8 @@ export class LoopsClient {
   list(): Promise<{ loops: LoopSummary[] }> {
     return this.http.get<{ loops: LoopSummary[] }>("/api/loops");
   }
-  get(id: string): Promise<Loop> {
-    return this.http.get<Loop>(`/api/loops/${encodeURIComponent(id)}`);
+  get(ref: string): Promise<Loop> {
+    return this.http.get<Loop>(`/api/loops/${encodeURIComponent(ref)}`);
   }
   create(input: CreateLoopInput): Promise<Loop> {
     return this.http.post<Loop>("/api/loops", input);

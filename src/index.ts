@@ -109,7 +109,7 @@ export type {
   MarketingStatsQuery,
 } from "./contract/marketing.js";
 export { LoopsClient } from "./resources/loops.js";
-export type { Loop, LoopSummary, CreateLoopInput, UpdateLoopInput } from "./contract/loops.js";
+export type { Loop, LoopSummary, LoopManifest, CreateLoopInput, UpdateLoopInput } from "./contract/loops.js";
 export { ConnectionsClient } from "./resources/connections.js";
 export type {
   Connection,
