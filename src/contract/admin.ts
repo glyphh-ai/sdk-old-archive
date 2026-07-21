@@ -89,6 +89,8 @@ export interface AdminPlan {
   active: boolean;
   /** NULL for a global catalog plan; the org id for a bespoke per-org plan. */
   org_id: string | null;
+  /** The bespoke plan's org name (null for global plans). */
+  org_name: string | null;
 }
 export interface AdminPlanUpdate {
   display_name?: string;

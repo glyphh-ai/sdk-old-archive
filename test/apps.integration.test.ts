@@ -49,9 +49,18 @@ describe("@glyphh/client — apps + hosting", () => {
       manifest: { slug, name: "Host Me", version: "0.1.0" },
     });
 
+    // Deploy requires a BUILT release — hosting serves real files now, so a
+    // manifest-only listing has nothing to put on the wire.
+    const rel = await client.apps.createRelease(slug, { version: "0.1.0" });
+    const built = await client.apps.uploadSource(slug, rel.id, new TextEncoder().encode("host-me-source"));
+    expect(built.status).toBe("ready");
+
     const dep = await client.hosting.deploy({ appSlug: slug });
     expect(dep.status).toBe("live");
-    expect(dep.url).toBe(`https://${slug}.glyphh.app`);
+    // Dev hosting REALLY serves: the local driver extracts the bundle and the
+    // deploy URL points at the server's /hosted/<slug>/ mount (fly's
+    // <slug>.glyphh.app only exists with a FlyHostingDriver configured).
+    expect(dep.url).toContain(`/hosted/${slug}/`);
 
     const got = await client.hosting.status(dep.id);
     expect(got.id).toBe(dep.id);
@@ -60,7 +69,7 @@ describe("@glyphh/client — apps + hosting", () => {
     // The deployed app shows up in the dashboard's panel-apps projection.
     const panels = await client.apps.deployed();
     const panel = panels.find((p) => p.id === dep.id);
-    expect(panel).toMatchObject({ appSlug: slug, url: `https://${slug}.glyphh.app`, system: false });
+    expect(panel).toMatchObject({ appSlug: slug, url: dep.url, system: false });
 
     await client.hosting.destroy(dep.id);
     expect((await client.hosting.status(dep.id)).status).toBe("destroyed");

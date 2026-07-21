@@ -8,7 +8,7 @@
 import type { AuthedHttp } from "../core/authed-http.js";
 import type {
   UsageDailyQuery, UsageDay, UsageSummary, UsageByModelRow, UsageByModelQuery,
-  CreditAllocation, UsageSummaryQuery,
+  CreditAllocation, UsageSummaryQuery, UsageSeriesQuery, UsageSeriesPoint,
 } from "../contract/usage.js";
 
 export class UsageClient {
@@ -50,6 +50,21 @@ export class UsageClient {
     if (query.tz) qs.set("tz", query.tz);
     if (query.userId) qs.set("userId", query.userId);
     return this.http.get<{ days: UsageDay[] }>(`/api/usage/daily?${qs.toString()}`);
+  }
+
+  /**
+   * Day × group series for the stacked usage chart — every (day, model|source|user)
+   * pair with its charged micro-credits, requests, and tokens. Role-scoped like
+   * `daily`; `groupBy: "user"` is org_admin only.
+   */
+  series(query: UsageSeriesQuery): Promise<{ points: UsageSeriesPoint[] }> {
+    const qs = new URLSearchParams({ from: query.from, to: query.to });
+    if (query.tz) qs.set("tz", query.tz);
+    if (query.groupBy) qs.set("groupBy", query.groupBy);
+    if (query.model) qs.set("model", query.model);
+    if (query.source) qs.set("source", query.source);
+    if (query.userId) qs.set("userId", query.userId);
+    return this.http.get<{ points: UsageSeriesPoint[] }>(`/api/usage/series?${qs.toString()}`);
   }
 
   /** A workspace rollup (must be in the caller's org). */

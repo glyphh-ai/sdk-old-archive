@@ -213,7 +213,7 @@ export class ConnectionsClient {
    * server-side from the resolved connection — a PERSONAL connection runs under the member's
    * own external id (`user_<userId>`), an org-shared one under `org_<orgId>`.
    */
-  runTool(input: { slug: string; tool: string; props?: Record<string, unknown> }): Promise<RunToolResult> {
+  runTool(input: { slug: string; tool: string; props?: Record<string, unknown>; scope?: "org" | "personal" }): Promise<RunToolResult> {
     return this.http.post<RunToolResult>("/api/connections/run", input);
   }
 }

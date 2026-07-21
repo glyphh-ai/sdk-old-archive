@@ -83,3 +83,31 @@ export interface UsageByModelQuery {
   /** org_admin only — drill into one member (members are pinned to their own usage). */
   userId?: string;
 }
+
+/** The stack dimension for the day × group series. */
+export type UsageSeriesGroupBy = "model" | "source" | "user";
+
+/** One (day, group) cell of the usage chart (charged credits in micro-credits). */
+export interface UsageSeriesPoint {
+  day: string;
+  /** The group's value: a model id, a source, or a user id ("(none)" when unattributed). */
+  key: string;
+  credits: number; // micro-credits
+  requests: number;
+  inputTokens: number;
+  outputTokens: number;
+}
+
+/** Query for the day × group series. `from`/`to` are YYYY-MM-DD, bucketed in `tz`. */
+export interface UsageSeriesQuery {
+  from: string;
+  to: string;
+  tz?: string;
+  /** The stack dimension (default "model"; "user" is org_admin only). */
+  groupBy?: UsageSeriesGroupBy;
+  /** Optional exact-match dimension filters applied before grouping. */
+  model?: string;
+  source?: string;
+  /** org_admin only — pin the series to one member. */
+  userId?: string;
+}
