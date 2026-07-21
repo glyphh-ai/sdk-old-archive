@@ -183,4 +183,16 @@ export function registerAgents(reg: CommandRegistry): void {
       ctx.printJson(await ctx.client.agents.reportTaskRun(agent, taskId, { status, ...(error !== undefined ? { error } : {}) }));
     },
   });
+
+  reg.register({
+    path: "agents task-runs",
+    summary: "a task's firing history, newest first",
+    usage: "agents task-runs <agent> <taskId>",
+    covers: ["agents.taskRuns"],
+    async run(ctx, args) {
+      const [agent, taskId] = args.positional;
+      if (!agent || !taskId) throw new Error("usage: agents task-runs <agent> <taskId>");
+      ctx.printJson(await ctx.client.agents.taskRuns(agent, taskId));
+    },
+  });
 }

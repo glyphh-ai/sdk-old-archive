@@ -14,7 +14,7 @@
 import type { AuthedHttp } from "../core/authed-http.js";
 import type {
   Agent, AgentSummary, LiveAgent, AgentTask,
-  CreateAgentInput, UpdateAgentInput, CreateAgentTaskInput, UpdateAgentTaskInput,
+  CreateAgentInput, UpdateAgentInput, CreateAgentTaskInput, UpdateAgentTaskInput, AgentTaskRun,
 } from "../contract/agents.js";
 
 export class AgentsClient {
@@ -64,9 +64,20 @@ export class AgentsClient {
     );
   }
 
-  /** The scheduler's write-back after firing a task: ok or error + message. */
-  reportTaskRun(ref: string, taskId: string, outcome: { status: "ok" | "error"; error?: string | null }): Promise<{ ok: boolean }> {
+  /** The scheduler's write-back after firing a task — the outcome plus what
+   *  the run PRODUCED, which becomes the run feed's entry body. */
+  reportTaskRun(
+    ref: string,
+    taskId: string,
+    outcome: { status: "ok" | "error"; error?: string | null; output?: string | null; durationMs?: number | null },
+  ): Promise<{ ok: boolean }> {
     return this.http.post<{ ok: boolean }>(`/api/agents/${encodeURIComponent(ref)}/tasks/${encodeURIComponent(taskId)}/runs`, outcome);
+  }
+
+  /** A task's firing history, newest first. */
+  async taskRuns(ref: string, taskId: string): Promise<AgentTaskRun[]> {
+    const { runs } = await this.http.get<{ runs: AgentTaskRun[] }>(`/api/agents/${encodeURIComponent(ref)}/tasks/${encodeURIComponent(taskId)}/runs`);
+    return runs;
   }
 
   removeTask(ref: string, taskId: string): Promise<void> {

@@ -128,3 +128,14 @@ export interface UpdateAgentTaskInput {
   cron?: string;
   enabled?: boolean;
 }
+
+/** One firing of a task — an entry in the agent's run feed. */
+export interface AgentTaskRun {
+  id: string;
+  startedAt: string;
+  durationMs: number | null;
+  status: string;
+  error: string | null;
+  /** What the run produced — the feed entry's body. */
+  output: string | null;
+}
