@@ -36,6 +36,7 @@ import { AppsClient } from "./resources/apps.js";
 import { HostingClient } from "./resources/hosting.js";
 import { LibraryClient } from "./resources/library.js";
 import { RelayClient } from "./resources/relay.js";
+import { AttachClient } from "./resources/attach.js";
 import { RotorConfigClient } from "./resources/rotor-config.js";
 import { GatewayClient } from "./resources/gateway.js";
 import { SkillsClient } from "./resources/skills.js";
@@ -141,6 +142,8 @@ export interface Client {
   messageSessions: LibraryClient;
   /** Drive-my-desktop relay — org policy + per-device opt-in (same-user, revocable). */
   relay: RelayClient;
+  /** Attached-desktop control — status + dispatch a method to the caller's own live machine. */
+  attach: AttachClient;
   /** Rotor catalog + role→model bindings + the resolved runtime registry. */
   rotorConfig: RotorConfigClient;
   /** The org's SUPPORTED model set + model-governance audit (org_admin). */
@@ -211,6 +214,7 @@ export function createClient(opts: ClientOptions): Client {
     drips: new LibraryClient(authed, "drip"),
     messageSessions: new LibraryClient(authed, "message_session"),
     relay: new RelayClient(authed),
+    attach: new AttachClient(authed),
     rotorConfig: new RotorConfigClient(authed),
     orgModels: new OrgModelsClient(authed),
     models: new ModelsClient(authed),
