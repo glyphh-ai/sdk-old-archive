@@ -69,6 +69,34 @@ export interface AvailableModel {
   source: ModelSource;
 }
 
+/** A custom model an org admin defined — BYO OpenAI-compatible endpoint. Keys
+ *  are write-only; `hasKey` reports whether one is stored. */
+export interface CustomModel {
+  org_id: string;
+  id: string;              // catalog id, `custom::<slug>`
+  name: string;
+  base_url: string;
+  model_name: string;      // the string sent as "model" to the endpoint
+  context_window: number;
+  max_output_tokens: number;
+  input_rate_micro: string;
+  output_rate_micro: string;
+  has_key: boolean;
+  active: boolean;
+}
+
+/** Create/update input for a custom model. Omit `key` on an edit to keep the stored one. */
+export interface CustomModelInput {
+  slug: string;            // lowercase; the server namespaces it as custom::<slug>
+  name: string;
+  baseUrl: string;
+  modelName: string;
+  contextWindow: number;
+  maxOutputTokens: number;
+  key?: string | undefined;
+  active?: boolean | undefined;
+}
+
 /** Filter for the org's model-governance audit slice (action is a model.* action). */
 export interface ModelAuditQuery {
   action?: string | undefined;

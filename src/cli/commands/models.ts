@@ -75,4 +75,46 @@ export function registerModels(reg: CommandRegistry): void {
       ctx.printJson(await ctx.client.orgModels.audit(q));
     },
   });
+
+  // ── custom models (BYO OpenAI-compatible endpoint) ──
+  reg.register({
+    path: "org custom-models list",
+    summary: "the org's custom models (org_admin)",
+    covers: ["orgModels.listCustom"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.orgModels.listCustom());
+    },
+  });
+
+  reg.register({
+    path: "org custom-models add",
+    summary: "add/update a custom model (org_admin)",
+    usage: "org custom-models add --slug <s> --name <n> --base-url <u> --model <m> --context <n> --max-output <n> [--key <k>]",
+    covers: ["orgModels.saveCustom"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug"), name = flagStr(args, "name"), baseUrl = flagStr(args, "base-url");
+      const modelName = flagStr(args, "model"), context = flagStr(args, "context"), maxOut = flagStr(args, "max-output");
+      const key = flagStr(args, "key");
+      if (!slug || !name || !baseUrl || !modelName || !context || !maxOut) {
+        throw new Error("usage: org custom-models add --slug --name --base-url --model --context --max-output [--key]");
+      }
+      ctx.printJson(await ctx.client.orgModels.saveCustom({
+        slug, name, baseUrl, modelName, contextWindow: Number(context), maxOutputTokens: Number(maxOut),
+        ...(key ? { key } : {}),
+      }));
+    },
+  });
+
+  reg.register({
+    path: "org custom-models remove",
+    summary: "delete a custom model by id (org_admin)",
+    usage: "org custom-models remove <custom::slug>",
+    covers: ["orgModels.deleteCustom"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: org custom-models remove <custom::slug>");
+      await ctx.client.orgModels.deleteCustom(id);
+      ctx.printJson({ deleted: id });
+    },
+  });
 }

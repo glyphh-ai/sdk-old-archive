@@ -225,6 +225,8 @@ export type {
   ModelAuditQuery,
   ModelAuditEntry,
   ModelAuditPage,
+  CustomModel,
+  CustomModelInput,
 } from "./contract/models.js";
 export type {
   ModelTransport,

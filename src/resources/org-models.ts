@@ -9,7 +9,7 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
-import type { OrgModel, ModelAuditQuery, ModelAuditPage } from "../contract/models.js";
+import type { OrgModel, ModelAuditQuery, ModelAuditPage, CustomModel, CustomModelInput } from "../contract/models.js";
 
 /** Append defined params to a path as a query string. */
 function withQuery(path: string, params: Record<string, string | number | undefined>): string {
@@ -44,5 +44,22 @@ export class OrgModelsClient {
         action: query.action, actor: query.actor, days: query.days, page: query.page, limit: query.limit,
       }),
     );
+  }
+
+  // ── custom models — the org brings its own OpenAI-compatible endpoint ──
+
+  /** The org's custom models (no keys returned). */
+  listCustom(): Promise<CustomModel[]> {
+    return this.http.get<{ models: CustomModel[] }>("/api/org/custom-models").then((r) => r.models);
+  }
+
+  /** Create or update a custom model. Omit `key` on an edit to keep the stored one. */
+  saveCustom(input: CustomModelInput): Promise<CustomModel> {
+    return this.http.post<{ model: CustomModel }>("/api/org/custom-models", input).then((r) => r.model);
+  }
+
+  /** Delete a custom model by its catalog id (`custom::<slug>`). */
+  deleteCustom(id: string): Promise<void> {
+    return this.http.del<void>(`/api/org/custom-models/${encodeURIComponent(id)}`);
   }
 }
