@@ -128,6 +128,10 @@ export interface AdminModel {
   display_name: string;
   input_credits_per_mtok: number | null; // micro-credits/MTok; null = not per-token priced
   output_credits_per_mtok: number | null;
+  /** Total tokens the model holds; what the gateway fits requests to. Null = unrecorded. */
+  context_window: number | null;
+  /** Largest single completion. Null = unrecorded. */
+  max_output_tokens: number | null;
   active: boolean;
 }
 export interface AdminModelUpdate {
@@ -135,6 +139,8 @@ export interface AdminModelUpdate {
   active?: boolean;
   input_credits_per_mtok?: number | null;
   output_credits_per_mtok?: number | null;
+  context_window?: number | null;
+  max_output_tokens?: number | null;
 }
 
 /**
