@@ -32,7 +32,7 @@ import type { GuardrailsPolicy } from "../contract/agents.js";
 
 // ── progress ─────────────────────────────────────────────────────────────────
 
-export type ProgressType = "step" | "agent" | "skill" | "tool" | "memory" | "app" | "ask" | "message";
+export type ProgressType = "step" | "agent" | "skill" | "tool" | "memory" | "app" | "ask" | "message" | "browser";
 export type ProgressStatus = "running" | "success" | "error";
 
 export interface ProgressEvent {
@@ -65,6 +65,10 @@ export interface ProgramCapabilities {
   /** App slugs `ctx.app()` may drive. */
   apps?: string[] | undefined;
   memory?: { read?: boolean | undefined; write?: boolean | undefined } | undefined;
+  /** Headless browser automation (`ctx.browser()`). The host provides it — the
+   *  desktop drives off-screen pages; an unattended CLI daemon does too; a
+   *  cloud runner has none. */
+  browser?: boolean | undefined;
 }
 
 // ── host ─────────────────────────────────────────────────────────────────────
@@ -83,6 +87,13 @@ export interface RunnerHost {
   appCommand?(app: string, command: string, args: Record<string, unknown>): Promise<unknown>;
   /** Pause for a human. Absent = unattended, and `ctx.ask` throws. */
   ask?(question: string): Promise<string>;
+  /** Headless browser automation: open a page, act on it (goto/click/type/
+   *  read/screenshot), close it. Page ids are opaque handles the host owns. */
+  browser?: {
+    open(url?: string): Promise<{ pageId: string }>;
+    act(pageId: string, action: string, params: Record<string, unknown>): Promise<unknown>;
+    close(pageId: string): Promise<void>;
+  };
   onProgress?(event: ProgressEvent): void;
 }
 
@@ -496,6 +507,32 @@ export async function runProgram(
           try { const out = await host.appCommand(slug, command, args); settle(event); return out; }
           catch (err) { settle(event, err instanceof Error ? err.message : String(err)); throw err; }
         },
+      };
+    },
+
+    /** Open a headless browser page and drive it: `const p = await ctx.browser("https://…");
+     *  await p.click("#login"); const text = await p.read(".dashboard"); await p.close();` */
+    async browser(url?: string) {
+      assertLive();
+      if (!caps.browser) throw new CapabilityError("this program does not declare browser access");
+      if (!host.browser) throw new CapabilityError("headless browser is not available in this host");
+      const open = emit("browser", `open ${url ?? "blank"}`, currentParent);
+      let pageId: string;
+      try { ({ pageId } = await host.browser.open(url)); settle(open); }
+      catch (err) { settle(open, err instanceof Error ? err.message : String(err)); throw err; }
+      const act = async (action: string, params: Record<string, unknown> = {}): Promise<unknown> => {
+        assertLive();
+        const event = emit("browser", `${action} ${String(params.selector ?? params.url ?? "")}`.trim(), currentParent);
+        try { const out = await host.browser!.act(pageId, action, params); settle(event); return out; }
+        catch (err) { settle(event, err instanceof Error ? err.message : String(err)); throw err; }
+      };
+      return {
+        goto: (u: string) => act("goto", { url: u }),
+        click: (selector: string) => act("click", { selector }),
+        type: (selector: string, text: string, opts?: { submit?: boolean }) => act("type", { selector, text, submit: opts?.submit === true }),
+        read: (selector?: string, as?: "text" | "html") => act("read", { selector, as: as ?? "text" }),
+        screenshot: () => act("screenshot", {}),
+        close: async () => { assertLive(); try { await host.browser!.close(pageId); } catch { /* already gone */ } },
       };
     },
 

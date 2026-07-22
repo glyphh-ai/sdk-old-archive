@@ -27,6 +27,7 @@ import { registerGit } from "./commands/git.js";
 import { registerApps } from "./commands/apps.js";
 import { registerLibrary } from "./commands/library.js";
 import { registerRelay } from "./commands/relay.js";
+import { registerAttach } from "./commands/attach.js";
 import { registerRotorConfig } from "./commands/rotor-config.js";
 import { registerModels } from "./commands/models.js";
 import { registerProfile } from "./commands/profile.js";
@@ -63,6 +64,7 @@ export function buildRegistry(): CommandRegistry {
   registerApps(reg);
   registerLibrary(reg);
   registerRelay(reg);
+  registerAttach(reg);
   registerRotorConfig(reg);
   registerModels(reg);
   registerProfile(reg);
