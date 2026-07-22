@@ -29,7 +29,7 @@ export function registerApi(reg: CommandRegistry): void {
     path: "api",
     summary: "raw authenticated request: api <get|post|patch|put|del|stream> </api/path> [json-body]",
     usage: "api <get|post|patch|put|del|stream> </api/path> [<json-body>]",
-    covers: [...METHODS.map((m) => `http.${m}`), "http.stream"],
+    covers: [...METHODS.map((m) => `http.${m}`), "http.stream", "http.getBytes"],
     async run(ctx: CliContext, args: CliArgs) {
       const [methodRaw, path, body] = args.positional;
       const method = methodRaw?.toLowerCase() as Method | undefined;

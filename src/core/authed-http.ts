@@ -18,6 +18,10 @@ export class AuthedHttp {
   async get<T>(path: string): Promise<T> {
     return this.http.get<T>(path, { bearer: await this.token() });
   }
+  /** A GET returning raw bytes (a file download) with the session bearer attached. */
+  async getBytes(path: string): Promise<ArrayBuffer> {
+    return this.http.getBytes(path, { bearer: await this.token() });
+  }
   async post<T>(path: string, body?: unknown, opts: Omit<RequestOptions, "bearer"> = {}): Promise<T> {
     return this.http.post<T>(path, body, { ...opts, bearer: await this.token() });
   }

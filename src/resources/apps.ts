@@ -98,6 +98,12 @@ export class AppsClient {
     return releases;
   }
 
+  /** Graduate to a standalone, Supabase-backed repo — the download as a zip
+   *  (app source + Supabase runtime shim + migrations + README). "Own your code." */
+  async export(slug: string): Promise<ArrayBuffer> {
+    return this.http.getBytes(`/api/apps/${encodeURIComponent(slug)}/export`);
+  }
+
   /** Open a release. It stays `pending` until source arrives — see uploadSource. */
   createRelease(slug: string, input: { version?: string } = {}): Promise<AppRelease> {
     return this.http.post<AppRelease>(`/api/apps/${encodeURIComponent(slug)}/releases`, input);

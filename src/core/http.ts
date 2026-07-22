@@ -54,6 +54,14 @@ export class HttpClient {
   get<T>(path: string, opts: RequestOptions = {}): Promise<T> {
     return this.request<T>("GET", path, undefined, opts);
   }
+  /** A GET that returns the raw response bytes (a download), not a parsed envelope. */
+  async getBytes(path: string, opts: RequestOptions = {}): Promise<ArrayBuffer> {
+    const headers: Record<string, string> = {};
+    if (opts.bearer) headers["authorization"] = `Bearer ${opts.bearer}`;
+    const res = await this.fetchImpl(`${this.baseUrl}${path}`, { method: "GET", headers });
+    if (!res.ok) throw new Error(`GET ${path} failed: ${res.status}`);
+    return res.arrayBuffer();
+  }
   post<T>(path: string, body?: unknown, opts: RequestOptions = {}): Promise<T> {
     return this.request<T>("POST", path, body, opts);
   }

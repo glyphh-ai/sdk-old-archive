@@ -5,7 +5,7 @@
  * JSON file + a bundle URL; `deploy` hosts a published app at <slug>.glyphh.app.
  */
 
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import type { CommandRegistry } from "../registry.js";
 import { flagStr } from "../args.js";
 import type { AppManifest, AppVisibility, PublishAppInput } from "../../contract/apps.js";
@@ -257,6 +257,21 @@ export function registerApps(reg: CommandRegistry): void {
       const slug = flagStr(args, "slug");
       if (!slug) throw new Error("usage: apps releases --slug <s>");
       ctx.printJson(await ctx.client.apps.releases(slug));
+    },
+  });
+
+  reg.register({
+    path: "apps export",
+    summary: "graduate an app to a standalone Supabase-backed repo (zip)",
+    usage: "apps export --slug <s> [--out <file.zip>]",
+    covers: ["apps.export"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      if (!slug) throw new Error("usage: apps export --slug <s> [--out <file.zip>]");
+      const bytes = await ctx.client.apps.export(slug);
+      const out = flagStr(args, "out") || `${slug}.zip`;
+      writeFileSync(out, Buffer.from(bytes));
+      ctx.printJson({ exported: slug, file: out, bytes: bytes.byteLength });
     },
   });
 
