@@ -51,3 +51,4 @@ export {
   type Interceptor,
   type InterceptorOptions,
 } from "./interceptor.js";
+export { startAttachHost, type AttachHost, type AttachHostOptions, type AttachHandler } from "./attach.js";

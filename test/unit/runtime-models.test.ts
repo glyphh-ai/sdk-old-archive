@@ -1,18 +1,14 @@
 /**
  * @license Proprietary — © Glyphh. All rights reserved.
  *
- * runtime-models.test.ts — the governed SDK↔openrotor model bridge: resolveModels turns a
- * rotor's role→model binding into the endpoint map (gateway → url+bearer+metered; local →
- * ensureLocalModel url+free), honors `provider::` stripping + overrides, and switchModel
- * audits every switch while updating the in-process override the next resolve layers on.
+ * runtime-models.test.ts — the governed SDK↔rrotor model bridge: resolveModels turns a
+ * LOOP's resolved slots (`loops.roles` — the same call every picker reads) into gateway
+ * endpoints (root url + provider + bearer + metered, `provider::` stripped), exposes the
+ * primary slot for role aliasing, and switchModel audits every switch while updating the
+ * in-process override the next resolve layers on.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-
-// The local model server is mocked — no real download, spawn, or llama binary.
-vi.mock("../../src/models/manager.js", () => ({
-  ensureLocalModel: vi.fn(async (id: string) => ({ url: "http://127.0.0.1:52001", model: id, pid: 4242 })),
-}));
 
 import {
   resolveModels,
@@ -20,108 +16,102 @@ import {
   sessionOverrides,
   clearSessionOverrides,
 } from "../../src/runtime/index.js";
-import { ensureLocalModel } from "../../src/models/manager.js";
 import type { Client } from "../../src/index.js";
-import type { RotorRegistry } from "../../src/contract/bindings.js";
+import type { ResolvedLoopRole } from "../../src/contract/loops.js";
 
-/** A gateway (metered) planner role + a local (free) coder role, the coder still `provider::`-prefixed. */
-function reg(): RotorRegistry {
+const choice = (id: string) => ({
+  id,
+  name: id,
+  providerSlug: id.split("::")[0] ?? "",
+  contextWindow: null,
+  maxOutputTokens: null,
+  inputCreditsPerMTok: 1,
+  outputCreditsPerMTok: 1,
+  isPlatformDefault: false,
+});
+
+/** One anthropic default slot + one openai-family coder slot. */
+function roles(): ResolvedLoopRole[] {
+  return [
+    {
+      name: "default", label: "Model", description: "", modelId: "anthropic::claude-sonnet-5",
+      source: "platform", choices: [choice("anthropic::claude-sonnet-5")],
+    },
+    {
+      name: "coder", label: "Coder", description: "", modelId: "openai::gpt-5",
+      source: "loop", choices: [choice("openai::gpt-5")],
+    },
+  ];
+}
+
+/** A minimal Client stub: only the resources the bridge touches. */
+function fakeClient(
+  result: ResolvedLoopRole[] | Error,
+  record: ReturnType<typeof vi.fn> = vi.fn(async () => ({})),
+): { client: Client; rolesFn: ReturnType<typeof vi.fn> } {
+  const rolesFn = vi.fn(async () => {
+    if (result instanceof Error) throw result;
+    return result;
+  });
   return {
-    rotorSlug: "coder",
-    models: [
-      { role: "planner", transport: "gateway", url: "https://gw.glyphh.ai/v1", model: "claude-opus-4-8", metered: true },
-      { role: "coder", transport: "local", url: null, model: "openweights::qwen2.5-7b", metered: false },
-    ],
+    client: { loops: { roles: rolesFn }, sessions: { recordModelSwitch: record } } as unknown as Client,
+    rolesFn,
   };
 }
 
-/** A minimal Client stub: only the two resources the bridge touches. */
-function fakeClient(
-  registry: RotorRegistry | Error,
-  record: ReturnType<typeof vi.fn> = vi.fn(async () => ({})),
-): Client {
-  return {
-    rotorConfig: {
-      registry: vi.fn(async () => {
-        if (registry instanceof Error) throw registry;
-        return registry;
-      }),
-    },
-    sessions: { recordModelSwitch: record },
-  } as unknown as Client;
-}
+const OPTS = { loop: "default", token: "TKN", server: "https://api.glyphh.ai/" };
 
 beforeEach(() => {
-  vi.mocked(ensureLocalModel).mockClear();
   clearSessionOverrides("s1");
 });
 
 describe("resolveModels", () => {
-  it("maps gateway → url+bearer+metered and local → ensureLocalModel url+free", async () => {
-    const client = fakeClient(reg());
-    const out = await resolveModels(client, { rotorSlug: "coder", token: "TKN" });
+  it("maps every slot to the metering gateway with bearer + provider + bare model id", async () => {
+    const { client } = fakeClient(roles());
+    const out = await resolveModels(client, OPTS);
     expect(out).toBeDefined();
-    expect(out!.registry.planner).toEqual({
-      url: "https://gw.glyphh.ai/v1",
-      model: "claude-opus-4-8",
+    // The gateway root — the runtime appends /v1/messages | /v1/chat/completions,
+    // landing on the exact endpoints the desktop's interceptor targets.
+    expect(out!.registry.default).toEqual({
+      url: "https://api.glyphh.ai/api/gateway",
+      provider: "anthropic",
+      model: "claude-sonnet-5",
       headers: { authorization: "Bearer TKN" },
       metered: true,
     });
-    expect(out!.registry.coder).toEqual({ url: "http://127.0.0.1:52001", model: "qwen2.5-7b", metered: false });
-    // The `provider::` prefix is stripped before serving the local model.
-    expect(ensureLocalModel).toHaveBeenCalledWith("qwen2.5-7b");
+    expect(out!.registry.coder).toMatchObject({ provider: "openai", model: "gpt-5", metered: true });
+    // The primary is the first resolved slot — callers alias their rotor roles to it.
+    expect(out!.primary).toBe(out!.registry.default);
   });
 
-  it("returns undefined when nothing is bound", async () => {
-    const client = fakeClient({ rotorSlug: "coder", models: [] });
-    expect(await resolveModels(client, { rotorSlug: "coder", token: "TKN" })).toBeUndefined();
+  it("passes overrides through to the server-side resolver (governance filters there)", async () => {
+    const { client, rolesFn } = fakeClient(roles());
+    await resolveModels(client, { ...OPTS, overrides: { default: "anthropic::claude-haiku-5" } });
+    expect(rolesFn).toHaveBeenCalledWith("default", { default: "anthropic::claude-haiku-5" });
   });
 
-  it("returns undefined when the control plane can't resolve the rotor", async () => {
-    const client = fakeClient(new Error("unknown rotor"));
-    expect(await resolveModels(client, { rotorSlug: "nope", token: "TKN" })).toBeUndefined();
+  it("returns undefined when no slot resolves a model", async () => {
+    const none = roles().map((r) => ({ ...r, modelId: null }));
+    const { client } = fakeClient(none);
+    expect(await resolveModels(client, OPTS)).toBeUndefined();
   });
 
-  it("an override redirects a role to the override model (same gateway transport)", async () => {
-    const client = fakeClient(reg());
-    const out = await resolveModels(client, {
-      rotorSlug: "coder",
-      token: "TKN",
-      overrides: { planner: "anthropic::claude-haiku-5" },
-    });
-    // Same gateway url + bearer + metered, but the switched-to model, prefix stripped.
-    expect(out!.registry.planner).toEqual({
-      url: "https://gw.glyphh.ai/v1",
-      model: "claude-haiku-5",
-      headers: { authorization: "Bearer TKN" },
-      metered: true,
-    });
-    // The un-overridden role is untouched.
-    expect(out!.registry.coder!.model).toBe("qwen2.5-7b");
-  });
-
-  it("an override adopts the transport/url of a twin role already bound to that model", async () => {
-    const client = fakeClient(reg());
-    // Override the gateway planner to the coder's LOCAL model → adopts local transport.
-    const out = await resolveModels(client, {
-      rotorSlug: "coder",
-      token: "TKN",
-      overrides: { planner: "openweights::qwen2.5-7b" },
-    });
-    expect(out!.registry.planner).toEqual({ url: "http://127.0.0.1:52001", model: "qwen2.5-7b", metered: false });
+  it("returns undefined when the control plane can't resolve the loop", async () => {
+    const { client } = fakeClient(new Error("unknown loop"));
+    expect(await resolveModels(client, OPTS)).toBeUndefined();
   });
 });
 
 describe("switchModel", () => {
   it("audits the switch and stores the override so the next resolveModels picks it up", async () => {
     const record = vi.fn(async () => ({ sessionId: "s1", from: null, to: "x", surface: "cli" }));
-    const client = fakeClient(reg(), record);
+    const { client, rolesFn } = fakeClient(roles(), record);
 
     await switchModel(client, {
       sessionId: "s1",
-      rotorSlug: "coder",
-      role: "planner",
-      from: "anthropic::claude-opus-4-8",
+      rotorSlug: "default",
+      role: "default",
+      from: "anthropic::claude-sonnet-5",
       to: "anthropic::claude-haiku-5",
       surface: "cli",
     });
@@ -129,38 +119,34 @@ describe("switchModel", () => {
     // (a) The switch is audited with the full context.
     expect(record).toHaveBeenCalledWith({
       sessionId: "s1",
-      rotorSlug: "coder",
-      role: "planner",
+      rotorSlug: "default",
+      role: "default",
       to: "anthropic::claude-haiku-5",
       surface: "cli",
-      from: "anthropic::claude-opus-4-8",
+      from: "anthropic::claude-sonnet-5",
     });
     // (b) The override is stored…
-    expect(sessionOverrides("s1", "coder")).toEqual({ planner: "anthropic::claude-haiku-5" });
-    // …and the next resolve reflects it.
-    const out = await resolveModels(client, {
-      rotorSlug: "coder",
-      token: "TKN",
-      overrides: sessionOverrides("s1", "coder"),
-    });
-    expect(out!.registry.planner!.model).toBe("claude-haiku-5");
+    expect(sessionOverrides("s1", "default")).toEqual({ default: "anthropic::claude-haiku-5" });
+    // …and the next resolve hands it to the server-side resolver.
+    await resolveModels(client, { ...OPTS, overrides: sessionOverrides("s1", "default") });
+    expect(rolesFn).toHaveBeenLastCalledWith("default", { default: "anthropic::claude-haiku-5" });
   });
 
-  it("audits again on a second switch (haiku→opus) and updates the override", async () => {
+  it("audits again on a second switch (haiku→sonnet) and updates the override", async () => {
     const record = vi.fn(async () => ({ sessionId: "s1", from: null, to: "x", surface: "cli" }));
-    const client = fakeClient(reg(), record);
+    const { client } = fakeClient(roles(), record);
 
-    await switchModel(client, { sessionId: "s1", rotorSlug: "coder", role: "planner", to: "anthropic::claude-haiku-5", surface: "cli" });
-    await switchModel(client, { sessionId: "s1", rotorSlug: "coder", role: "planner", to: "anthropic::claude-opus-4-8", surface: "cli" });
+    await switchModel(client, { sessionId: "s1", rotorSlug: "default", role: "default", to: "anthropic::claude-haiku-5", surface: "cli" });
+    await switchModel(client, { sessionId: "s1", rotorSlug: "default", role: "default", to: "anthropic::claude-sonnet-5", surface: "cli" });
 
     expect(record).toHaveBeenCalledTimes(2);
-    expect(sessionOverrides("s1", "coder")).toEqual({ planner: "anthropic::claude-opus-4-8" });
+    expect(sessionOverrides("s1", "default")).toEqual({ default: "anthropic::claude-sonnet-5" });
   });
 
   it("omits `from` from the audit call when not supplied", async () => {
     const record = vi.fn(async (_input: Record<string, unknown>) => ({ sessionId: "s1", from: null, to: "x", surface: "cli" }));
-    const client = fakeClient(reg(), record);
-    await switchModel(client, { sessionId: "s1", rotorSlug: "coder", role: "planner", to: "anthropic::claude-haiku-5", surface: "cli" });
+    const { client } = fakeClient(roles(), record);
+    await switchModel(client, { sessionId: "s1", rotorSlug: "default", role: "default", to: "anthropic::claude-haiku-5", surface: "cli" });
     expect(record.mock.calls[0]![0]).not.toHaveProperty("from");
   });
 });

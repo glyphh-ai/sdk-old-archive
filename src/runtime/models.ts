@@ -2,20 +2,19 @@
  * @license Proprietary — © Glyphh. All rights reserved.
  *
  * runtime/models.ts — the governed SDK↔rrotor MODEL bridge (Node-only). Resolves a
- * rotor's role→model binding (enforced server-side by `rotorConfig.registry`) into the
- * endpoint map rrotor injects: gateway roles get the metering gateway url + the caller's
- * bearer (`metered:true`); local roles get an on-device `llama-server` url (`metered:false`).
- * Plus per-session model SWITCHING with an audit trail — an in-process override store the
- * next `resolveModels` layers on, so opus→haiku→opus is both live and fully auditable.
+ * LOOP's slot→model resolution — `loops.roles`, the very call the desktop's agent and
+ * every model picker read, so a chip can never show a model the run won't use — into
+ * the endpoint map rrotor injects. Every endpoint is the METERING GATEWAY with the
+ * caller's bearer: the exact transport the desktop runs turns through. Plus per-session
+ * model SWITCHING with an audit trail — an in-process override store the next
+ * `resolveModels` layers on, so opus→haiku→opus is both live and fully auditable.
  *
- * The gateway is untouched: it already meters proxied calls WITH the model server-side, so
- * credit attribution needs no change here. Local models are the user's own compute — free.
+ * The gateway is untouched: it already meters proxied calls WITH the model server-side,
+ * so credit attribution needs no change here.
  */
 
 import type { Client } from "../client.js";
-import type { ResolvedModel, RotorRegistry } from "../contract/bindings.js";
 import type { ModelSwitchSurface } from "../contract/runtime.js";
-import { ensureLocalModel } from "../models/manager.js";
 
 /**
  * A runtime-agnostic model endpoint. Structurally matches rrotor's `ModelEndpoint`
@@ -23,30 +22,39 @@ import { ensureLocalModel } from "../models/manager.js";
  * `runInProcess({ models })`. Defined here so the SDK never imports rrotor.
  */
 export interface ModelEndpoint {
-  /** OpenAI-compatible chat-completions base url. */
+  /** Endpoint base url — the runtime appends the provider path (`/v1/messages` or
+   *  `/v1/chat/completions`), so the gateway root goes here. */
   url: string;
+  /** Wire the endpoint speaks. Anthropic models are relayed verbatim; everything
+   *  else goes through the gateway's OpenAI-compatible face. */
+  provider?: "anthropic" | "openai";
   /** The provider model id to send (catalog id stripped of its `provider::` prefix). */
   model?: string;
   /** Per-request headers — the caller's bearer for gateway roles. */
   headers?: Record<string, string>;
-  /** Metered (gateway/hosted) vs free (local). */
+  /** Metered (gateway) vs free. Gateway endpoints are always metered. */
   metered?: boolean;
 }
 
-/** The registry shape rrotor consumes: `Record<role, ModelEndpoint>`. */
+/** The registry shape rrotor consumes, plus the loop's primary endpoint so a caller
+ *  can alias it under its own rotor's role names (registry lookups are exact). */
 export interface ResolvedModels {
   registry: Record<string, ModelEndpoint>;
+  /** The first resolved slot's endpoint — the loop's primary model. */
+  primary?: ModelEndpoint;
 }
 
 export interface ResolveModelsOptions {
-  /** The rotor whose role→model binding to resolve. */
-  rotorSlug: string;
-  /** The caller's bearer, attached to gateway (metered) endpoints. */
+  /** The loop whose resolved slots to run on (same `loops.roles` the pickers read). */
+  loop: string;
+  /** The caller's bearer, attached to every gateway endpoint. */
   token: string;
+  /** The server base url — the metering gateway lives under `<server>/api/gateway`. */
+  server: string;
   /**
-   * Per-role model overrides layered on the resolved set before endpoints are built —
-   * an overridden role resolves to that catalog model id instead. Pass a session's
-   * current overrides (see {@link sessionOverrides}) to reflect live model switches.
+   * Per-slot model selections layered into the server-side resolution (the same
+   * `select=` the pickers preview with, so governance filters them there). Pass a
+   * session's current overrides (see {@link sessionOverrides}) for live switches.
    */
   overrides?: Record<string, string>;
 }
@@ -58,68 +66,42 @@ function bareId(modelId: string): string {
 }
 
 /**
- * Build one endpoint for a role. Gateway → the metering url + bearer + metered; local →
- * the on-device `llama-server` (downloaded + served on demand) + free. The model id is
- * always reduced to its bare form (the gateway normalizes providers; llama wants the bare id).
- */
-async function buildEndpoint(
-  transport: ResolvedModel["transport"],
-  url: string | null,
-  modelId: string,
-  token: string,
-): Promise<ModelEndpoint | undefined> {
-  const model = bareId(modelId);
-  if (transport === "gateway") {
-    if (!url) return undefined; // a gateway role with no url is unresolvable
-    return { url, model, headers: { authorization: `Bearer ${token}` }, metered: true };
-  }
-  // local: serve on-device (download once, run the singleton) and address it locally.
-  const server = await ensureLocalModel(model);
-  return { url: server.url, model, metered: false };
-}
-
-/** Resolve one role's endpoint, applying an optional override. */
-async function endpointForRole(
-  m: ResolvedModel,
-  all: readonly ResolvedModel[],
-  overrideId: string | undefined,
-  token: string,
-): Promise<ModelEndpoint | undefined> {
-  if (overrideId === undefined) return buildEndpoint(m.transport, m.url, m.model, token);
-  // Overridden: re-run endpoint construction for the new model. Look up its transport/url
-  // from the registry — if the override model is already resolved for another role, adopt
-  // that role's transport + url; otherwise keep this role's (opus→haiku: both gateway).
-  const twin = all.find((r) => bareId(r.model) === bareId(overrideId));
-  const transport = twin ? twin.transport : m.transport;
-  const url = twin ? twin.url : m.url;
-  return buildEndpoint(transport, url, overrideId, token);
-}
-
-/**
- * Resolve `rotorSlug`'s governed role→model binding into the endpoint map rrotor injects.
- * Governance is enforced server-side by `rotorConfig.registry` (org-supported ∩ workspace-
- * allowed). Returns `undefined` when nothing is bound (the rotor then streams its basic-tier
- * stub) or the control plane can't resolve the rotor.
+ * Resolve `loop`'s slots into the endpoint map rrotor injects — THE DESKTOP'S PATH:
+ * the model comes from `loops.roles` (governance enforced server-side: catalog ∩
+ * org-supported ∩ workspace-allowed), and every call travels through the metering
+ * gateway with the caller's bearer. Returns `undefined` when no slot resolves (the
+ * rotor then streams its basic-tier stub) or the control plane is unreachable.
  */
 export async function resolveModels(
   client: Client,
   opts: ResolveModelsOptions,
 ): Promise<ResolvedModels | undefined> {
-  const { rotorSlug, token, overrides } = opts;
-  let resolved: RotorRegistry;
+  const { loop, token, server, overrides } = opts;
+  let roles;
   try {
-    resolved = await client.rotorConfig.registry(rotorSlug);
+    roles = await client.loops.roles(loop, overrides ?? {});
   } catch {
-    return undefined; // control plane doesn't know this rotor / not reachable
+    return undefined; // control plane doesn't know this loop / not reachable
   }
-  if (!resolved.models.length) return undefined;
 
+  // The runtime appends `/v1/messages` | `/v1/chat/completions` to this root —
+  // landing exactly on the gateway endpoints the desktop's interceptor targets.
+  const gateway = `${server.replace(/\/+$/, "")}/api/gateway`;
   const registry: Record<string, ModelEndpoint> = {};
-  for (const m of resolved.models) {
-    const ep = await endpointForRole(m, resolved.models, overrides?.[m.role], token);
-    if (ep) registry[m.role] = ep;
+  let primary: ModelEndpoint | undefined;
+  for (const r of roles) {
+    if (!r.modelId) continue;
+    const ep: ModelEndpoint = {
+      url: gateway,
+      provider: r.modelId.startsWith("anthropic::") ? "anthropic" : "openai",
+      model: bareId(r.modelId),
+      headers: { authorization: `Bearer ${token}` },
+      metered: true,
+    };
+    registry[r.name] = ep;
+    primary ??= ep;
   }
-  return Object.keys(registry).length ? { registry } : undefined;
+  return primary ? { registry, primary } : undefined;
 }
 
 // ── Per-session model switching + audit ──────────────────────────────────────

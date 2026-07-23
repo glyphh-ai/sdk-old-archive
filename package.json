@@ -1,7 +1,7 @@
 {
   "name": "@glyphh/client",
   "version": "0.1.0",
-  "description": "The Glyphh client SDK — one library every client (mobile, desktop, CLI, web, platform) uses to authenticate and talk to the control plane + rotor runtime.",
+  "description": "The Glyphh client SDK \u2014 one library every client (mobile, desktop, CLI, web, platform) uses to authenticate and talk to the control plane + rotor runtime.",
   "license": "LicenseRef-Proprietary",
   "type": "module",
   "sideEffects": false,
@@ -34,6 +34,11 @@
       "types": "./dist/models.d.ts",
       "import": "./dist/models.js",
       "require": "./dist/models.cjs"
+    },
+    "./machine": {
+      "types": "./dist/machine.d.ts",
+      "import": "./dist/machine.js",
+      "require": "./dist/machine.cjs"
     }
   },
   "main": "./dist/index.cjs",
