@@ -104,6 +104,12 @@ export class AppsClient {
     return this.http.getBytes(`/api/apps/${encodeURIComponent(slug)}/export`);
   }
 
+  /** The app's built source archive as a zip (the files the newest release was
+   *  built from). Powers the desktop .glyphh export and "keep a copy" flows. */
+  async source(slug: string): Promise<ArrayBuffer> {
+    return this.http.getBytes(`/api/apps/${encodeURIComponent(slug)}/source`);
+  }
+
   /** Open a release. It stays `pending` until source arrives — see uploadSource. */
   createRelease(slug: string, input: { version?: string } = {}): Promise<AppRelease> {
     return this.http.post<AppRelease>(`/api/apps/${encodeURIComponent(slug)}/releases`, input);
