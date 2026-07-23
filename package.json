@@ -6,7 +6,10 @@
   "type": "module",
   "sideEffects": false,
   "bin": {
-    "glyphh": "dist/cli.js"
+    "glyphh-sdk": "dist/cli.js"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "exports": {
     ".": {
