@@ -164,6 +164,13 @@ export type {
   AppRelease,
   AppUsageDay,
   AppAuditEntry,
+  AppListingRecord,
+  AppCategory,
+  UpdateListingInput,
+  AppMediaKind,
+  StoredAppMedia,
+  AppReview,
+  FlaggedAppReview,
 } from "./contract/apps.js";
 export { HostingClient } from "./resources/hosting.js";
 export type { Deployment, DeployStatus, DeployInput } from "./contract/hosting.js";

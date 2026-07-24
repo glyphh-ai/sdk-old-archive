@@ -9,6 +9,7 @@
 import type { AuthedHttp } from "../core/authed-http.js";
 import type { AppListing, InstalledApp, PublishAppInput, PanelApp,
   OrgApp, CreateAppEntryInput, UpdateAppEntryInput, AppVariant, AppRelease, AppAuditEntry, AppUsageDay, AppSecretKey,
+  UpdateListingInput, AppMediaKind, StoredAppMedia, AppReview, FlaggedAppReview,
 } from "../contract/apps.js";
 
 export class AppsClient {
@@ -121,6 +122,101 @@ export class AppsClient {
     return this.http.put<AppRelease>(
       `/api/apps/${encodeURIComponent(slug)}/releases/${encodeURIComponent(releaseId)}/source`, archive,
     );
+  }
+
+  /** Edit a release's NOTES — the only mutable field on an immutable build. */
+  updateReleaseNotes(slug: string, releaseId: string, notes: string | null): Promise<AppRelease> {
+    return this.http.patch<AppRelease>(
+      `/api/apps/${encodeURIComponent(slug)}/releases/${encodeURIComponent(releaseId)}`, { notes },
+    );
+  }
+
+  /** Promote a built release to `live` — the version installers get. Rolling back is
+   *  promoting an older release again; nothing is ever rebuilt. */
+  promoteRelease(slug: string, releaseId: string): Promise<AppRelease> {
+    return this.http.post<AppRelease>(
+      `/api/apps/${encodeURIComponent(slug)}/releases/${encodeURIComponent(releaseId)}/promote`, {},
+    );
+  }
+
+  // ── listing: the marketing record ──────────────────────────────────────────
+
+  /** Edit the listing (tagline, category, website, support email). */
+  updateListing(slug: string, patch: UpdateListingInput): Promise<{ ok: boolean }> {
+    return this.http.patch<{ ok: boolean }>(`/api/apps/${encodeURIComponent(slug)}/listing`, patch);
+  }
+
+  /** Upload an icon, screenshot, or video. The server sniffs the real content type
+   *  and refuses anything it will not serve. */
+  uploadMedia(slug: string, kind: AppMediaKind, bytes: Uint8Array, caption?: string): Promise<StoredAppMedia> {
+    const qs = new URLSearchParams({ kind });
+    if (caption) qs.set("caption", caption);
+    return this.http.post<StoredAppMedia>(`/api/apps/${encodeURIComponent(slug)}/media?${qs}`, bytes);
+  }
+
+  /** Detach media from the listing. The stored object is left in place. */
+  removeMedia(slug: string, key: string): Promise<void> {
+    return this.http.del<void>(`/api/apps/${encodeURIComponent(slug)}/media/${encodeURIComponent(key)}`);
+  }
+
+  /** List on the marketplace. Refused until the app has a tagline, category, icon. */
+  list(slug: string): Promise<{ ok: boolean; listed: boolean }> {
+    return this.http.post<{ ok: boolean; listed: boolean }>(`/api/apps/${encodeURIComponent(slug)}/list`, {});
+  }
+
+  /** Unlist. Existing installs keep working — this withdraws the card, not the app. */
+  unlist(slug: string): Promise<{ ok: boolean; listed: boolean }> {
+    return this.http.del<{ ok: boolean; listed: boolean }>(`/api/apps/${encodeURIComponent(slug)}/list`);
+  }
+
+  // ── reviews ────────────────────────────────────────────────────────────────
+
+  /** An app's reviews, newest first. */
+  reviews(slug: string, query: { limit?: number; offset?: number } = {}): Promise<{ reviews: AppReview[]; total: number }> {
+    const qs = new URLSearchParams();
+    if (query.limit) qs.set("limit", String(query.limit));
+    if (query.offset) qs.set("offset", String(query.offset));
+    const q = qs.toString();
+    return this.http.get<{ reviews: AppReview[]; total: number }>(
+      `/api/apps/${encodeURIComponent(slug)}/reviews${q ? `?${q}` : ""}`,
+    );
+  }
+
+  /** Create or edit YOUR review. One per person: writing again edits what is there. */
+  review(slug: string, input: { stars: number; body?: string }): Promise<AppReview> {
+    return this.http.put<AppReview>(`/api/apps/${encodeURIComponent(slug)}/reviews`, input);
+  }
+
+  /** Delete your own review. */
+  removeReview(slug: string): Promise<void> {
+    return this.http.del<void>(`/api/apps/${encodeURIComponent(slug)}/reviews`);
+  }
+
+  /** Reply publicly to a review of an app you publish. */
+  respondToReview(slug: string, reviewId: string, response: string): Promise<AppReview> {
+    return this.http.post<AppReview>(
+      `/api/apps/${encodeURIComponent(slug)}/reviews/${encodeURIComponent(reviewId)}/response`, { response },
+    );
+  }
+
+  /** Flag a review for platform moderation. It stays visible until a ruling. */
+  reportReview(slug: string, reviewId: string, reason: string): Promise<AppReview> {
+    return this.http.post<AppReview>(
+      `/api/apps/${encodeURIComponent(slug)}/reviews/${encodeURIComponent(reviewId)}/report`, { reason },
+    );
+  }
+
+  // ── moderation (platform admin) ────────────────────────────────────────────
+
+  /** The flagged-review queue, oldest report first. */
+  async flaggedReviews(): Promise<FlaggedAppReview[]> {
+    const { reviews } = await this.http.get<{ reviews: FlaggedAppReview[] }>("/api/admin/reviews/flagged");
+    return reviews;
+  }
+
+  /** Settle a flagged review: restore it, or remove it from readers. */
+  moderateReview(reviewId: string, action: "restore" | "remove"): Promise<AppReview> {
+    return this.http.post<AppReview>(`/api/admin/reviews/${encodeURIComponent(reviewId)}/moderate`, { action });
   }
 
   // ── observability: the card's usage trend + the Audit tab ───────────────────

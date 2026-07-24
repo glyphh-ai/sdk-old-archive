@@ -150,21 +150,23 @@ export function registerApps(reg: CommandRegistry): void {
 
   reg.register({
     path: "apps add",
-    summary: "add a web (url) or native (path) app entry",
-    usage: "apps add --kind web|native|http|llm --slug <s> --name <s> [--url <u>] [--ref <path>] [--config '{json}']",
+    summary: "add a web (url), native (path), or glyphh (built) app entry",
+    usage: "apps add --kind web|native|glyphh --slug <s> --name <s> [--url <u>] [--ref <path>] [--access public|members] [--config '{json}']",
     covers: ["apps.createEntry"],
     async run(ctx, args) {
-      const kind = flagStr(args, "kind") as "web" | "native" | "http" | "llm";
+      const kind = flagStr(args, "kind") as "web" | "native" | "glyphh";
       const slug = flagStr(args, "slug");
       const name = flagStr(args, "name");
-      if (!kind || !slug || !name) throw new Error("usage: apps add --kind web|native|http|llm --slug <s> --name <s>");
+      if (!kind || !slug || !name) throw new Error("usage: apps add --kind web|native|glyphh --slug <s> --name <s>");
       const url = flagStr(args, "url");
       const nativeRef = flagStr(args, "ref");
       const configRaw = flagStr(args, "config");
+      const access = flagStr(args, "access") as "public" | "members" | undefined;
       ctx.printJson(await ctx.client.apps.createEntry({
         kind, slug, name,
         ...(url ? { url } : {}),
         ...(nativeRef ? { nativeRef } : {}),
+        ...(access ? { access } : {}),
         ...(configRaw ? { config: JSON.parse(configRaw) } : {}),
       }));
     },
@@ -172,18 +174,21 @@ export function registerApps(reg: CommandRegistry): void {
 
   reg.register({
     path: "apps edit",
-    summary: "edit a web/native entry",
-    usage: "apps edit --slug <s> [--name <s>] [--url <u>] [--ref <path>] [--config '{json}']",
+    summary: "edit an entry — rename, re-point, retype web↔native, or set who can reach it",
+    usage: "apps edit --slug <s> [--name <s>] [--url <u>] [--ref <path>] [--kind web|native] [--access public|members] [--config '{json}']",
     covers: ["apps.updateEntry"],
     async run(ctx, args) {
       const slug = flagStr(args, "slug");
-      if (!slug) throw new Error("usage: apps edit --slug <s> [--name] [--url] [--ref]");
+      if (!slug) throw new Error("usage: apps edit --slug <s> [--name] [--url] [--ref] [--kind] [--access]");
       const name = flagStr(args, "name");
       const url = flagStr(args, "url");
       const nativeRef = flagStr(args, "ref");
       const configRaw = flagStr(args, "config");
+      const kind = flagStr(args, "kind") as "web" | "native" | undefined;
+      const access = flagStr(args, "access") as "public" | "members" | undefined;
       ctx.printJson(await ctx.client.apps.updateEntry(slug, {
         ...(name ? { name } : {}), ...(url ? { url } : {}), ...(nativeRef ? { nativeRef } : {}),
+        ...(kind ? { kind } : {}), ...(access ? { access } : {}),
         ...(configRaw ? { config: JSON.parse(configRaw) } : {}),
       }));
     },
@@ -276,6 +281,21 @@ export function registerApps(reg: CommandRegistry): void {
   });
 
   reg.register({
+    path: "apps source",
+    summary: "download the source archive the newest release was built from (zip)",
+    usage: "apps source --slug <s> [--out <file.zip>]",
+    covers: ["apps.source"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      if (!slug) throw new Error("usage: apps source --slug <s> [--out <file.zip>]");
+      const bytes = await ctx.client.apps.source(slug);
+      const out = flagStr(args, "out") || `${slug}-source.zip`;
+      writeFileSync(out, Buffer.from(bytes));
+      ctx.printJson({ slug, file: out, bytes: bytes.byteLength });
+    },
+  });
+
+  reg.register({
     path: "apps release new",
     summary: "open a release (pending until source is uploaded)",
     usage: "apps release new --slug <s> [--version <semver>]",
@@ -300,6 +320,202 @@ export function registerApps(reg: CommandRegistry): void {
       if (!slug || !release || !file) throw new Error("usage: apps upload-source --slug <s> --release <id> --file <path>");
       const archive = new Uint8Array(readFileSync(file));
       ctx.printJson(await ctx.client.apps.uploadSource(slug, release, archive));
+    },
+  });
+
+  // ── releases: notes + promotion ────────────────────────────────────────────
+  reg.register({
+    path: "apps release notes",
+    summary: "edit a release's notes (the only mutable field on a build)",
+    usage: "apps release notes --slug <s> --release <id> --notes <markdown>",
+    covers: ["apps.updateReleaseNotes"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      const release = flagStr(args, "release");
+      if (!slug || !release) throw new Error("usage: apps release notes --slug <s> --release <id> --notes <text>");
+      ctx.printJson(await ctx.client.apps.updateReleaseNotes(slug, release, flagStr(args, "notes") ?? null));
+    },
+  });
+
+  reg.register({
+    path: "apps release promote",
+    summary: "promote a built release to live (rollback = promote an older one)",
+    usage: "apps release promote --slug <s> --release <id>",
+    covers: ["apps.promoteRelease"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      const release = flagStr(args, "release");
+      if (!slug || !release) throw new Error("usage: apps release promote --slug <s> --release <id>");
+      ctx.printJson(await ctx.client.apps.promoteRelease(slug, release));
+    },
+  });
+
+  // ── listing ────────────────────────────────────────────────────────────────
+  reg.register({
+    path: "apps listing set",
+    summary: "edit the marketplace listing (tagline, category, website, support)",
+    usage: "apps listing set --slug <s> [--tagline <t>] [--category <c>] [--website <u>] [--support <email>]",
+    covers: ["apps.updateListing"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      if (!slug) throw new Error("usage: apps listing set --slug <s> [--tagline] [--category] [--website] [--support]");
+      const tagline = flagStr(args, "tagline");
+      const category = flagStr(args, "category") as Parameters<typeof ctx.client.apps.updateListing>[1]["category"];
+      const website = flagStr(args, "website");
+      const supportEmail = flagStr(args, "support");
+      ctx.printJson(await ctx.client.apps.updateListing(slug, {
+        ...(tagline ? { tagline } : {}), ...(category ? { category } : {}),
+        ...(website ? { website } : {}), ...(supportEmail ? { supportEmail } : {}),
+      }));
+    },
+  });
+
+  reg.register({
+    path: "apps media add",
+    summary: "upload an icon, screenshot, or video to the listing",
+    usage: "apps media add --slug <s> --kind icon|screenshot|video --file <path> [--caption <c>]",
+    covers: ["apps.uploadMedia"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      const file = flagStr(args, "file");
+      const kind = (flagStr(args, "kind") || "screenshot") as "icon" | "screenshot" | "video";
+      if (!slug || !file) throw new Error("usage: apps media add --slug <s> --kind <k> --file <path>");
+      const caption = flagStr(args, "caption");
+      ctx.printJson(await ctx.client.apps.uploadMedia(slug, kind, readFileSync(file), caption));
+    },
+  });
+
+  reg.register({
+    path: "apps media remove",
+    summary: "detach media from the listing",
+    usage: "apps media remove --slug <s> --key <key>",
+    covers: ["apps.removeMedia"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      const key = flagStr(args, "key");
+      if (!slug || !key) throw new Error("usage: apps media remove --slug <s> --key <key>");
+      await ctx.client.apps.removeMedia(slug, key);
+      ctx.printJson({ removed: key });
+    },
+  });
+
+  reg.register({
+    path: "apps list-publicly",
+    summary: "list the app on the marketplace (needs a tagline, category, icon)",
+    usage: "apps list-publicly --slug <s>",
+    covers: ["apps.list"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      if (!slug) throw new Error("usage: apps list-publicly --slug <s>");
+      ctx.printJson(await ctx.client.apps.list(slug));
+    },
+  });
+
+  reg.register({
+    path: "apps unlist",
+    summary: "withdraw the marketplace listing (installs keep working)",
+    usage: "apps unlist --slug <s>",
+    covers: ["apps.unlist"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      if (!slug) throw new Error("usage: apps unlist --slug <s>");
+      ctx.printJson(await ctx.client.apps.unlist(slug));
+    },
+  });
+
+  // ── reviews ────────────────────────────────────────────────────────────────
+  reg.register({
+    path: "apps reviews",
+    summary: "an app's reviews, newest first",
+    usage: "apps reviews --slug <s> [--limit <n>] [--offset <n>]",
+    covers: ["apps.reviews"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      if (!slug) throw new Error("usage: apps reviews --slug <s>");
+      const limit = Number(flagStr(args, "limit") || 0);
+      const offset = Number(flagStr(args, "offset") || 0);
+      ctx.printJson(await ctx.client.apps.reviews(slug, {
+        ...(limit ? { limit } : {}), ...(offset ? { offset } : {}),
+      }));
+    },
+  });
+
+  reg.register({
+    path: "apps review",
+    summary: "rate an app you installed (writing again edits your review)",
+    usage: "apps review --slug <s> --stars <1-5> [--body <text>]",
+    covers: ["apps.review"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      const stars = Number(flagStr(args, "stars"));
+      if (!slug || !stars) throw new Error("usage: apps review --slug <s> --stars <1-5> [--body <text>]");
+      const body = flagStr(args, "body");
+      ctx.printJson(await ctx.client.apps.review(slug, { stars, ...(body ? { body } : {}) }));
+    },
+  });
+
+  reg.register({
+    path: "apps review remove",
+    summary: "delete your own review",
+    usage: "apps review remove --slug <s>",
+    covers: ["apps.removeReview"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      if (!slug) throw new Error("usage: apps review remove --slug <s>");
+      await ctx.client.apps.removeReview(slug);
+      ctx.printJson({ removed: slug });
+    },
+  });
+
+  reg.register({
+    path: "apps review respond",
+    summary: "reply publicly to a review of an app you publish",
+    usage: "apps review respond --slug <s> --review <id> --text <reply>",
+    covers: ["apps.respondToReview"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      const review = flagStr(args, "review");
+      const text = flagStr(args, "text");
+      if (!slug || !review || !text) throw new Error("usage: apps review respond --slug <s> --review <id> --text <reply>");
+      ctx.printJson(await ctx.client.apps.respondToReview(slug, review, text));
+    },
+  });
+
+  reg.register({
+    path: "apps review report",
+    summary: "flag a review for platform moderation (it stays visible meanwhile)",
+    usage: "apps review report --slug <s> --review <id> --reason <why>",
+    covers: ["apps.reportReview"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      const review = flagStr(args, "review");
+      const reason = flagStr(args, "reason");
+      if (!slug || !review || !reason) throw new Error("usage: apps review report --slug <s> --review <id> --reason <why>");
+      ctx.printJson(await ctx.client.apps.reportReview(slug, review, reason));
+    },
+  });
+
+  reg.register({
+    path: "apps reviews flagged",
+    summary: "the flagged-review moderation queue (platform admin)",
+    covers: ["apps.flaggedReviews"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.apps.flaggedReviews());
+    },
+  });
+
+  reg.register({
+    path: "apps review moderate",
+    summary: "restore or remove a flagged review (platform admin)",
+    usage: "apps review moderate --review <id> --action restore|remove",
+    covers: ["apps.moderateReview"],
+    async run(ctx, args) {
+      const review = flagStr(args, "review");
+      const action = flagStr(args, "action") as "restore" | "remove";
+      if (!review || (action !== "restore" && action !== "remove")) {
+        throw new Error("usage: apps review moderate --review <id> --action restore|remove");
+      }
+      ctx.printJson(await ctx.client.apps.moderateReview(review, action));
     },
   });
 

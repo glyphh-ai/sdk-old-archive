@@ -14,11 +14,13 @@
 /** App visibility in the marketplace. */
 export type AppVisibility = "public" | "org" | "unlisted";
 
-export type AppKind = "hosted" | "web" | "native" | "http" | "llm" | "glyphh";
+/** What an app IS: a URL you open, a program on your machine, or one you built. */
+export type AppKind = "web" | "native" | "glyphh";
 
 /** Kind-shaped launcher config — HOW the desktop opens the app, mirroring its form:
  *  web {browser, openAs} · native {archetype, windowMode, shell, profile, cwd,
- *  initCommands, args, folder} · http {target} · llm {provider, model}. */
+ *  initCommands, args, folder} · glyphh {the bundle contract, plus the owner's
+ *  mcpApproved + guardrails}. */
 export type AppLauncherConfig = Record<string, unknown>;
 export type AppSize = "small" | "medium" | "large";
 export type AppAccess = "public" | "members";
@@ -64,7 +66,8 @@ export interface OrgApp {
   description: string | null;
   access: string;
   size: string;
-  /** web → its url; hosted → the newest live deployment's url; native → null. */
+  /** web → its url; a BUILT app with a live deployment → its brand origin
+   *  (https://&lt;slug&gt;.glyphh.app); native, or not deployed → null. */
   prodUrl: string | null;
   /** native only: the path / bundle id the desktop launches. */
   nativeRef: string | null;
@@ -76,6 +79,8 @@ export interface OrgApp {
   requiredConnections: { slug: string; actAs: string; connected: boolean }[];
   /** Credits if the app ran 24/7 for 30 days at its size — the ceiling, not a bill. */
   worstCaseMonthlyCredits: number;
+  /** The marketplace listing record (media, rating, listed state). */
+  listing: AppListingRecord;
   createdAt: string;
   updatedAt: string;
 }
@@ -88,13 +93,16 @@ export interface AppSecretKey {
 
 /** Create a web or native entry (hosted apps arrive via publish, not here). */
 export interface CreateAppEntryInput {
-  kind: "web" | "native" | "http" | "llm" | "glyphh";
+  kind: "web" | "native" | "glyphh";
   slug: string;
   name: string;
   url?: string;
   nativeRef?: string;
   description?: string;
   config?: AppLauncherConfig;
+  /** Who may reach it once deployed. Omitted → `members`: a published app is
+   *  private until its owner decides otherwise. */
+  access?: AppAccess;
 }
 
 export interface UpdateAppEntryInput {
@@ -104,6 +112,11 @@ export interface UpdateAppEntryInput {
   description?: string;
   /** Replaces the whole config when present. */
   config?: AppLauncherConfig;
+  /** Retype a LAUNCHER (web ↔ native). A built app's kind comes from its bundle
+   *  and the server refuses to change it. */
+  kind?: "web" | "native";
+  /** Who may reach it once deployed — enforced at the edge on every request. */
+  access?: AppAccess;
 }
 
 /** One immutable build of a hosted app. */
@@ -115,6 +128,11 @@ export interface AppRelease {
   imageRef: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Release notes (markdown) — what changed, in the author's words. */
+  notes: string | null;
+  /** `dev` until promoted; `live` is what installers get. */
+  channel: "dev" | "live";
+  promotedAt: string | null;
 }
 
 /** One row of the org-scoped app audit feed. */
@@ -171,4 +189,60 @@ export interface PanelApp {
   createdAt: string;
   updatedAt: string;
   system: boolean;
+}
+
+/** The marketplace listing — how an app is presented, distinct from what it is. */
+export interface AppListingRecord {
+  tagline: string | null;
+  category: string | null;
+  iconUrl: string | null;
+  screenshots: { url: string; caption: string }[];
+  videoUrl: string | null;
+  website: string | null;
+  supportEmail: string | null;
+  ratingAvg: number;
+  ratingCount: number;
+  /** Null until the app is listed publicly — listing is its own act. */
+  listedAt: string | null;
+}
+
+export type AppCategory =
+  | "productivity" | "communication" | "developer" | "ai"
+  | "marketing" | "finance" | "design" | "data";
+
+export interface UpdateListingInput {
+  tagline?: string;
+  category?: AppCategory;
+  website?: string;
+  supportEmail?: string;
+}
+
+export type AppMediaKind = "icon" | "screenshot" | "video";
+
+export interface StoredAppMedia {
+  key: string;
+  contentType: string;
+  bytes: number;
+}
+
+/** One installer's review. `ownerResponse` is the author's public reply — the only
+ *  thing an author can do to a review besides report it for moderation. */
+export interface AppReview {
+  id: string;
+  stars: number;
+  body: string | null;
+  version: string | null;
+  status: "published" | "flagged" | "removed";
+  authorName: string | null;
+  ownerResponse: string | null;
+  ownerRespondedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** A flagged review as the moderation queue sees it. */
+export interface FlaggedAppReview extends AppReview {
+  appSlug: string;
+  reportReason: string | null;
+  reportedAt: string | null;
 }
