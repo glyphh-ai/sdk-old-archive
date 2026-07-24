@@ -246,3 +246,16 @@ export interface FlaggedAppReview extends AppReview {
   reportReason: string | null;
   reportedAt: string | null;
 }
+
+/** The full marketplace detail for one app — listing media + markdown body +
+ *  the connections it requires, with connected status for the caller's org. */
+export interface AppMarketplaceDetail {
+  slug: string;
+  name: string;
+  version: string;
+  description: string | null;
+  owned: boolean;
+  installs: number;
+  listing: AppListingRecord;
+  requiredConnections: { slug: string; actAs: string; connected: boolean }[];
+}

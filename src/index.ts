@@ -165,6 +165,7 @@ export type {
   AppUsageDay,
   AppAuditEntry,
   AppListingRecord,
+  AppMarketplaceDetail,
   AppCategory,
   UpdateListingInput,
   AppMediaKind,

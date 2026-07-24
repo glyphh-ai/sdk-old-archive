@@ -9,6 +9,7 @@
 import type { AuthedHttp } from "../core/authed-http.js";
 import type { AppListing, InstalledApp, PublishAppInput, PanelApp,
   OrgApp, CreateAppEntryInput, UpdateAppEntryInput, AppVariant, AppRelease, AppAuditEntry, AppUsageDay, AppSecretKey,
+  AppMarketplaceDetail,
   UpdateListingInput, AppMediaKind, StoredAppMedia, AppReview, FlaggedAppReview,
 } from "../contract/apps.js";
 
@@ -21,8 +22,10 @@ export class AppsClient {
   }
 
   /** One listing by slug. */
-  get(slug: string): Promise<AppListing> {
-    return this.http.get<AppListing>(`/api/apps/${encodeURIComponent(slug)}`);
+  /** The full marketplace detail for one app (listing media, markdown body,
+   *  required connections). Backs the marketplace detail page. */
+  get(slug: string): Promise<AppMarketplaceDetail> {
+    return this.http.get<AppMarketplaceDetail>(`/api/apps/${encodeURIComponent(slug)}`);
   }
 
   /** Publish (or republish a new version of) an app your org owns. */
