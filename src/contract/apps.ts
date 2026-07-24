@@ -77,6 +77,12 @@ export interface OrgApp {
   variants: AppVariant[];
   /** Manifest-declared connections, each flagged connected or still required. */
   requiredConnections: { slug: string; actAs: string; connected: boolean }[];
+  /** True when the caller's org PUBLISHED this app — gates the publish-side UI.
+   *  An installed (not owned) app is read-only: releases + connections only. */
+  owned: boolean;
+  /** The newest live release's version, or null. The desktop compares it to the
+   *  installed version to offer an auto-update. */
+  latestVersion: string | null;
   /** Credits if the app ran 24/7 for 30 days at its size — the ceiling, not a bill. */
   worstCaseMonthlyCredits: number;
   /** The marketplace listing record (media, rating, listed state). */
@@ -193,7 +199,11 @@ export interface PanelApp {
 
 /** The marketplace listing — how an app is presented, distinct from what it is. */
 export interface AppListingRecord {
+  /** The storefront title (the app's name, editable). */
+  title: string;
   tagline: string | null;
+  /** Long-form markdown pitch. */
+  body: string | null;
   category: string | null;
   iconUrl: string | null;
   screenshots: { url: string; caption: string }[];
