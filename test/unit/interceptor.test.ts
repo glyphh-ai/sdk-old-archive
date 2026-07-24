@@ -126,6 +126,82 @@ describe("interceptor", () => {
     expect(text).toBe(frames.join(""));
   });
 
+  /** An SSE upstream whose bytes are exactly `chunks` (to force boundary cases). */
+  function sseChunks(chunks: string[]) {
+    return upstream(
+      () =>
+        new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              const enc = new TextEncoder();
+              for (const c of chunks) controller.enqueue(enc.encode(c));
+              controller.close();
+            },
+          }),
+          { status: 200, headers: { "content-type": "text/event-stream" } },
+        ),
+    );
+  }
+
+  it("strips the trailing glyphh_usage frame and reports it via onUsage", async () => {
+    const anthropic =
+      'event: message_start\ndata: {"type":"message_start"}\n\n' +
+      'event: message_stop\ndata: {"type":"message_stop"}\n\n';
+    const usage = 'event: glyphh_usage\ndata: {"creditsMicro":4200,"inputTokens":1500,"outputTokens":300}\n\n';
+    const onUsage = vi.fn();
+    const up = sseChunks([anthropic + usage]);
+    running = await startInterceptor({ client: await clientWith(up.fetch, "t"), onUsage });
+
+    const res = await fetch(`${running.url}/v1/messages`, {
+      method: "POST",
+      headers: { "x-api-key": running.apiKey },
+      body: JSON.stringify({ stream: true }),
+    });
+    const seen = await res.text();
+    // The SDK sees ONLY Anthropic events — an unknown frame in the stream could
+    // break its parser.
+    expect(seen).toBe(anthropic);
+    expect(seen).not.toContain("glyphh_usage");
+    expect(onUsage).toHaveBeenCalledWith({ creditsMicro: 4200, inputTokens: 1500, outputTokens: 300 });
+  });
+
+  it("strips the frame even when its marker is split across chunks", async () => {
+    // The frame lands as the stream's tail, and the marker itself can straddle a
+    // chunk boundary — the carry buffer has to catch that.
+    const onUsage = vi.fn();
+    const up = sseChunks([
+      'event: message_stop\ndata: {"type":"message_stop"}\n\nevent: gly',
+      'phh_usage\ndata: {"creditsMicro":7,"inputTokens":2,"outputTokens":1}\n\n',
+    ]);
+    running = await startInterceptor({ client: await clientWith(up.fetch, "t"), onUsage });
+
+    const res = await fetch(`${running.url}/v1/messages`, {
+      method: "POST",
+      headers: { "x-api-key": running.apiKey },
+      body: JSON.stringify({ stream: true }),
+    });
+    const seen = await res.text();
+    expect(seen).toBe('event: message_stop\ndata: {"type":"message_stop"}\n\n');
+    expect(seen).not.toContain("glyphh_usage");
+    expect(seen).not.toContain("event: gly");   // the split half must not leak either
+    expect(onUsage).toHaveBeenCalledWith({ creditsMicro: 7, inputTokens: 2, outputTokens: 1 });
+  });
+
+  it("forwards a stream with no usage frame unchanged", async () => {
+    const onUsage = vi.fn();
+    const anthropic = 'event: message_stop\ndata: {"type":"message_stop"}\n\n';
+    const up = sseChunks([anthropic]);
+    running = await startInterceptor({ client: await clientWith(up.fetch, "t"), onUsage });
+
+    const res = await fetch(`${running.url}/v1/messages`, {
+      method: "POST",
+      headers: { "x-api-key": running.apiKey },
+      body: JSON.stringify({ stream: true }),
+    });
+    expect(await res.text()).toBe(anthropic);
+    expect(onUsage).not.toHaveBeenCalled();
+  });
+
   it("relays an upstream status instead of reinterpreting it", async () => {
     // The Agent SDK reads 429/529 to decide whether to retry — flattening these
     // into a generic failure would break behaviour that already works.

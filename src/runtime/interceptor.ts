@@ -39,6 +39,12 @@ export interface InterceptorOptions {
   client: Client;
   /** Called when a forwarded turn fails, for logs/telemetry. Never throws. */
   onError?: (error: Error) => void;
+  /**
+   * Per-turn usage, from a trailing `glyphh_usage` frame the gateway appends to
+   * the SSE stream. Credits are the server's computed price; tokens are real.
+   * The frame is stripped here so the Agent SDK never sees a non-Anthropic event.
+   */
+  onUsage?: (usage: { creditsMicro: number; inputTokens: number; outputTokens: number }) => void;
 }
 
 export interface Interceptor {
@@ -131,13 +137,46 @@ export async function startInterceptor(opts: InterceptorOptions): Promise<Interc
       return;
     }
 
+    // Forward the stream, but hold back a trailing `glyphh_usage` frame the
+    // gateway appends after Anthropic's message_stop. Everything from that
+    // marker on is ours: strip it so the Agent SDK sees only Anthropic events,
+    // and report the credits it carries. A small carry buffer covers the marker
+    // being split across chunk boundaries.
     const reader = upstream.body.getReader();
+    const decoder = new TextDecoder();
+    const encoder = new TextEncoder();
+    const MARKER = "event: glyphh_usage";
+    let tail = "";        // decoded text not yet forwarded (possible partial marker)
+    let captured = "";    // our frame, once the marker is seen
+
     for (;;) {
       const { done, value } = await reader.read();
       if (done) break;
-      res.write(value);
+      tail += decoder.decode(value, { stream: true });
+      const idx = tail.indexOf(MARKER);
+      if (idx !== -1) {
+        if (idx > 0) res.write(encoder.encode(tail.slice(0, idx)));
+        captured = tail.slice(idx);
+        // The frame is the stream's tail — drain the rest into it and stop.
+        for (;;) {
+          const r = await reader.read();
+          if (r.done) break;
+          captured += decoder.decode(r.value, { stream: true });
+        }
+        tail = "";
+        break;
+      }
+      // No marker yet: forward all but a marker-length tail, in case it is split.
+      const safe = tail.length - MARKER.length;
+      if (safe > 0) { res.write(encoder.encode(tail.slice(0, safe))); tail = tail.slice(safe); }
     }
+    if (tail) res.write(encoder.encode(tail));  // flush a marker that never came
     res.end();
+
+    if (captured && opts.onUsage) {
+      const m = /data: (\{.*\})/.exec(captured);
+      if (m?.[1]) { try { opts.onUsage(JSON.parse(m[1])); } catch { /* malformed frame — skip */ } }
+    }
   }
 
   await new Promise<void>((resolve, reject) => {
