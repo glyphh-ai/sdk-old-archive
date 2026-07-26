@@ -13,6 +13,8 @@ export interface Provider {
   slug: string; // "anthropic", "openai", "openweights"
   name: string;
   kind: ProviderKind;
+  /** Short @-mention name (no hyphens). Null = not mentionable. */
+  alias: string | null;
   /** OpenAI-compatible base for this provider (e.g. a Gemini or Groq host).
    *  Null = the built-in default. One converter, many addresses. */
   baseUrl: string | null;
@@ -26,6 +28,8 @@ export interface Model {
   id: string; // "anthropic::claude-opus-4-8"
   providerSlug: string;
   name: string;
+  /** Short @-mention name; unique per provider. Null = not mentionable. */
+  alias: string | null;
   kind: ProviderKind;
   inputCreditsPerMTok: number;
   outputCreditsPerMTok: number;
@@ -46,6 +50,8 @@ export interface EnableProviderInput {
 export interface ProviderCreate {
   /** Omit to keep the stored address; null clears it to the default. */
   baseUrl?: string | null;
+  /** Short @-mention name (no hyphens). Omit to keep the stored one. */
+  alias?: string | null;
   slug: string;
   name: string;
   kind: ProviderKind;
@@ -55,6 +61,8 @@ export interface ProviderCreate {
 export interface ModelCreate {
   contextWindow?: number | null;
   maxOutputTokens?: number | null;
+  /** Short @-mention name; unique per provider. */
+  alias?: string | null;
   id: string;
   providerSlug: string;
   name: string;
@@ -67,6 +75,8 @@ export interface ModelCreate {
 export interface ModelPricing {
   contextWindow?: number | null;
   maxOutputTokens?: number | null;
+  /** Null clears the alias; omit to keep it. */
+  alias?: string | null;
   inputCreditsPerMTok?: number;
   outputCreditsPerMTok?: number;
   active?: boolean;
