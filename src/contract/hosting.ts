@@ -24,4 +24,6 @@ export interface Deployment {
 export interface DeployInput {
   /** Slug of a published app to deploy. */
   appSlug: string;
+  /** Deploy a specific build. Omitted → the newest ready release. */
+  releaseId?: string;
 }
