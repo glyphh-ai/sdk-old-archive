@@ -126,6 +126,8 @@ export interface AdminModel {
   provider: string;
   model: string;
   display_name: string;
+  /** Short @-mention name; null = not mentionable. */
+  alias: string | null;
   input_credits_per_mtok: number | null; // micro-credits/MTok; null = not per-token priced
   output_credits_per_mtok: number | null;
   /** Total tokens the model holds; what the gateway fits requests to. Null = unrecorded. */
@@ -136,6 +138,8 @@ export interface AdminModel {
 }
 export interface AdminModelUpdate {
   display_name?: string;
+  /** Short @-mention name; null clears it, omit keeps it. */
+  alias?: string | null;
   active?: boolean;
   input_credits_per_mtok?: number | null;
   output_credits_per_mtok?: number | null;
