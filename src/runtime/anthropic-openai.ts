@@ -67,6 +67,22 @@ function freshToolId(seed: string): string {
   return toolId(`${seed}:${Date.now().toString(36)}:${Math.random().toString(36).slice(2)}`);
 }
 
+/**
+ * Restore a tool name the model shortened. MCP tools reach the model as
+ * `mcp__<server>__<tool>`; Claude reproduces that faithfully, but open models
+ * (mistral-large observed in prod) call back with just the tail — `list_dir`
+ * instead of `mcp__glyphh__list_dir` — and every call then misses the toolset.
+ * When the returned name is NOT one we sent and exactly ONE sent tool ends in
+ * `__<returned>`, that tool is unambiguously what the model meant. Anything
+ * ambiguous passes through untouched and fails loudly, which the model can
+ * read and correct.
+ */
+function restoreToolName(returned: string, sent: readonly string[] | undefined): string {
+  if (!returned || !sent?.length || sent.includes(returned)) return returned;
+  const matches = sent.filter((n) => n.endsWith(`__${returned}`));
+  return matches.length === 1 ? matches[0]! : returned;
+}
+
 /** Flatten Anthropic content to the plain text OpenAI wants for a `tool` message. */
 function textOf(content: unknown): string {
   if (typeof content === "string") return content;
@@ -189,7 +205,7 @@ function parseArgs(raw: string | undefined): unknown {
 }
 
 /** OpenAI completion → Anthropic message. */
-export function toAnthropicResponse(completion: OpenAICompletion, model: string): Record<string, unknown> {
+export function toAnthropicResponse(completion: OpenAICompletion, model: string, sentToolNames?: readonly string[]): Record<string, unknown> {
   const choice = completion.choices?.[0];
   const content: AnthropicBlock[] = [];
   if (choice?.message?.content) content.push({ type: "text", text: choice.message.content });
@@ -197,7 +213,7 @@ export function toAnthropicResponse(completion: OpenAICompletion, model: string)
     content.push({
       type: "tool_use",
       id: call.id || freshToolId("resp"),
-      name: call.function?.name ?? "",
+      name: restoreToolName(call.function?.name ?? "", sentToolNames),
       input: parseArgs(call.function?.arguments),
     });
   }
@@ -230,7 +246,7 @@ function frame(event: string, data: unknown): string {
  * whenever the stream moves to a different kind of content, and close the last one
  * before finishing.
  */
-export function createStreamTranslator(model: string) {
+export function createStreamTranslator(model: string, sentToolNames?: readonly string[]) {
   let buffer = "";
   let started = false;
   /**
@@ -335,7 +351,7 @@ export function createStreamTranslator(model: string) {
             toolCallCount += 1;
             out += frame("content_block_start", {
               type: "content_block_start", index: current.index,
-              content_block: { type: "tool_use", id: call.id || freshToolId(`str${key}`), name: call.function?.name ?? "", input: {} },
+              content_block: { type: "tool_use", id: call.id || freshToolId(`str${key}`), name: restoreToolName(call.function?.name ?? "", sentToolNames), input: {} },
             });
           }
           if (call.function?.arguments) {
