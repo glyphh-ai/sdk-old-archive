@@ -101,7 +101,14 @@ function textOf(content: unknown): string {
  * both spoke and called two tools is one message with a content block list on one
  * side, and an assistant message plus two tool messages on the other.
  */
-export function toOpenAIRequest(req: AnthropicRequest, model: string): Record<string, unknown> {
+export interface ToOpenAIOptions {
+  /** OpenAI proper rejects `max_tokens` on current models and demands
+   *  `max_completion_tokens`; the rest of the OpenAI-compatible tail (mistral,
+   *  groq, together, llama-server) still speaks `max_tokens`. Caller picks. */
+  maxTokensKey?: "max_tokens" | "max_completion_tokens";
+}
+
+export function toOpenAIRequest(req: AnthropicRequest, model: string, opts: ToOpenAIOptions = {}): Record<string, unknown> {
   const messages: OpenAIMessage[] = [];
 
   // Anthropic keeps `system` top-level; OpenAI wants it as the first message.
@@ -143,7 +150,7 @@ export function toOpenAIRequest(req: AnthropicRequest, model: string): Record<st
   }
 
   const out: Record<string, unknown> = { model, messages };
-  if (req.max_tokens !== undefined) out.max_tokens = req.max_tokens;
+  if (req.max_tokens !== undefined) out[opts.maxTokensKey ?? "max_tokens"] = req.max_tokens;
   if (req.temperature !== undefined) out.temperature = req.temperature;
   if (req.top_p !== undefined) out.top_p = req.top_p;
   if (req.stream) {
