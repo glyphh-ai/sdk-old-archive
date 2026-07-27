@@ -248,6 +248,7 @@ export function createStreamTranslator(model: string) {
   let outputTokens = 0;
   let done = false;
   let ended = false;
+  let toolCallCount = 0;
 
   function closeCurrent(): string {
     if (!current) return "";
@@ -331,6 +332,7 @@ export function createStreamTranslator(model: string) {
             // arguments then stream in as raw JSON pieces.
             out += closeCurrent();
             current = { index: nextIndex++, kind: "tool", toolKey: key };
+            toolCallCount += 1;
             out += frame("content_block_start", {
               type: "content_block_start", index: current.index,
               content_block: { type: "tool_use", id: call.id || freshToolId(`str${key}`), name: call.function?.name ?? "", input: {} },
@@ -371,6 +373,12 @@ export function createStreamTranslator(model: string) {
 
     sawDone(): boolean {
       return done;
+    },
+
+    /** How many tool_use blocks the stream carried — observability for "the model
+     *  can't see tools" reports: tools_sent in, tool calls out, per turn. */
+    toolCalls(): number {
+      return toolCallCount;
     },
   };
 }
