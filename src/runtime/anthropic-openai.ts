@@ -42,6 +42,31 @@ interface OpenAIMessage {
   tool_call_id?: string;
 }
 
+/**
+ * Normalize a tool id to Mistral's shape — the strictest in the OpenAI-compatible
+ * tail: exactly 9 characters, a-zA-Z0-9. Everyone else just echoes ids, so one
+ * strict shape covers all providers. Deterministic, so a tool_use and the
+ * tool_result that answers it — normalized independently — still pair up, and a
+ * history that carries Anthropic-native `toolu_…` ids (the session ran on Claude
+ * before switching models) survives the crossing. Conforming ids pass untouched.
+ */
+function toolId(raw: string | undefined | null): string {
+  const id = raw ?? "";
+  if (/^[a-zA-Z0-9]{9}$/.test(id)) return id;
+  let h1 = 0x811c9dc5;
+  let h2 = 0x01000193;
+  for (let i = 0; i < id.length; i++) {
+    h1 = Math.imul(h1 ^ id.charCodeAt(i), 0x01000193) >>> 0;
+    h2 = (Math.imul(h2, 31) + id.charCodeAt(i)) >>> 0;
+  }
+  return (h1.toString(36) + h2.toString(36)).padEnd(9, "0").slice(0, 9);
+}
+
+/** A fabricated 9-char id for the rare provider that omits one. */
+function freshToolId(seed: string): string {
+  return toolId(`${seed}:${Date.now().toString(36)}:${Math.random().toString(36).slice(2)}`);
+}
+
 /** Flatten Anthropic content to the plain text OpenAI wants for a `tool` message. */
 function textOf(content: unknown): string {
   if (typeof content === "string") return content;
@@ -81,7 +106,7 @@ export function toOpenAIRequest(req: AnthropicRequest, model: string): Record<st
 
     // A tool RESULT is its own OpenAI message, keyed to the call it answers.
     for (const r of toolResults) {
-      messages.push({ role: "tool", tool_call_id: r.tool_use_id ?? "", content: textOf(r.content) });
+      messages.push({ role: "tool", tool_call_id: toolId(r.tool_use_id), content: textOf(r.content) });
     }
 
     if (toolUses.length) {
@@ -90,7 +115,7 @@ export function toOpenAIRequest(req: AnthropicRequest, model: string): Record<st
         // OpenAI wants null, not "", when an assistant turn is only tool calls.
         content: text || null,
         tool_calls: toolUses.map((u) => ({
-          id: u.id ?? "",
+          id: toolId(u.id),
           type: "function" as const,
           // Anthropic carries structured input; OpenAI wants it stringified.
           function: { name: u.name ?? "", arguments: JSON.stringify(u.input ?? {}) },
@@ -171,7 +196,7 @@ export function toAnthropicResponse(completion: OpenAICompletion, model: string)
   for (const call of choice?.message?.tool_calls ?? []) {
     content.push({
       type: "tool_use",
-      id: call.id ?? `toolu_${Math.random().toString(36).slice(2)}`,
+      id: call.id || freshToolId("resp"),
       name: call.function?.name ?? "",
       input: parseArgs(call.function?.arguments),
     });
@@ -201,20 +226,35 @@ function frame(event: string, data: unknown): string {
  * Feed it raw chunks; it returns the Anthropic frames to write. State is required
  * because the two protocols disagree about structure: OpenAI emits a flat sequence
  * of deltas and lets the consumer infer boundaries, while Anthropic demands explicit
- * indexed blocks. So we open a block the first time content of a kind appears and
- * close every open block before finishing.
+ * indexed blocks, strictly one at a time. So we keep a single open block, close it
+ * whenever the stream moves to a different kind of content, and close the last one
+ * before finishing.
  */
 export function createStreamTranslator(model: string) {
   let buffer = "";
   let started = false;
-  let textOpen = false;
-  /** OpenAI tool-call index → the Anthropic block index we opened for it. */
-  const toolBlocks = new Map<number, number>();
+  /**
+   * Anthropic blocks are strictly sequential — a block must stop before the next
+   * starts, and every delta carries the index of the one open block. So we track
+   * exactly one open block and close it the moment the stream moves on: text →
+   * tool call, tool call → text, tool call → the next tool call. (OpenAI-spec
+   * providers stream one choice's parts in order, so a closed call's arguments
+   * never resume.)
+   */
+  let current: { index: number; kind: "text" | "tool"; toolKey?: number } | null = null;
   let nextIndex = 0;
   let finish: string | null = null;
   let inputTokens = 0;
   let outputTokens = 0;
   let done = false;
+  let ended = false;
+
+  function closeCurrent(): string {
+    if (!current) return "";
+    const out = frame("content_block_stop", { type: "content_block_stop", index: current.index });
+    current = null;
+    return out;
+  }
 
   function start(): string {
     started = true;
@@ -271,35 +311,34 @@ export function createStreamTranslator(model: string) {
 
         const delta = choice.delta;
         if (delta?.content) {
-          if (!textOpen) {
-            textOpen = true;
+          if (current?.kind !== "text") {
+            out += closeCurrent();
+            current = { index: nextIndex++, kind: "text" };
             out += frame("content_block_start", {
-              type: "content_block_start", index: nextIndex, content_block: { type: "text", text: "" },
+              type: "content_block_start", index: current.index, content_block: { type: "text", text: "" },
             });
-            nextIndex += 1;
           }
           out += frame("content_block_delta", {
-            type: "content_block_delta", index: nextIndex - 1,
+            type: "content_block_delta", index: current.index,
             delta: { type: "text_delta", text: delta.content },
           });
         }
 
         for (const call of delta?.tool_calls ?? []) {
           const key = call.index ?? 0;
-          let index = toolBlocks.get(key);
-          if (index === undefined) {
+          if (current?.kind !== "tool" || current.toolKey !== key) {
             // A tool call's name arrives once, on its first fragment; the
             // arguments then stream in as raw JSON pieces.
-            index = nextIndex++;
-            toolBlocks.set(key, index);
+            out += closeCurrent();
+            current = { index: nextIndex++, kind: "tool", toolKey: key };
             out += frame("content_block_start", {
-              type: "content_block_start", index,
-              content_block: { type: "tool_use", id: call.id ?? `toolu_${key}`, name: call.function?.name ?? "", input: {} },
+              type: "content_block_start", index: current.index,
+              content_block: { type: "tool_use", id: call.id || freshToolId(`str${key}`), name: call.function?.name ?? "", input: {} },
             });
           }
           if (call.function?.arguments) {
             out += frame("content_block_delta", {
-              type: "content_block_delta", index,
+              type: "content_block_delta", index: current.index,
               delta: { type: "input_json_delta", partial_json: call.function.arguments },
             });
           }
@@ -310,18 +349,11 @@ export function createStreamTranslator(model: string) {
       return out;
     },
 
-    /** Close every open block and finish the message. Idempotent. */
+    /** Close the open block and finish the message. Idempotent. */
     end(): string {
-      if (!started) return "";
-      let out = "";
-      if (textOpen) {
-        out += frame("content_block_stop", { type: "content_block_stop", index: 0 });
-        textOpen = false;
-      }
-      for (const index of toolBlocks.values()) {
-        out += frame("content_block_stop", { type: "content_block_stop", index });
-      }
-      toolBlocks.clear();
+      if (!started || ended) return "";
+      ended = true;
+      let out = closeCurrent();
       out += frame("message_delta", {
         type: "message_delta",
         delta: { stop_reason: stopReason(finish), stop_sequence: null },

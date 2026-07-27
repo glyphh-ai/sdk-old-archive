@@ -355,6 +355,20 @@ export function registerAdmin(reg: CommandRegistry): void {
       ctx.printJson(await ctx.client.admin.stopImpersonate());
     },
   });
+  reg.register({
+    path: "admin delete-org",
+    summary: "PERMANENTLY delete an org and all its data (super_admin)",
+    usage: "admin delete-org <orgId> --confirm-name <exact org name>",
+    covers: ["admin.deleteOrg"],
+    async run(ctx, args) {
+      const orgId = args.positional[0];
+      const confirmName = args.flags["confirm-name"];
+      if (!orgId || typeof confirmName !== "string" || !confirmName) {
+        throw new Error("usage: admin delete-org <orgId> --confirm-name <exact org name>");
+      }
+      ctx.printJson(await ctx.client.admin.deleteOrg(orgId, confirmName));
+    },
+  });
 
   // ── usage ────────────────────────────────────────────────────────────────────
   reg.register({
