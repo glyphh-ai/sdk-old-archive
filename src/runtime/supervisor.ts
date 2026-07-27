@@ -121,6 +121,11 @@ async function startRuntime(ctx: Ctx): Promise<LocalRuntime> {
       stdio: ["ignore", logFd, logFd],
       env: { ...process.env, PORT: String(port) },
     });
+    // A missing binary surfaces as an ASYNC 'error' (ENOENT), not a throw —
+    // unhandled it is an uncaught exception that crashes the HOST app (the
+    // Windows desktop died this way). The health-check loop below already
+    // handles "never came up"; the handler just keeps the failure contained.
+    child.on?.("error", () => { /* health deadline below reports the failure */ });
     child.unref();
     const pid = child.pid ?? 0;
 

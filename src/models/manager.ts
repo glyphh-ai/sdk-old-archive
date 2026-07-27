@@ -155,6 +155,10 @@ export async function ensureLocalModel(id: string, opts: ModelManagerOptions = {
             ["-m", gguf, "--host", "127.0.0.1", "--port", String(port), "-c", String(spec.contextWindow), "--jinja"],
             { detached: true, stdio: ["ignore", logFd, logFd], env: process.env },
           );
+          // Missing llama-server = ASYNC 'error' (ENOENT), not a throw. Unhandled
+          // it crashes the HOST app; handled, the health deadline below reports
+          // "local model unavailable" like any other startup failure.
+          (child as ChildProcess).on?.("error", () => { /* deadline path reports it */ });
           child.unref();
           pid = child.pid ?? 0;
         } finally {
