@@ -125,11 +125,17 @@ export function registerAuth(reg: CommandRegistry): void {
 
   reg.register({
     path: "auth signout",
-    summary: "revoke everywhere and clear the local session",
-    covers: ["auth.signOut"],
-    async run(ctx) {
-      await ctx.client.auth.signOut();
-      ctx.print("signed out ✓");
+    summary: "sign out this device (--everywhere revokes every device)",
+    usage: "auth signout [--everywhere]",
+    covers: ["auth.signOut", "auth.signOutEverywhere"],
+    async run(ctx, args) {
+      if (args.flags["everywhere"] === true) {
+        await ctx.client.auth.signOutEverywhere();
+        ctx.print("signed out everywhere ✓");
+      } else {
+        await ctx.client.auth.signOut();
+        ctx.print("signed out ✓");
+      }
     },
   });
 }

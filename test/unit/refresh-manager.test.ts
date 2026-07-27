@@ -121,7 +121,7 @@ describe("RefreshManager", () => {
     expect(await rm.accessToken()).toBeNull();
   });
 
-  it("signOut() best-effort revokes then clears even if revoke fails", async () => {
+  it("signOut() logs out THIS device (best-effort) then clears even if the call fails", async () => {
     const store = new InMemoryTokenStore();
     await seeded(store, "gy_at_1", "gy_rt_1", Date.now() + 1_000_000);
     const { http, calls } = fakeHttp(async () => {
@@ -129,7 +129,18 @@ describe("RefreshManager", () => {
     });
     const rm = new RefreshManager(http, store);
     await rm.signOut();
-    expect(calls[0]?.path).toBe("/api/session/revoke");
+    // Per-device: the caller's own family only — never other devices' logins.
+    expect(calls[0]?.path).toBe("/api/session/logout");
     expect(await store.load()).toBeNull(); // cleared regardless
+  });
+
+  it("signOutEverywhere() revokes every device's session, then clears", async () => {
+    const store = new InMemoryTokenStore();
+    await seeded(store, "gy_at_1", "gy_rt_1", Date.now() + 1_000_000);
+    const { http, calls } = fakeHttp(async () => ({}));
+    const rm = new RefreshManager(http, store);
+    await rm.signOutEverywhere();
+    expect(calls[0]?.path).toBe("/api/session/revoke");
+    expect(await store.load()).toBeNull();
   });
 });

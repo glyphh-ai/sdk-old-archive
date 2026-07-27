@@ -179,7 +179,9 @@ export function createClient(opts: ClientOptions): Client {
     ...(opts.onSignedOut ? { onSignedOut: opts.onSignedOut } : {}),
   });
   const token: TokenProvider = opts.apiKey ? staticTokenProvider(opts.apiKey) : sessionTokenProvider(refresh);
-  const authed = new AuthedHttp(http, token);
+  // Session clients recover a mid-call 401 with one forced refresh (a dead
+  // refresh signs out); a static API key has nothing to refresh.
+  const authed = new AuthedHttp(http, token, opts.apiKey ? undefined : () => refresh.onUnauthorized());
   // `authed` is built first: the device grant's APPROVE leg is performed BY the
   // signed-in user, so AuthClient needs an authenticated transport for it.
   const auth = new AuthClient(http, refresh, authed);

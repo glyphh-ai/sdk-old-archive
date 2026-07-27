@@ -148,4 +148,8 @@ export class AuthClient {
   signOut(): Promise<void> {
     return this.refresh.signOut();
   }
+  /** Revoke every device's session for this user (global sign-out). */
+  signOutEverywhere(): Promise<void> {
+    return this.refresh.signOutEverywhere();
+  }
 }

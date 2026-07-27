@@ -102,11 +102,21 @@ export class RefreshManager {
     this.onSignedOut?.();
   }
 
-  /** Best-effort server revoke (needs the current access token), then local clear. */
+  /** Sign out THIS device: best-effort server logout of the caller's own session
+   *  family only (never other devices' logins), then local clear. */
   async signOut(): Promise<void> {
+    await this.#signOutVia("/api/session/logout");
+  }
+
+  /** Sign out EVERYWHERE: revoke every session for the user, then local clear. */
+  async signOutEverywhere(): Promise<void> {
+    await this.#signOutVia("/api/session/revoke");
+  }
+
+  async #signOutVia(path: string): Promise<void> {
     const session = await this.store.load();
     try {
-      if (session) await this.http.post("/api/session/revoke", undefined, { bearer: session.accessToken });
+      if (session) await this.http.post(path, undefined, { bearer: session.accessToken });
     } catch {
       /* revoke is best-effort; local clear is what matters for the device */
     } finally {
