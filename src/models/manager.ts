@@ -150,7 +150,9 @@ export async function ensureLocalModel(id: string, opts: ModelManagerOptions = {
         try {
           const child = spawnImpl(
             bin,
-            ["-m", gguf, "--host", "127.0.0.1", "--port", String(port), "-c", String(spec.contextWindow)],
+            // --jinja applies the GGUF's own chat template — required for tool calling
+            // on Qwen-family models; harmless for plain chat.
+            ["-m", gguf, "--host", "127.0.0.1", "--port", String(port), "-c", String(spec.contextWindow), "--jinja"],
             { detached: true, stdio: ["ignore", logFd, logFd], env: process.env },
           );
           child.unref();

@@ -28,6 +28,12 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { randomBytes } from "node:crypto";
 import type { AddressInfo } from "node:net";
 import type { Client } from "../client.js";
+import { findLocalModel } from "../models/catalog.js";
+import { ensureLocalModel } from "../models/manager.js";
+import { toOpenAIRequest, toAnthropicResponse, createStreamTranslator, type AnthropicRequest } from "./anthropic-openai.js";
+
+/** Local model ids ride the catalog as `local::<spec-id>` (priced 0). */
+const LOCAL_PREFIX = "local::";
 
 export interface InterceptorOptions {
   /**
@@ -72,6 +78,84 @@ function send(res: ServerResponse, status: number, body: unknown): void {
   res.end(payload);
 }
 
+/** Anthropic-shaped error body — the Agent SDK reads this format. */
+function anthError(type: string, message: string): unknown {
+  return { type: "error", error: { type, message } };
+}
+
+/**
+ * Serve one `local::…` turn from the machine's own llama-server: ensure the
+ * model (download once, spawn once, health-checked singleton), translate
+ * Anthropic → OpenAI, relay, translate back — streaming or not. Usage reports
+ * with ZERO credits: local compute is the user's own.
+ */
+async function handleLocal(body: AnthropicRequest, modelId: string, res: ServerResponse, opts: InterceptorOptions): Promise<void> {
+  const specId = modelId.slice(LOCAL_PREFIX.length);
+  const spec = findLocalModel(specId);
+  if (!spec) {
+    send(res, 404, anthError("invalid_request_error", `unknown local model '${specId}'`));
+    return;
+  }
+  let local: { url: string };
+  try {
+    local = await ensureLocalModel(spec.id);
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    send(res, 502, anthError("api_error",
+      `local model '${spec.id}' failed to start: ${detail}. Install llama.cpp (brew install llama.cpp) or point GLYPHH_LLAMA_BIN at a llama-server binary.`));
+    return;
+  }
+
+  const streaming = (body as { stream?: boolean }).stream === true;
+  const oai = toOpenAIRequest(body, spec.id) as Record<string, unknown>;
+  oai.stream = streaming;
+
+  let upstream: Response;
+  try {
+    upstream = await fetch(`${local.url}/v1/chat/completions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(oai),
+    });
+  } catch (err) {
+    send(res, 502, anthError("api_error", `local model unreachable: ${err instanceof Error ? err.message : String(err)}`));
+    return;
+  }
+  if (!upstream.ok) {
+    const text = await upstream.text().catch(() => "");
+    send(res, 502, anthError("api_error", `local model error (${upstream.status}): ${text.slice(0, 400)}`));
+    return;
+  }
+
+  if (!streaming) {
+    const json = (await upstream.json()) as Parameters<typeof toAnthropicResponse>[0];
+    const usage = (json as { usage?: { prompt_tokens?: number; completion_tokens?: number } }).usage;
+    try { opts.onUsage?.({ creditsMicro: 0, inputTokens: usage?.prompt_tokens ?? 0, outputTokens: usage?.completion_tokens ?? 0 }); } catch { /* listener */ }
+    send(res, 200, toAnthropicResponse(json, modelId));
+    return;
+  }
+
+  res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache", connection: "keep-alive" });
+  const translator = createStreamTranslator(modelId);
+  const reader = upstream.body?.getReader();
+  const decoder = new TextDecoder();
+  try {
+    if (reader) {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const frames = translator.feed(decoder.decode(value, { stream: true }));
+        if (frames) res.write(frames);
+      }
+    }
+  } finally {
+    res.write(translator.end());
+    res.end();
+    const usage = translator.usage();
+    try { opts.onUsage?.({ creditsMicro: 0, inputTokens: usage.inputTokens, outputTokens: usage.outputTokens }); } catch { /* listener */ }
+  }
+}
+
 /**
  * Start the local Anthropic endpoint. Resolves once it is listening.
  *
@@ -110,6 +194,18 @@ export async function startInterceptor(opts: InterceptorOptions): Promise<Interc
     }
 
     const body = await readBody(req);
+
+    // LOCAL models never leave the machine: `local::…` routes to a llama-server
+    // this process owns (downloaded + spawned on first use), translated to and
+    // from OpenAI chat-completions right here. No gateway, no internet, no
+    // credits — the compute the user owns.
+    let parsedBody: AnthropicRequest | null = null;
+    try { parsedBody = JSON.parse(body) as AnthropicRequest; } catch { /* not JSON — the gateway will reject it */ }
+    const requestedModel = String(parsedBody?.model ?? "");
+    if (parsedBody && requestedModel.startsWith(LOCAL_PREFIX)) {
+      await handleLocal(parsedBody, requestedModel, res, opts);
+      return;
+    }
 
     // Through the SDK: it owns the route, the base URL, and a bearer refreshed
     // per call, so a long agent run cannot outlive the token it started with.
