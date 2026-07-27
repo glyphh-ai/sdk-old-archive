@@ -115,6 +115,14 @@ export class AdminClient {
   updateModel(provider: string, model: string, patch: AdminModelUpdate): Promise<{ model: AdminModel }> {
     return this.http.put<{ model: AdminModel }>(`/api/admin/models/${encodeURIComponent(provider)}/${encodeURIComponent(model)}`, patch);
   }
+  /** DELETE an organization + everything it owns (typed-name confirmed).
+   *  Sole-org members are deleted with it; multi-org members lose the
+   *  membership. Refused while Stripe billing is live or a platform admin
+   *  is a member. */
+  deleteOrg(orgId: string, confirmName: string): Promise<{ orgId: string; name: string; usersDeleted: number; membersDetached: number }> {
+    return this.http.post(`/api/admin/orgs/${encodeURIComponent(orgId)}/delete`, { confirmName });
+  }
+
   /** Hard-delete a catalog model + its org support rows (super_admin). */
   deleteModel(provider: string, model: string): Promise<void> {
     return this.http.del<void>(`/api/admin/models/${encodeURIComponent(provider)}/${encodeURIComponent(model)}`);
