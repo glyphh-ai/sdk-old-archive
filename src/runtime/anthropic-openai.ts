@@ -67,6 +67,38 @@ function freshToolId(seed: string): string {
   return toolId(`${seed}:${Date.now().toString(36)}:${Math.random().toString(36).slice(2)}`);
 }
 
+// ── Tool-call EXTRAS round trip ───────────────────────────────────────────────
+// Gemini 3 (via Google's OpenAI-compat layer) attaches a thought_signature to
+// each function call and REQUIRES it echoed back with the history — a rebuilt
+// tool_call without it 400s ("Function call is missing a thought_signature").
+// We rebuild calls from Anthropic tool_use blocks, so any nonstandard fields
+// are remembered here (keyed by normalized id) and re-attached on the way back
+// down. Generic on purpose: whatever extra fields a provider stamps on a call
+// survive the crossing. In-memory, bounded; a restart mid-conversation loses
+// signatures for older turns, which the provider reports cleanly.
+const TOOL_CALL_EXTRAS_MAX = 4096;
+const toolCallExtras = new Map<string, Record<string, unknown>>();
+
+function rememberToolCallExtras(id: string | undefined, call: Record<string, unknown>): void {
+  if (!id) return;
+  const extras: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(call)) {
+    if (k === "id" || k === "type" || k === "function" || k === "index" || v === undefined) continue;
+    extras[k] = v;
+  }
+  if (!Object.keys(extras).length) return;
+  const key = toolId(id);
+  if (!toolCallExtras.has(key) && toolCallExtras.size >= TOOL_CALL_EXTRAS_MAX) {
+    const oldest = toolCallExtras.keys().next().value;
+    if (oldest !== undefined) toolCallExtras.delete(oldest);
+  }
+  toolCallExtras.set(key, { ...(toolCallExtras.get(key) ?? {}), ...extras });
+}
+
+function recallToolCallExtras(id: string): Record<string, unknown> {
+  return toolCallExtras.get(toolId(id)) ?? {};
+}
+
 /**
  * Restore a tool name the model shortened. MCP tools reach the model as
  * `mcp__<server>__<tool>`; Claude reproduces that faithfully, but open models
@@ -142,6 +174,9 @@ export function toOpenAIRequest(req: AnthropicRequest, model: string, opts: ToOp
           type: "function" as const,
           // Anthropic carries structured input; OpenAI wants it stringified.
           function: { name: u.name ?? "", arguments: JSON.stringify(u.input ?? {}) },
+          // Gemini 3's thought_signature (and any other provider extras) ride
+          // back exactly as they arrived.
+          ...recallToolCallExtras(String(u.id ?? "")),
         })),
       });
     } else if (text || !toolResults.length) {
@@ -217,9 +252,11 @@ export function toAnthropicResponse(completion: OpenAICompletion, model: string,
   const content: AnthropicBlock[] = [];
   if (choice?.message?.content) content.push({ type: "text", text: choice.message.content });
   for (const call of choice?.message?.tool_calls ?? []) {
+    const id = call.id || freshToolId("resp");
+    rememberToolCallExtras(id, call as unknown as Record<string, unknown>);
     content.push({
       type: "tool_use",
-      id: call.id || freshToolId("resp"),
+      id,
       name: restoreToolName(call.function?.name ?? "", sentToolNames),
       input: parseArgs(call.function?.arguments),
     });
@@ -264,7 +301,7 @@ export function createStreamTranslator(model: string, sentToolNames?: readonly s
    * providers stream one choice's parts in order, so a closed call's arguments
    * never resume.)
    */
-  let current: { index: number; kind: "text" | "tool"; toolKey?: number } | null = null;
+  let current: { index: number; kind: "text" | "tool"; toolKey?: number; toolCallId?: string } | null = null;
   let nextIndex = 0;
   let finish: string | null = null;
   let inputTokens = 0;
@@ -354,13 +391,17 @@ export function createStreamTranslator(model: string, sentToolNames?: readonly s
             // A tool call's name arrives once, on its first fragment; the
             // arguments then stream in as raw JSON pieces.
             out += closeCurrent();
-            current = { index: nextIndex++, kind: "tool", toolKey: key };
+            const id = call.id || freshToolId(`str${key}`);
+            current = { index: nextIndex++, kind: "tool", toolKey: key, toolCallId: id };
             toolCallCount += 1;
             out += frame("content_block_start", {
               type: "content_block_start", index: current.index,
-              content_block: { type: "tool_use", id: call.id || freshToolId(`str${key}`), name: restoreToolName(call.function?.name ?? "", sentToolNames), input: {} },
+              content_block: { type: "tool_use", id, name: restoreToolName(call.function?.name ?? "", sentToolNames), input: {} },
             });
           }
+          // Extras (Gemini's thought_signature) may ride ANY fragment of the
+          // call, including id-less argument pieces — key them to the block's id.
+          rememberToolCallExtras(current.toolCallId, call as unknown as Record<string, unknown>);
           if (call.function?.arguments) {
             out += frame("content_block_delta", {
               type: "content_block_delta", index: current.index,
