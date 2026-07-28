@@ -46,6 +46,9 @@ export interface ConnectorTool {
   key: string;
   name: string;
   description: string | null;
+  /** JSON Schema for the tool's inputs (component definition / MCP tools/list).
+   *  Null/absent = the source carried none; the model shapes args from prose. */
+  inputSchema?: Record<string, unknown> | null;
 }
 
 /** The result of running a connection tool (`ret` is the action's return value). */
