@@ -39,6 +39,14 @@ export class AdminClient {
   createModel(input: ModelCreate): Promise<Model> {
     return this.http.post<Model>("/api/admin/models", input);
   }
+  /** Rename a model's id (same provider) — an atomic migrate of the catalog row,
+   *  org support, and rotor bindings. Usage history keeps the old ref. */
+  renameModel(provider: string, model: string, newModel: string): Promise<AdminModel> {
+    return this.http.post<{ model: AdminModel }>(
+      `/api/admin/models/${encodeURIComponent(provider)}/${encodeURIComponent(model)}/rename`,
+      { model: newModel },
+    ).then((r) => r.model);
+  }
   setModelPricing(id: string, pricing: ModelPricing): Promise<Model> {
     return this.http.patch<Model>(`/api/admin/models/${encodeURIComponent(id)}`, pricing);
   }

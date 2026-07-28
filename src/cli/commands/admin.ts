@@ -356,6 +356,17 @@ export function registerAdmin(reg: CommandRegistry): void {
     },
   });
   reg.register({
+    path: "admin models rename",
+    summary: "rename a model id in place (migrates support + bindings)",
+    usage: "admin models rename <provider> <model> <newModel>",
+    covers: ["admin.renameModel"],
+    async run(ctx, args) {
+      const [provider, model, newModel] = args.positional;
+      if (!provider || !model || !newModel) throw new Error("usage: admin models rename <provider> <model> <newModel>");
+      ctx.printJson(await ctx.client.admin.renameModel(provider, model, newModel));
+    },
+  });
+  reg.register({
     path: "admin delete-org",
     summary: "PERMANENTLY delete an org and all its data (super_admin)",
     usage: "admin delete-org <orgId> --confirm-name <exact org name>",
