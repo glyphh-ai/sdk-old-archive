@@ -45,6 +45,19 @@ export function registerCatalog(reg: CommandRegistry): void {
   });
 
   reg.register({
+    path: "providers clear-key",
+    summary: "remove the org's BYOK key but keep the provider enabled",
+    usage: "providers clear-key <slug>",
+    covers: ["providers.clearKey"],
+    async run(ctx, args) {
+      const slug = args.positional[0];
+      if (!slug) throw new Error("usage: providers clear-key <slug>");
+      await ctx.client.providers.clearKey(slug);
+      ctx.print("key removed ✓ (provider stays enabled — platform proxy key applies)");
+    },
+  });
+
+  reg.register({
     path: "providers disable",
     summary: "disable a provider for the org",
     usage: "providers disable <slug>",

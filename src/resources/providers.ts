@@ -16,6 +16,11 @@ export class ProvidersClient {
     return this.http.post<Provider>("/api/providers", key ? { slug, key } : { slug });
   }
 
+  /** Remove the org's BYOK key but KEEP the provider enabled — drops back to
+   *  the platform proxy key (metered) for this provider. */
+  clearKey(slug: string): Promise<void> {
+    return this.http.del<void>(`/api/providers/${encodeURIComponent(slug)}/key`);
+  }
   disable(slug: string): Promise<void> {
     return this.http.del<void>(`/api/providers/${encodeURIComponent(slug)}`);
   }
