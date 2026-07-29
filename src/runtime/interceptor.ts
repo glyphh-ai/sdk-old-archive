@@ -50,7 +50,7 @@ export interface InterceptorOptions {
    * the SSE stream. Credits are the server's computed price; tokens are real.
    * The frame is stripped here so the Agent SDK never sees a non-Anthropic event.
    */
-  onUsage?: (usage: { creditsMicro: number; inputTokens: number; outputTokens: number }) => void;
+  onUsage?: (usage: { creditsMicro: number; inputTokens: number; outputTokens: number }, runId?: string) => void;
 }
 
 export interface Interceptor {
@@ -89,7 +89,7 @@ function anthError(type: string, message: string): unknown {
  * Anthropic → OpenAI, relay, translate back — streaming or not. Usage reports
  * with ZERO credits: local compute is the user's own.
  */
-async function handleLocal(body: AnthropicRequest, modelId: string, res: ServerResponse, opts: InterceptorOptions): Promise<void> {
+async function handleLocal(body: AnthropicRequest, modelId: string, res: ServerResponse, opts: InterceptorOptions, runId?: string): Promise<void> {
   const specId = modelId.slice(LOCAL_PREFIX.length);
   const spec = findLocalModel(specId);
   if (!spec) {
@@ -130,7 +130,7 @@ async function handleLocal(body: AnthropicRequest, modelId: string, res: ServerR
   if (!streaming) {
     const json = (await upstream.json()) as Parameters<typeof toAnthropicResponse>[0];
     const usage = (json as { usage?: { prompt_tokens?: number; completion_tokens?: number } }).usage;
-    try { opts.onUsage?.({ creditsMicro: 0, inputTokens: usage?.prompt_tokens ?? 0, outputTokens: usage?.completion_tokens ?? 0 }); } catch { /* listener */ }
+    try { opts.onUsage?.({ creditsMicro: 0, inputTokens: usage?.prompt_tokens ?? 0, outputTokens: usage?.completion_tokens ?? 0 }, runId); } catch { /* listener */ }
     send(res, 200, toAnthropicResponse(json, modelId));
     return;
   }
@@ -152,7 +152,7 @@ async function handleLocal(body: AnthropicRequest, modelId: string, res: ServerR
     res.write(translator.end());
     res.end();
     const usage = translator.usage();
-    try { opts.onUsage?.({ creditsMicro: 0, inputTokens: usage.inputTokens, outputTokens: usage.outputTokens }); } catch { /* listener */ }
+    try { opts.onUsage?.({ creditsMicro: 0, inputTokens: usage.inputTokens, outputTokens: usage.outputTokens }, runId); } catch { /* listener */ }
   }
 }
 
@@ -201,9 +201,13 @@ export async function startInterceptor(opts: InterceptorOptions): Promise<Interc
     // credits — the compute the user owns.
     let parsedBody: AnthropicRequest | null = null;
     try { parsedBody = JSON.parse(body) as AnthropicRequest; } catch { /* not JSON — the gateway will reject it */ }
+    // Concurrent runs share this one interceptor — the caller tags each
+    // subprocess's requests (ANTHROPIC_CUSTOM_HEADERS) so usage attributes
+    // to the run that spent it, not to whichever run listened last.
+    const runId = String(req.headers["x-glyphh-run"] ?? "") || undefined;
     const requestedModel = String(parsedBody?.model ?? "");
     if (parsedBody && requestedModel.startsWith(LOCAL_PREFIX)) {
-      await handleLocal(parsedBody, requestedModel, res, opts);
+      await handleLocal(parsedBody, requestedModel, res, opts, runId);
       return;
     }
 
@@ -271,7 +275,7 @@ export async function startInterceptor(opts: InterceptorOptions): Promise<Interc
 
     if (captured && opts.onUsage) {
       const m = /data: (\{.*\})/.exec(captured);
-      if (m?.[1]) { try { opts.onUsage(JSON.parse(m[1])); } catch { /* malformed frame — skip */ } }
+      if (m?.[1]) { try { opts.onUsage(JSON.parse(m[1]), runId); } catch { /* malformed frame — skip */ } }
     }
   }
 
