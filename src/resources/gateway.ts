@@ -65,33 +65,101 @@ export class GatewayClient {
    */
   async turn(input: MessageTurnInput): Promise<MessageTurn> {
     const { maxTokens, ...rest } = input;
+    // STREAM the wire even though the result is buffered: a non-streaming
+    // request writes NOTHING until the provider finishes, and a long turn
+    // (mistral-large chewing a 70-tool packet) outlives Heroku's 30s router
+    // window — surfacing as `model turn failed (503): <!DOCTYPE html`. With
+    // SSE the message_start frame lands in milliseconds, so the connection
+    // stays alive for as long as the turn actually takes.
     const res = await this.messages({
       ...rest,
       // Anthropic requires max_tokens; a caller that omits it still gets a turn.
       max_tokens: maxTokens ?? 4096,
+      stream: true,
     });
     if (!res.ok) {
       const body = await res.text();
       throw new Error(`model turn failed (${res.status}): ${body.slice(0, 300)}`);
     }
-    const json = (await res.json()) as {
-      content?: Array<{ type: string; text?: string; id?: string; name?: string; input?: Record<string, unknown> }>;
-      stop_reason?: string;
-      usage?: { input_tokens?: number; output_tokens?: number };
+    if (!res.body) throw new Error("model turn failed: empty response body");
+
+    // Assemble the buffered turn from the SSE events. Unknown events (the
+    // gateway's trailing glyphh_usage frame included) are ignored.
+    type Block = { type: string; text?: string; id?: string; name?: string; input?: Record<string, unknown> };
+    const blocks: Block[] = [];
+    const partialJson = new Map<number, string>();
+    let stopReason = "end_turn";
+    let inputTokens = 0;
+    let outputTokens = 0;
+    let streamError = "";
+
+    const handle = (ev: Record<string, unknown>): void => {
+      const type = ev.type as string;
+      if (type === "message_start") {
+        const usage = (ev.message as { usage?: { input_tokens?: number } } | undefined)?.usage;
+        inputTokens = Math.max(0, Math.trunc(usage?.input_tokens ?? 0));
+      } else if (type === "content_block_start") {
+        const idx = Number(ev.index) || 0;
+        const cb = (ev.content_block ?? {}) as Block;
+        blocks[idx] = cb.type === "tool_use"
+          ? { type: "tool_use", id: cb.id ?? "", name: cb.name ?? "", input: {} }
+          : { type: "text", text: "" };
+      } else if (type === "content_block_delta") {
+        const idx = Number(ev.index) || 0;
+        const delta = ev.delta as { type?: string; text?: string; partial_json?: string } | undefined;
+        const block = blocks[idx];
+        if (!block) return;
+        if (delta?.type === "text_delta" && delta.text) block.text = (block.text ?? "") + delta.text;
+        else if (delta?.type === "input_json_delta" && delta.partial_json) {
+          partialJson.set(idx, (partialJson.get(idx) ?? "") + delta.partial_json);
+        }
+      } else if (type === "message_delta") {
+        const d = ev as { delta?: { stop_reason?: string }; usage?: { output_tokens?: number } };
+        if (d.delta?.stop_reason) stopReason = d.delta.stop_reason;
+        if (d.usage?.output_tokens != null) outputTokens = Math.max(0, Math.trunc(d.usage.output_tokens));
+      } else if (type === "error") {
+        streamError = (ev.error as { message?: string } | undefined)?.message ?? "stream error";
+      }
     };
-    const blocks = json.content ?? [];
-    const toolUses: ToolUse[] = blocks
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+    const dispatch = (frame: string): void => {
+      const data = frame.split("\n").filter((l) => l.startsWith("data:")).map((l) => l.slice(5).trim()).join("");
+      if (!data) return;
+      try { handle(JSON.parse(data) as Record<string, unknown>); } catch { /* keep-alives / non-JSON */ }
+    };
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      let i: number;
+      while ((i = buf.indexOf("\n\n")) >= 0) {
+        dispatch(buf.slice(0, i));
+        buf = buf.slice(i + 2);
+      }
+    }
+    if (buf.trim()) dispatch(buf);
+    if (streamError) throw new Error(`model turn failed: ${streamError}`);
+
+    // Tool inputs stream as raw JSON fragments — parse each block's whole.
+    for (const [idx, raw] of partialJson) {
+      const block = blocks[idx];
+      if (!block || block.type !== "tool_use") continue;
+      try { block.input = JSON.parse(raw) as Record<string, unknown>; } catch { block.input = {}; }
+    }
+
+    const present = blocks.filter((b): b is Block => !!b);
+    const toolUses: ToolUse[] = present
       .filter((b) => b.type === "tool_use")
       .map((b) => ({ id: b.id ?? "", name: b.name ?? "", input: b.input ?? {} }));
     return {
-      text: blocks.filter((b) => b.type === "text").map((b) => b.text ?? "").join(""),
+      text: present.filter((b) => b.type === "text").map((b) => b.text ?? "").join(""),
       toolUses,
-      stopReason: json.stop_reason ?? "end_turn",
-      usage: {
-        inputTokens: Math.max(0, Math.trunc(json.usage?.input_tokens ?? 0)),
-        outputTokens: Math.max(0, Math.trunc(json.usage?.output_tokens ?? 0)),
-      },
-      content: blocks,
+      stopReason,
+      usage: { inputTokens, outputTokens },
+      content: present,
     };
   }
 
