@@ -10,7 +10,7 @@ import type { AuthedHttp } from "../core/authed-http.js";
 import type {
   Connection, CustomMcpInput, ConnectLink, ConnectorApp, ConnectorTool,
   OrgMcpConnection, OrgMcpInput, OrgMcpPatch, OrgMcpCreateResult, OrgPipedreamConnection,
-  ResolvedConnection, McpOAuthStart, PersonalConnection, PersonalConnectSession, RunToolResult, FetchFileResult,
+  ResolvedConnection, McpOAuthStart, PersonalConnection, PersonalConnectSession, RunToolResult, FetchFileResult, ProxySendResult,
 } from "../contract/connections.js";
 
 export class ConnectionsClient {
@@ -222,5 +222,13 @@ export class ConnectionsClient {
    *  Same gates as runTool; capped server-side (~15MB default, 25MB max). */
   fetchFile(input: { slug: string; url: string; scope?: "org" | "personal"; maxBytes?: number }): Promise<FetchFileResult> {
     return this.http.post<FetchFileResult>("/api/connections/fetch-file", input);
+  }
+
+  /** Push bytes TO a connected account's provider API (uploads, sends with
+   *  real attachments) through the server's Connect-proxy bridge. bodyBase64
+   *  must decode text-safe (MIME with base64-encoded parts is). Same gates as
+   *  runTool; 25MB body cap server-side. */
+  proxySend(input: { slug: string; url: string; bodyBase64: string; method?: "POST" | "PUT"; contentType?: string; scope?: "org" | "personal" }): Promise<ProxySendResult> {
+    return this.http.post<ProxySendResult>("/api/connections/proxy-send", input);
   }
 }

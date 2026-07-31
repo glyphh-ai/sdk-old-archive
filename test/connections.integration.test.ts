@@ -121,6 +121,16 @@ describe("@glyphh/client — connections", () => {
     await expect(client.connections.startMcpOAuth("mcp-nope")).rejects.toMatchObject({ httpStatus: 404 });
   });
 
+  it("proxySend gates like runTool: an unreachable slug 404s, a bad url 400s", async () => {
+    const client = await signIn();
+    await expect(
+      client.connections.proxySend({ slug: "gmail", url: "https://gmail.googleapis.com/upload/x", bodyBase64: "aGk=" }),
+    ).rejects.toMatchObject({ httpStatus: 404 });
+    await expect(
+      client.connections.proxySend({ slug: "gmail", url: "http://gmail.googleapis.com/x", bodyBase64: "aGk=" }),
+    ).rejects.toMatchObject({ httpStatus: 400 });
+  });
+
   it("fetchFile gates like runTool: an unreachable slug 404s, a bad url 400s", async () => {
     const client = await signIn();
     // connection gate first — a slug the caller can't reach 404s

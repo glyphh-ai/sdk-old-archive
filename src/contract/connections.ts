@@ -65,6 +65,14 @@ export interface FetchFileResult {
   dataBase64: string;
 }
 
+/** The provider's response to a proxy send (outbound bytes: uploads, sends
+ *  with attachments). */
+export interface ProxySendResult {
+  status: number;
+  contentType: string | null;
+  dataBase64: string;
+}
+
 /**
  * One enabled connection the caller may reach, with its advertised tools already
  * narrowed by the caller's workspace tool grant. Both connection kinds share this
