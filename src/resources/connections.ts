@@ -10,7 +10,7 @@ import type { AuthedHttp } from "../core/authed-http.js";
 import type {
   Connection, CustomMcpInput, ConnectLink, ConnectorApp, ConnectorTool,
   OrgMcpConnection, OrgMcpInput, OrgMcpPatch, OrgMcpCreateResult, OrgPipedreamConnection,
-  ResolvedConnection, McpOAuthStart, PersonalConnection, PersonalConnectSession, RunToolResult,
+  ResolvedConnection, McpOAuthStart, PersonalConnection, PersonalConnectSession, RunToolResult, FetchFileResult,
 } from "../contract/connections.js";
 
 export class ConnectionsClient {
@@ -215,5 +215,12 @@ export class ConnectionsClient {
    */
   runTool(input: { slug: string; tool: string; props?: Record<string, unknown>; scope?: "org" | "personal" }): Promise<RunToolResult> {
     return this.http.post<RunToolResult>("/api/connections/run", input);
+  }
+
+  /** Fetch a file's bytes from a connected account (provider API url, e.g.
+   *  Drive `files/<id>?alt=media`) through the server's Connect-proxy bridge.
+   *  Same gates as runTool; capped server-side (~15MB default, 25MB max). */
+  fetchFile(input: { slug: string; url: string; scope?: "org" | "personal"; maxBytes?: number }): Promise<FetchFileResult> {
+    return this.http.post<FetchFileResult>("/api/connections/fetch-file", input);
   }
 }

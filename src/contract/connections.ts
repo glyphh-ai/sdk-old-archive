@@ -56,6 +56,15 @@ export interface RunToolResult {
   result: { ret: unknown; exports?: unknown; os?: unknown };
 }
 
+/** A file fetched from a connected account via the server's Connect-proxy
+ *  bridge — the way FILE BYTES reach the caller (connector actions execute in
+ *  a remote sandbox; their "downloads" never leave it). */
+export interface FetchFileResult {
+  contentType: string | null;
+  bytes: number;
+  dataBase64: string;
+}
+
 /**
  * One enabled connection the caller may reach, with its advertised tools already
  * narrowed by the caller's workspace tool grant. Both connection kinds share this

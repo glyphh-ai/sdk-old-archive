@@ -120,4 +120,16 @@ describe("@glyphh/client — connections", () => {
     const client = await signIn();
     await expect(client.connections.startMcpOAuth("mcp-nope")).rejects.toMatchObject({ httpStatus: 404 });
   });
+
+  it("fetchFile gates like runTool: an unreachable slug 404s, a bad url 400s", async () => {
+    const client = await signIn();
+    // connection gate first — a slug the caller can't reach 404s
+    await expect(
+      client.connections.fetchFile({ slug: "google_drive", url: "https://www.googleapis.com/drive/v3/files/x?alt=media" }),
+    ).rejects.toMatchObject({ httpStatus: 404 });
+    // schema gate — an unparseable body 400s before any resolution
+    await expect(
+      client.connections.fetchFile({ slug: "", url: "https://x.example/f" }),
+    ).rejects.toMatchObject({ httpStatus: 400 });
+  });
 });
