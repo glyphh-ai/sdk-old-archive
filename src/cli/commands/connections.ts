@@ -404,6 +404,36 @@ export function registerConnections(reg: CommandRegistry): void {
       ctx.printJson(await ctx.client.connections.runTool({ slug, tool, ...(props ? { props } : {}) }));
     },
   });
+
+  reg.register({
+    path: "connections fetch-file",
+    summary: "fetch a file's bytes from a connected account (Connect proxy) to a local path",
+    usage: "connections fetch-file <slug> <provider-url> <out-path>",
+    covers: ["connections.fetchFile"],
+    async run(ctx, args) {
+      const [slug, url, outPath] = args.positional;
+      if (!slug || !url || !outPath) throw new Error("usage: connections fetch-file <slug> <provider-url> <out-path>");
+      const out = await ctx.client.connections.fetchFile({ slug, url });
+      const { writeFileSync } = await import("node:fs");
+      writeFileSync(outPath, Buffer.from(out.dataBase64, "base64"));
+      ctx.printJson({ saved: outPath, bytes: out.bytes, contentType: out.contentType });
+    },
+  });
+
+  reg.register({
+    path: "connections proxy-send",
+    summary: "push bytes to a connected provider's API (uploads, sends with attachments)",
+    usage: "connections proxy-send <slug> <provider-url> <body-file> [content-type]",
+    covers: ["connections.proxySend"],
+    async run(ctx, args) {
+      const [slug, url, bodyFile, contentType] = args.positional;
+      if (!slug || !url || !bodyFile) throw new Error("usage: connections proxy-send <slug> <provider-url> <body-file> [content-type]");
+      const { readFileSync } = await import("node:fs");
+      const bodyBase64 = readFileSync(bodyFile).toString("base64");
+      const out = await ctx.client.connections.proxySend({ slug, url, bodyBase64, ...(contentType ? { contentType } : {}) });
+      ctx.printJson({ status: out.status, contentType: out.contentType, body: Buffer.from(out.dataBase64, "base64").toString("utf8").slice(0, 2000) });
+    },
+  });
 }
 
 /** Parse a repeated `--header 'K: V,K2: V2'` flag into a header map (or undefined). */

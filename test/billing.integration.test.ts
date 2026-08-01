@@ -23,18 +23,18 @@ describe("@glyphh/client — billing", () => {
   it("lists the seeded plans (Free/Basic/Pro/Enterprise)", async () => {
     const plans = await (await signIn()).billing.plans();
     const byTier = Object.fromEntries(plans.map((p) => [p.tier, p]));
-    expect(byTier.free!.monthlyCredits).toBe(25);
+    expect(byTier.free!.monthlyCredits).toBe(100);
     expect(byTier.basic!.monthlyCredits).toBe(2000);
     expect(byTier.pro!.monthlyCredits).toBe(10000);
     expect(byTier.enterprise!.sso).toBe(true);
   });
 
-  it("a new org is on the free tier with its 25-credit grant", async () => {
+  it("a new org is on the free tier with its 100-credit grant", async () => {
     const client = await signIn();
     const status = await client.billing.status();
     expect(status.tier).toBe("free");
     expect(status.maxSeats).toBe(1);
-    expect((await client.billing.balance()).credits).toBe(25);
+    expect((await client.billing.balance()).credits).toBe(100);
   });
 
   it("subscribe returns a Stripe checkout URL", async () => {
