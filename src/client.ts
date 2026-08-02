@@ -44,6 +44,7 @@ import { AgentsClient } from "./resources/agents.js";
 import { OrgModelsClient } from "./resources/org-models.js";
 import { ModelsClient } from "./resources/models.js";
 import { ProfileClient } from "./resources/profile.js";
+import { AdaClient } from "./resources/ada.js";
 import { SupportClient } from "./resources/support.js";
 import { OAuthClient } from "./resources/oauth.js";
 import type { Identity, StoredSession } from "./contract/auth.js";
@@ -88,6 +89,8 @@ export interface Client {
   auth: AuthClient;
   /** The caller's own editable profile (name + timezone). */
   profile: ProfileClient;
+  /** Ada memory — remember/recall, scoped org → user. */
+  ada: AdaClient;
   /** Submit support tickets (relayed to the configured sink). */
   support: SupportClient;
   /** Glyphh as an OAuth authorization server: consent + authorized connections. */
@@ -189,6 +192,7 @@ export function createClient(opts: ClientOptions): Client {
     http: authed,
     auth,
     profile: new ProfileClient(authed),
+    ada: new AdaClient(authed),
     support: new SupportClient(authed),
     oauth: new OAuthClient(authed),
     org: new OrgClient(authed),
