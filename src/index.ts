@@ -130,8 +130,6 @@ export type {
   McpOAuthStart,
 } from "./contract/connections.js";
 export { UsageClient } from "./resources/usage.js";
-export { AdaClient } from "./resources/ada.js";
-export type { AdaRememberInput, AdaRemembered, AdaRecallInput, AdaRecallHit } from "./contract/ada.js";
 export type { UsageSummary, UsageDay, UsageDailyQuery, UsageByModelRow, UsageByModelQuery } from "./contract/usage.js";
 export { ApiKeysClient } from "./resources/api-keys.js";
 export type { ApiKey, ApiKeyInput, CreatedApiKey } from "./contract/api-keys.js";
