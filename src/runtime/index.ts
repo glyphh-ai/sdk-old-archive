@@ -1,9 +1,9 @@
 /**
  * @license Proprietary — © Glyphh. All rights reserved.
  *
- * @glyphh/client/runtime — the Node-only local runtime: the per-machine supervisor,
+ * @glyphh/sdk/runtime — the Node-only local runtime: the per-machine supervisor,
  * the governed model bridge, and the RUNNER that executes loops and skills. Shared by
- * every local client (CLI, desktop). Import from `@glyphh/client/runtime`; do not pull
+ * every local client (CLI, desktop). Import from `@glyphh/sdk/runtime`; do not pull
  * into a browser/RN bundle.
  */
 

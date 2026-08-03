@@ -20,7 +20,7 @@ async function signIn(): Promise<Client> {
   return client;
 }
 
-describe("@glyphh/client — memberships", () => {
+describe("@glyphh/sdk — memberships", () => {
   it("orgs() lists the caller's personal org, flagged active (org_admin)", async () => {
     const client = await signIn();
     const me = await client.me();

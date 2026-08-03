@@ -19,7 +19,7 @@ async function signIn(): Promise<Client> {
   return client;
 }
 
-describe("@glyphh/client — relay", () => {
+describe("@glyphh/sdk — relay", () => {
   it("open by default → opt-in a device → revoke", async () => {
     const client = await signIn();
 

@@ -18,7 +18,7 @@ async function signIn(): Promise<Client> {
   return client;
 }
 
-describe("@glyphh/client — connections", () => {
+describe("@glyphh/sdk — connections", () => {
   it("install a custom MCP (write-only headers) → list → remove", async () => {
     const client = await signIn();
     expect(await client.connections.list()).toEqual([]);

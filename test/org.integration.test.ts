@@ -18,7 +18,7 @@ async function signIn() {
   return client;
 }
 
-describe("@glyphh/client — accounts", () => {
+describe("@glyphh/sdk — accounts", () => {
   it("a new user has a personal org (org_admin, 1 seat used of 1)", async () => {
     const client = await signIn();
     const org = await client.org.get();

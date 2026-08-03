@@ -20,14 +20,14 @@ async function signIn() {
   return client;
 }
 
-describe("@glyphh/client — admin.createOrg", () => {
+describe("@glyphh/sdk — admin.createOrg", () => {
   it("is forbidden for a non-super_admin", async () => {
     const client = await signIn();
     await expect(client.admin.createOrg({ name: "Globex" })).rejects.toBeInstanceOf(ForbiddenError);
   });
 });
 
-describe("@glyphh/client — admin impersonation gate", () => {
+describe("@glyphh/sdk — admin impersonation gate", () => {
   it("impersonate is forbidden for a non-platform-admin", async () => {
     const client = await signIn();
     await expect(client.admin.impersonate(randomUUID())).rejects.toBeInstanceOf(ForbiddenError);
@@ -41,7 +41,7 @@ describe("@glyphh/client — admin impersonation gate", () => {
   });
 });
 
-describe("@glyphh/client — admin org-plan gate (super_admin)", () => {
+describe("@glyphh/sdk — admin org-plan gate (super_admin)", () => {
   it("setOrgPlan is forbidden for a non-platform-admin", async () => {
     const client = await signIn();
     await expect(
@@ -60,7 +60,7 @@ describe("@glyphh/client — admin org-plan gate (super_admin)", () => {
   });
 });
 
-describe("@glyphh/client — admin plan-price gate (super_admin)", () => {
+describe("@glyphh/sdk — admin plan-price gate (super_admin)", () => {
   it("planPrices read is forbidden for a non-platform-admin", async () => {
     const client = await signIn();
     await expect(client.admin.planPrices("pro")).rejects.toBeInstanceOf(ForbiddenError);

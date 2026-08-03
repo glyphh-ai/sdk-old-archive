@@ -1,7 +1,7 @@
 /**
  * @license Proprietary — © Glyphh. All rights reserved.
  *
- * SDK auth ↔ control plane integration — drives @glyphh/client against a REAL
+ * SDK auth ↔ control plane integration — drives @glyphh/sdk against a REAL
  * running server (docker: http://127.0.0.1:3001, or $GLYPHH_SERVER_URL), per the
  * SDK spec's "test against a real server" mandate. Proves the end-to-end magic-link
  * sign-in, the bearer supplier, proactive single-use rotation, and sign-out — the
@@ -27,7 +27,7 @@ async function signIn(overrides = {}) {
   return { client, session };
 }
 
-describe("@glyphh/client — auth", () => {
+describe("@glyphh/sdk — auth", () => {
   it("magic-link sign-in yields a session and a live bearer", async () => {
     const { client, session } = await signIn();
     expect(session.accessToken).toMatch(/^gy_at_/);

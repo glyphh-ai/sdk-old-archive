@@ -19,7 +19,7 @@ async function signIn(): Promise<Client> {
   return client;
 }
 
-describe("@glyphh/client — rotor config", () => {
+describe("@glyphh/sdk — rotor config", () => {
   it("the seeded catalog exposes base (1 role) + planning (multi-role)", async () => {
     const rotors = await (await signIn()).rotorConfig.rotors();
     const bySlug = Object.fromEntries(rotors.map((r) => [r.slug, r]));

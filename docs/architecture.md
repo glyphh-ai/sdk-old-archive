@@ -1,6 +1,6 @@
-# `@glyphh/client` — Architecture & Design Decisions
+# `@glyphh/sdk` — Architecture & Design Decisions
 
-**Repo:** `glyphh-ai/sdk` · **Package:** `@glyphh/client` · **License:** proprietary ·
+**Repo:** `glyphh-ai/sdk` · **Package:** `@glyphh/sdk` · **License:** proprietary ·
 **Status:** v0.1 (unified auth + rotor transport)
 
 This document is the durable record of the architectural decisions behind the SDK.
@@ -17,11 +17,11 @@ authenticate, hold a credential, refresh it, open a durable stream to a rotor
 server, and decode a typed event stream. Today that logic is **re-implemented per
 client** (the mobile app hand-rolls `api/client.ts` + `session.ts` + `auth.ts`).
 
-`@glyphh/client` is the single implementation every client consumes. It is the
+`@glyphh/sdk` is the single implementation every client consumes. It is the
 **bridge between two backends**:
 
 ```
-                        @glyphh/client
+                        @glyphh/sdk
         ┌──────────────────────┴───────────────────────┐
         │                                               │
    auth subsystem                               rotor transport
@@ -44,7 +44,7 @@ client** (the mobile app hand-rolls `api/client.ts` + `session.ts` + `auth.ts`).
 ## 1.1 The three planes & remote-session provisioning
 
 ```
-        client ── uses ──▶ @glyphh/client ──┬── control (auth·billing·provision·usage) ──▶ server
+        client ── uses ──▶ @glyphh/sdk ──┬── control (auth·billing·provision·usage) ──▶ server
                                             └── data (rotor.stream/v1) ──▶ runtime (fly Machine)
    server ── provisions (fly Machines) ──▶ runtime ── introspect + usage/meter ──▶ server
 ```
@@ -224,9 +224,9 @@ interface TokenStore {
 - `InMemoryTokenStore` ships in core (default; tests; ephemeral).
 - Real persistence comes from thin **platform adapters** shipped as *separate
   optional entry points* so the core stays dependency-free and RN/Node-agnostic:
-  - `@glyphh/client/storage/secure-store` — Expo SecureStore (iOS Keychain / Android Keystore)
-  - `@glyphh/client/storage/keychain` — desktop OS keychain
-  - `@glyphh/client/storage/file` — sealed/encrypted file (CLI)
+  - `@glyphh/sdk/storage/secure-store` — Expo SecureStore (iOS Keychain / Android Keystore)
+  - `@glyphh/sdk/storage/keychain` — desktop OS keychain
+  - `@glyphh/sdk/storage/file` — sealed/encrypted file (CLI)
 - At-rest encryption is delegated to hardware-backed secure enclaves. The refresh
   token is **never** stored in plaintext. A static `yo_` API key via env is
   acceptable only for CI/headless (revocable, scoped).
@@ -334,7 +334,7 @@ couples the client to authz rules that change server-side (tier upgrades, role
 grants) without a client release.
 
 **Packaging (organizational, not security):** the admin surface lives behind a
-subpath — `@glyphh/client/admin` / a lazily-imported `client.admin` namespace — so
+subpath — `@glyphh/sdk/admin` / a lazily-imported `client.admin` namespace — so
 mobile/CLI never bundle admin code. The enforcement point is unchanged.
 
 ---

@@ -19,7 +19,7 @@ async function signIn(): Promise<Client> {
   return client;
 }
 
-describe("@glyphh/client — library", () => {
+describe("@glyphh/sdk — library", () => {
   it("personal rotor: save → list → get → update → delete", async () => {
     const client = await signIn();
 

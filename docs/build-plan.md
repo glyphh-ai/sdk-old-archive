@@ -12,7 +12,7 @@ single thing**. The UIs that follow (platform, desktop, mobile, web) are **thin
 wrappers** over the SDK — no client ever talks to the server directly.
 
 ```
-server (control plane)  ⇄  @glyphh/client (ALL logic)  ⇄  CLI/REPL (100% coverage of the surface)
+server (control plane)  ⇄  @glyphh/sdk (ALL logic)  ⇄  CLI/REPL (100% coverage of the surface)
                                                         ⇄  platform / desktop / mobile / web (thin UI)
 ```
 
@@ -26,7 +26,7 @@ server (control plane)  ⇄  @glyphh/client (ALL logic)  ⇄  CLI/REPL (100% cov
 
 ## Per-slice method (every slice, no exceptions)
 
-1. **Contract** — request/response types in `@glyphh/client/contract` (pure types).
+1. **Contract** — request/response types in `@glyphh/sdk/contract` (pure types).
 2. **Server** — migration → service → routes (thin files, one concern each).
 3. **SDK** — typed methods over the http client.
 4. **CLI** — commands in the `glyphh` CLI + REPL (auto-registered per domain).

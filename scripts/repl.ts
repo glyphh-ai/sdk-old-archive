@@ -3,7 +3,7 @@
  *
  * repl.ts — the interactive shell over the SAME command registry the `glyphh` bin
  * uses, so anything the REPL can do the CLI can do (and vice versa). A thin
- * @glyphh/client consumer — the SDK's proof.
+ * @glyphh/sdk consumer — the SDK's proof.
  *
  *   npm run repl            (defaults to http://127.0.0.1:3001)
  *   GLYPHH_SERVER_URL=… npm run repl

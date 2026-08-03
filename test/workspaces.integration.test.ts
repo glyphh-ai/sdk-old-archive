@@ -18,7 +18,7 @@ async function signIn(): Promise<Client> {
   return client;
 }
 
-describe("@glyphh/client — workspaces", () => {
+describe("@glyphh/sdk — workspaces", () => {
   it("signup creates one base workspace", async () => {
     const client = await signIn();
     const list = await client.workspaces.list();

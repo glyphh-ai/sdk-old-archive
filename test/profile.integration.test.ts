@@ -18,7 +18,7 @@ async function signIn(): Promise<Client> {
   return client;
 }
 
-describe("@glyphh/client — profile", () => {
+describe("@glyphh/sdk — profile", () => {
   it("get() returns the editable profile; update() sets name (derived first/last) + timezone", async () => {
     const client = await signIn();
     const me = await client.profile.get();

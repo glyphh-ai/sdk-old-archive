@@ -19,7 +19,7 @@ async function signIn(): Promise<Client> {
   return client;
 }
 
-describe("@glyphh/client — apps + hosting", () => {
+describe("@glyphh/sdk — apps + hosting", () => {
   it("publish → browse → install → uninstall", async () => {
     const client = await signIn();
     const slug = `demo-${randomUUID().slice(0, 8)}`;

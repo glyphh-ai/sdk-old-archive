@@ -45,7 +45,7 @@ afterAll(async () => {
   }
 });
 
-describe("@glyphh/client — support tickets (user flow)", () => {
+describe("@glyphh/sdk — support tickets (user flow)", () => {
   it("opens, lists, reads, replies to, marks-read, and counts a ticket", async () => {
     const client = await signIn();
 
@@ -91,7 +91,7 @@ describe("@glyphh/client — support tickets (user flow)", () => {
   });
 });
 
-describe("@glyphh/client — admin support console (role gate)", () => {
+describe("@glyphh/sdk — admin support console (role gate)", () => {
   it("supportTickets is forbidden for a non-platform-admin", async () => {
     const client = await signIn();
     await expect(client.admin.supportTickets()).rejects.toBeInstanceOf(ForbiddenError);

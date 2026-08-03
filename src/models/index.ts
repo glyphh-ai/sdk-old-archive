@@ -1,9 +1,9 @@
 /**
  * @license Proprietary — © Glyphh. All rights reserved.
  *
- * @glyphh/client/models — local model management (Node-only). Hardware detection, the
+ * @glyphh/sdk/models — local model management (Node-only). Hardware detection, the
  * installable open-weight catalog + sizing, and the per-model `llama-server` singleton.
- * The user's own compute — free to Glyphh. Import from `@glyphh/client/models`; not for
+ * The user's own compute — free to Glyphh. Import from `@glyphh/sdk/models`; not for
  * browser/RN bundles.
  */
 

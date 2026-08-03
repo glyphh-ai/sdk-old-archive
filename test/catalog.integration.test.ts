@@ -18,7 +18,7 @@ async function signIn(): Promise<Client> {
   return client;
 }
 
-describe("@glyphh/client — catalog", () => {
+describe("@glyphh/sdk — catalog", () => {
   it("lists the seeded models with credit pricing", async () => {
     const models = await (await signIn()).catalog.models();
     const opus = models.find((m) => m.id === "anthropic::claude-opus-4-8");

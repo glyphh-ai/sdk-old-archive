@@ -19,7 +19,7 @@ async function signIn(): Promise<Client> {
   return client;
 }
 
-describe("@glyphh/client — api keys", () => {
+describe("@glyphh/sdk — api keys", () => {
   it("mints a gy_ak_ token once, never re-exposing it", async () => {
     const client = await signIn();
     const created = await client.apiKeys.create({ label: "ci" });

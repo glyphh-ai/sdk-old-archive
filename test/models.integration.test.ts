@@ -21,7 +21,7 @@ async function signIn(): Promise<Client> {
   return client;
 }
 
-describe("@glyphh/client — model governance", () => {
+describe("@glyphh/sdk — model governance", () => {
   it("lists the org support view with the whole catalog + flags", async () => {
     const client = await signIn();
     const rows = await client.orgModels.list();

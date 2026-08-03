@@ -19,7 +19,7 @@ async function signIn(): Promise<Client> {
   return client;
 }
 
-describe("@glyphh/client — billing", () => {
+describe("@glyphh/sdk — billing", () => {
   it("lists the seeded plans (Free/Basic/Pro/Enterprise)", async () => {
     const plans = await (await signIn()).billing.plans();
     const byTier = Object.fromEntries(plans.map((p) => [p.tier, p]));

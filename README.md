@@ -1,4 +1,4 @@
-# @glyphh/client
+# @glyphh/sdk
 
 The one client SDK every Glyphh client — **mobile, desktop, CLI, web, platform** —
 uses to authenticate and talk to the control plane and the rotor runtime. Write the
@@ -20,7 +20,7 @@ session mechanics once; each client is a thin renderer on top.
 ## Install
 
 ```bash
-npm install @glyphh/client
+npm install @glyphh/sdk
 ```
 
 Zero runtime dependencies. Runs on Node, the browser, and React Native/Hermes on
@@ -29,7 +29,7 @@ web-standard `fetch` (injectable). Ships dual ESM/CJS with `.d.ts`.
 ## Quick start
 
 ```ts
-import { createClient } from "@glyphh/client";
+import { createClient } from "@glyphh/sdk";
 
 const glyphh = createClient({ url: "https://api.glyphh.ai" });
 
@@ -78,8 +78,8 @@ The SDK owns the token **lifecycle**; the host owns storage **at rest**. Provide
 `TokenStore` to persist the session (default is in-memory):
 
 ```ts
-import { createClient } from "@glyphh/client";
-import { InMemoryTokenStore } from "@glyphh/client/storage/memory";
+import { createClient } from "@glyphh/sdk";
+import { InMemoryTokenStore } from "@glyphh/sdk/storage/memory";
 
 const glyphh = createClient({
   url,
@@ -101,7 +101,7 @@ See [docs/architecture.md](docs/architecture.md) for the full token model.
 
 ## The REPL
 
-An interactive harness — a thin `@glyphh/client` consumer, so anything it can do,
+An interactive harness — a thin `@glyphh/sdk` consumer, so anything it can do,
 your app can too:
 
 ```bash

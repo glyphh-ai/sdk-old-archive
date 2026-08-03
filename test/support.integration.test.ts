@@ -19,7 +19,7 @@ async function signIn(): Promise<Client> {
   return client;
 }
 
-describe("@glyphh/client — support", () => {
+describe("@glyphh/sdk — support", () => {
   it("ticket() resolves { ok } or degrades to E_NOT_FOUND when unconfigured", async () => {
     const client = await signIn();
     try {

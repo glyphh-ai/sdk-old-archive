@@ -19,7 +19,7 @@ async function signIn(): Promise<Client> {
   return client;
 }
 
-describe("@glyphh/client — device login", () => {
+describe("@glyphh/sdk — device login", () => {
   it("start → approve out-of-band → the SDK adopts the session", async () => {
     const approver = await signIn();
     const approverId = (await approver.me()).userId;

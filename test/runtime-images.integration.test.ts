@@ -22,7 +22,7 @@ async function signIn(): Promise<Client> {
   return client;
 }
 
-describe("@glyphh/client — runtime images (org surface)", () => {
+describe("@glyphh/sdk — runtime images (org surface)", () => {
   it("lists the four seeded SKUs of the org's region, cheapest first", async () => {
     const client = await signIn();
     const images = await client.runtimeImages.list();
@@ -73,7 +73,7 @@ describe("@glyphh/client — runtime images (org surface)", () => {
   });
 });
 
-describe("@glyphh/client — registration-time image choice", () => {
+describe("@glyphh/sdk — registration-time image choice", () => {
   it("signing up with an image key provisions that image's runtime", async () => {
     const client = createClient({ url });
     const start = await client.auth.startEmailLink(`rimg-reg-${randomUUID()}@example.com`);
@@ -95,7 +95,7 @@ describe("@glyphh/client — registration-time image choice", () => {
   });
 });
 
-describe("@glyphh/client — admin runtime-image CRUD is super_admin-gated", () => {
+describe("@glyphh/sdk — admin runtime-image CRUD is super_admin-gated", () => {
   it("every admin method is forbidden for a normal user", async () => {
     const client = await signIn();
     await expect(client.admin.runtimeImages()).rejects.toBeInstanceOf(ForbiddenError);

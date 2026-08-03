@@ -1,5 +1,5 @@
 {
-  "name": "@glyphh/client",
+  "name": "@glyphh/sdk",
   "version": "0.1.0",
   "description": "The Glyphh client SDK \u2014 one library every client (mobile, desktop, CLI, web, platform) uses to authenticate and talk to the control plane + rotor runtime.",
   "license": "LicenseRef-Proprietary",

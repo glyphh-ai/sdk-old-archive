@@ -19,7 +19,7 @@ async function signIn(): Promise<Client> {
   return client;
 }
 
-describe("@glyphh/client — sessions", () => {
+describe("@glyphh/sdk — sessions", () => {
   it("provisions a runtime, lists it, and deprovisions", async () => {
     const client = await signIn();
 

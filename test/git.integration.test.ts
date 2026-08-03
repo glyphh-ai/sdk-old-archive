@@ -20,7 +20,7 @@ async function signIn(): Promise<Client> {
   return client;
 }
 
-describe("@glyphh/client — git", () => {
+describe("@glyphh/sdk — git", () => {
   it("a fresh user is unconnected and connect returns a GitHub authorize URL", async () => {
     const client = await signIn();
 

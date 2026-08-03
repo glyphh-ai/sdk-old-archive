@@ -1,7 +1,7 @@
 /**
  * @license Proprietary — © Glyphh. All rights reserved.
  *
- * The public surface of @glyphh/client. This slice ships the control-plane (auth)
+ * The public surface of @glyphh/sdk. This slice ships the control-plane (auth)
  * half; the rotor streaming transport (session/turn/reconnect) exports here next.
  */
 

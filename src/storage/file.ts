@@ -1,7 +1,7 @@
 /**
  * @license Proprietary — © Glyphh. All rights reserved.
  *
- * @glyphh/client/storage/file — a TokenStore backed by a mode-0600 JSON file (for
+ * @glyphh/sdk/storage/file — a TokenStore backed by a mode-0600 JSON file (for
  * the CLI / headless hosts). Not encryption at rest — pair with an OS keychain for
  * that — but it keeps the session off memory-only and out of world-readable paths.
  */

@@ -18,7 +18,7 @@ async function signIn(): Promise<Client> {
   return client;
 }
 
-describe("@glyphh/client — usage", () => {
+describe("@glyphh/sdk — usage", () => {
   it("a new user's usage rolls up to zero with the summary shape", async () => {
     const mine = await (await signIn()).usage.mine();
     expect(mine.credits).toBe(0);
