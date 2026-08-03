@@ -74,6 +74,27 @@ export interface MessageTurnInput {
   tools?: MessageTool[];
 }
 
+// ── anonymous guest chat (no account) ────────────────────────────────────────
+
+/** A minted guest token — a self-verifying credential for the guest surface only. */
+export interface GuestToken {
+  token: string;
+  /** The server-minted, client-persisted id that scopes the ephemeral guest session. */
+  guestId: string;
+  /** Seconds until the token must be re-issued. */
+  expiresIn: number;
+  /** The one model a guest is forced onto (server-enforced). */
+  model: string;
+}
+
+/** A guest chat turn — Anthropic-Messages shaped. The model is IGNORED (forced to Mistral). */
+export interface GuestTurnInput {
+  messages: Array<{ role: string; content: unknown }>;
+  system?: string;
+  maxTokens?: number;
+  temperature?: number;
+}
+
 /**
  * A completed turn, flattened to what a loop actually branches on: what the model
  * said, what it wants to call, and why it stopped. `toolUses` being non-empty with

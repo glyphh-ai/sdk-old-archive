@@ -39,6 +39,7 @@ import { RelayClient } from "./resources/relay.js";
 import { AttachClient } from "./resources/attach.js";
 import { RotorConfigClient } from "./resources/rotor-config.js";
 import { GatewayClient } from "./resources/gateway.js";
+import { GuestClient } from "./resources/guest.js";
 import { SkillsClient } from "./resources/skills.js";
 import { AgentsClient } from "./resources/agents.js";
 import { OrgModelsClient } from "./resources/org-models.js";
@@ -152,6 +153,8 @@ export interface Client {
   models: ModelsClient;
   /** The metered model call — the one egress for model traffic. */
   gateway: GatewayClient;
+  /** The anonymous (no-account) chat surface — mint a guest token + chat via the gateway. */
+  guest: GuestClient;
   /** The bearer supplier for authenticated calls / the rotor transport. */
   token: TokenProvider;
   /** Force a session refresh (rotation). Resolves false if signed out. */
@@ -221,6 +224,9 @@ export function createClient(opts: ClientOptions): Client {
     orgModels: new OrgModelsClient(authed),
     models: new ModelsClient(authed),
     gateway: new GatewayClient(authed),
+    // The guest surface rides the UNAUTHENTICATED transport — a guest token is not a
+    // session bearer, it is carried per-call.
+    guest: new GuestClient(http),
     token,
     refresh: async () => (await refresh.refresh()) !== null,
     getSession: () => store.load(),

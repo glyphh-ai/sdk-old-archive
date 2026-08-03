@@ -215,6 +215,7 @@ export type {
   UpdateSkillInput,
 } from "./contract/skills.js";
 export { GatewayClient } from "./resources/gateway.js";
+export { GuestClient } from "./resources/guest.js";
 export type {
   GatewayMessage,
   GatewayCompletionInput,
@@ -225,6 +226,8 @@ export type {
   MessageTurn,
   MessageTurnInput,
   ToolUse,
+  GuestToken,
+  GuestTurnInput,
 } from "./contract/gateway.js";
 export type {
   OrgModel,
