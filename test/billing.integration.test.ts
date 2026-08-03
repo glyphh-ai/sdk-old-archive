@@ -45,10 +45,15 @@ describe("@glyphh/client — billing", () => {
 
   it("credits() returns the micro-credit breakdown for a fresh free org", async () => {
     const client = await signIn();
+    // Derived from the seeded free plan rather than a hardcoded constant: a fresh
+    // org's entire balance IS its plan's monthly grant, in micro-credits (1e6 per
+    // credit). Re-pricing the free tier moves this test with the seed.
+    const free = (await client.billing.plans()).find((p) => p.tier === "free")!;
+    const grant = free.monthlyCredits * 1_000_000;
     const c = await client.billing.credits();
-    expect(c.balance).toBe(25_000_000);
-    expect(c.allowance).toBe(25_000_000);
-    expect(c.grants).toBe(25_000_000);
+    expect(c.balance).toBe(grant);
+    expect(c.allowance).toBe(grant);
+    expect(c.grants).toBe(grant);
     expect(c.purchases).toBe(0);
   });
 

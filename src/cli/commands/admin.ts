@@ -403,6 +403,26 @@ export function registerAdmin(reg: CommandRegistry): void {
     },
   });
 
+  reg.register({
+    path: "admin usage by-runtime",
+    summary: "usage per region × shared|dedicated × tier (super_admin)",
+    usage: "admin usage by-runtime <from> <to> [--region <r>] [--mode shared|dedicated] [--tier <t>]",
+    covers: ["admin.usageByRuntime"],
+    async run(ctx, args) {
+      const [from, to] = args.positional;
+      if (!from || !to) {
+        throw new Error("usage: admin usage by-runtime <from> <to> [--region ..] [--mode shared|dedicated] [--tier ..]");
+      }
+      const mode = flagStr(args, "mode");
+      if (mode !== undefined && mode !== "shared" && mode !== "dedicated") {
+        throw new Error("--mode must be 'shared' or 'dedicated'");
+      }
+      ctx.printJson(await ctx.client.admin.usageByRuntime({
+        from, to, region: flagStr(args, "region"), mode, tier: flagStr(args, "tier"),
+      }));
+    },
+  });
+
   // ── audit ────────────────────────────────────────────────────────────────────
   reg.register({
     path: "admin audit",

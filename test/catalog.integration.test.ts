@@ -23,14 +23,21 @@ describe("@glyphh/client — catalog", () => {
     const models = await (await signIn()).catalog.models();
     const opus = models.find((m) => m.id === "anthropic::claude-opus-4-8");
     expect(opus).toBeTruthy();
-    expect(opus!.inputCreditsPerMTok).toBe(417);
+    // 313 = the seeded Opus input rate after the 2026-07-27 margin rebase (server
+    // d765a7e rebased every model ~0.75x: 417 → 313). The server's own catalog tests
+    // assert the same number; this file is the SDK's single source for it.
+    expect(opus!.inputCreditsPerMTok).toBe(313);
     expect(opus!.providerSlug).toBe("anthropic");
   });
 
   it("enable a provider with a BYOK key (write-only) then disable", async () => {
     const client = await signIn();
     const before = await client.catalog.providers();
-    expect(before.find((p) => p.slug === "anthropic")!.enabledForOrg).toBe(false);
+    // Providers are ON out of the box (server 75a307d): proxied models run on the
+    // PLATFORM key and are metered in credits, so there is nothing to opt into — an
+    // org opts OUT with an explicit disable. A fresh org must hold no key of its own.
+    expect(before.find((p) => p.slug === "anthropic")!.enabledForOrg).toBe(true);
+    expect(before.find((p) => p.slug === "anthropic")!.hasByokKey).toBe(false);
 
     const enabled = await client.providers.enable("anthropic", "sk-secret-never-returned");
     expect(enabled.enabledForOrg).toBe(true);

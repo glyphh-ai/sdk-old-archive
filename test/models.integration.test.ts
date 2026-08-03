@@ -27,9 +27,10 @@ describe("@glyphh/client — model governance", () => {
     const rows = await client.orgModels.list();
     const opus = rows.find((m) => m.id === OPUS);
     expect(opus).toBeTruthy();
-    expect(opus!.providerEnabled).toBe(false); // fresh org, provider off
+    expect(opus!.providerEnabled).toBe(true); // providers are default-ON (proxy + meter)
+    expect(opus!.hasByokKey).toBe(false); // …and default-ON never means an inherited key
     expect(typeof opus!.supported).toBe("boolean");
-    expect(opus!.inputCreditsPerMTok).toBe(417);
+    expect(opus!.inputCreditsPerMTok).toBe(313); // seeded rate, rebased ~0.75x in server d765a7e
   });
 
   it("available() resolves the effective set and narrows to the explicit supported set", async () => {

@@ -57,10 +57,10 @@ describe("@glyphh/client — apps + hosting", () => {
 
     const dep = await client.hosting.deploy({ appSlug: slug });
     expect(dep.status).toBe("live");
-    // Dev hosting REALLY serves: the local driver extracts the bundle and the
-    // deploy URL points at the server's /hosted/<slug>/ mount (fly's
-    // <slug>.glyphh.app only exists with a FlyHostingDriver configured).
-    expect(dep.url).toContain(`/hosted/${slug}/`);
+    // The wire url is always the app's BRAND origin — see contract/hosting.ts. The
+    // driver's real serving url (…/hosted/<slug>/) is the internal origin the edge
+    // proxies to and refuses direct traffic, so it is deliberately never published.
+    expect(dep.url).toBe(`https://${slug}.glyphh.app`);
 
     const got = await client.hosting.status(dep.id);
     expect(got.id).toBe(dep.id);
