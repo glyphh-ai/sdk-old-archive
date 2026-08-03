@@ -15,6 +15,7 @@ import type {
   AdminUsersPage, AdminUser, AdminUserPatch,
   AdminPlan, AdminPlanUpdate, AdminOrgPlanInput, AdminOrgPlanPatch, AdminModel, AdminModelUpdate, AdminPlanPrice,
   AuditPage, AuditQuery, AdminUsageByUser, AdminUsageDay, AdminDailyQuery, AdminListQuery,
+  AdminUsageByRuntime, AdminRuntimeUsageQuery, RuntimeMode,
 } from "../contract/admin.js";
 import type { EffectiveContext } from "../contract/membership.js";
 import type {
@@ -165,12 +166,25 @@ export class AdminClient {
   }
 
   // ── usage ────────────────────────────────────────────────────────────────────
-  usageByUser(days?: number): Promise<{ users: AdminUsageByUser[] }> {
-    return this.http.get<{ users: AdminUsageByUser[] }>(withQuery("/api/admin/usage/by-user", { days }));
+  usageByUser(days?: number, filters: { region?: string; mode?: RuntimeMode } = {}): Promise<{ users: AdminUsageByUser[] }> {
+    return this.http.get<{ users: AdminUsageByUser[] }>(
+      withQuery("/api/admin/usage/by-user", { days, region: filters.region, mode: filters.mode }),
+    );
   }
   usageDaily(query: AdminDailyQuery): Promise<{ days: AdminUsageDay[] }> {
     return this.http.get<{ days: AdminUsageDay[] }>(
-      withQuery("/api/admin/usage/daily", { from: query.from, to: query.to, tz: query.tz, orgId: query.orgId, userId: query.userId }),
+      withQuery("/api/admin/usage/daily", {
+        from: query.from, to: query.to, tz: query.tz, orgId: query.orgId, userId: query.userId,
+        region: query.region, mode: query.mode,
+      }),
+    );
+  }
+  /** Usage + billing broken down by WHERE it ran: region × shared|dedicated × tier. */
+  usageByRuntime(query: AdminRuntimeUsageQuery): Promise<{ runtimes: AdminUsageByRuntime[] }> {
+    return this.http.get<{ runtimes: AdminUsageByRuntime[] }>(
+      withQuery("/api/admin/usage/by-runtime", {
+        from: query.from, to: query.to, region: query.region, mode: query.mode, tier: query.tier,
+      }),
     );
   }
 

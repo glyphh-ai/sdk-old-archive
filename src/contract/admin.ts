@@ -206,6 +206,38 @@ export interface AdminDailyQuery {
   tz?: string | undefined;
   orgId?: string | undefined;
   userId?: string | undefined;
+  /** Runtime drill-downs (server migration 008). Omit for every region / both modes. */
+  region?: string | undefined;
+  mode?: RuntimeMode | undefined;
+}
+
+/** 'shared' — the region's one shared runtime; 'dedicated' — an org's own instance. */
+export type RuntimeMode = "shared" | "dedicated";
+
+/**
+ * One cell of the platform usage/billing breakdown BY RUNTIME: region × shared|dedicated
+ * × plan tier, with how many distinct rrotor instances and orgs sit behind it.
+ */
+export interface AdminUsageByRuntime {
+  region: string;
+  mode: RuntimeMode | string;
+  /** Plan tier the usage was billed under; 'unknown' if the org no longer exists. */
+  tier: string;
+  runtimes: number;
+  orgs: number;
+  users: number;
+  requests: number;
+  credits: number; // micro-credits
+  inputTokens: number;
+  outputTokens: number;
+}
+
+export interface AdminRuntimeUsageQuery {
+  from: string; // YYYY-MM-DD
+  to: string; // YYYY-MM-DD
+  region?: string | undefined;
+  mode?: RuntimeMode | undefined;
+  tier?: string | undefined;
 }
 
 /** Common list query for the paginated/searchable admin tables. */

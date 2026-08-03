@@ -93,6 +93,9 @@ export type {
   AuditQuery,
   AdminUsageByUser,
   AdminUsageDay,
+  AdminUsageByRuntime,
+  AdminRuntimeUsageQuery,
+  RuntimeMode,
   AdminDailyQuery,
   AdminListQuery,
 } from "./contract/admin.js";
