@@ -38,6 +38,7 @@ import { registerGateway } from "./commands/gateway.js";
 import { registerSkills } from "./commands/skills.js";
 import { registerAgents } from "./commands/agents.js";
 import { registerGuest } from "./commands/guest.js";
+import { registerRuntimeImages } from "./commands/runtime-images.js";
 
 export function buildRegistry(): CommandRegistry {
   const reg = new CommandRegistry();
@@ -72,6 +73,7 @@ export function buildRegistry(): CommandRegistry {
   registerSupport(reg);
   registerOAuth(reg);
   registerGuest(reg);
+  registerRuntimeImages(reg);
   return reg;
 }
 

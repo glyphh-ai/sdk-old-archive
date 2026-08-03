@@ -47,6 +47,7 @@ import { ModelsClient } from "./resources/models.js";
 import { ProfileClient } from "./resources/profile.js";
 import { SupportClient } from "./resources/support.js";
 import { OAuthClient } from "./resources/oauth.js";
+import { RuntimeImagesClient } from "./resources/runtime-images.js";
 import type { Identity, StoredSession } from "./contract/auth.js";
 
 export interface ClientOptions {
@@ -105,6 +106,8 @@ export interface Client {
   workspaces: WorkspacesClient;
   /** Billing — plans, subscription, credit balance, Stripe checkout/portal. */
   billing: BillingClient;
+  /** Runtime image SKUs (§7b) — the org's picker, current image, and change requests. */
+  runtimeImages: RuntimeImagesClient;
   /** The provider/model catalog (read). */
   catalog: CatalogClient;
   /** Org provider enablement + BYOK (org_admin). */
@@ -200,6 +203,7 @@ export function createClient(opts: ClientOptions): Client {
     invites: new InvitesClient(http, authed),
     workspaces: new WorkspacesClient(authed),
     billing: new BillingClient(authed),
+    runtimeImages: new RuntimeImagesClient(authed),
     catalog: new CatalogClient(authed),
     providers: new ProvidersClient(authed),
     admin: new AdminClient(authed),

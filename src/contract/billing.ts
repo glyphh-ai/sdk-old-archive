@@ -26,6 +26,10 @@ export interface Subscription {
   billingStatus: string; // trial | active | past_due | canceled | none
   seats: number;
   maxSeats: number;
+  /** The org's current RUNTIME IMAGE (§7b) + its recurring price in whole credits/mo —
+   *  the data hook recurring image billing consumes. Null when the bound key resolves
+   *  to no catalog row in the org's region. */
+  runtimeImage?: { key: string; region: string; monthlyCredits: number } | null;
 }
 
 export interface Balance {

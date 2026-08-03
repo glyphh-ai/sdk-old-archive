@@ -61,8 +61,14 @@ export class AuthClient {
   startEmailLink(email: string, opts: { redirectUri?: string; machineId?: string } = {}): Promise<MagicLinkStart> {
     return this.http.post<MagicLinkStart>("/api/auth/magic/start", { email, ...opts });
   }
-  async verifyEmailLink(token: string, machineId?: string): Promise<StoredSession> {
-    const issued = await this.http.post<IssuedSession>("/api/auth/magic/verify", { token, ...(machineId ? { machineId } : {}) });
+  async verifyEmailLink(token: string, machineId?: string, opts: { runtimeImage?: string } = {}): Promise<StoredSession> {
+    // `runtimeImage` is the REGISTRATION-time SKU choice (§7b) — honoured only when
+    // this verify creates the account; the server falls back to free on any problem.
+    const issued = await this.http.post<IssuedSession>("/api/auth/magic/verify", {
+      token,
+      ...(machineId ? { machineId } : {}),
+      ...(opts.runtimeImage ? { runtimeImage: opts.runtimeImage } : {}),
+    });
     return this.#adopt(issued);
   }
 

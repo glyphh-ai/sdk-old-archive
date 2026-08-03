@@ -18,6 +18,7 @@ import type {
   AdminUsageByRuntime, AdminRuntimeUsageQuery, RuntimeMode,
 } from "../contract/admin.js";
 import type { EffectiveContext } from "../contract/membership.js";
+import type { RuntimeImage, AdminRuntimeImageCreate, AdminRuntimeImageUpdate } from "../contract/runtime-images.js";
 import type {
   AdminSupportPage, AdminSupportThread, AdminSupportTicket, AdminSupportQuery, SupportUnread,
 } from "../contract/support.js";
@@ -153,6 +154,29 @@ export class AdminClient {
   /** Remove a price from a tier's history (audited). */
   removePlanPrice(id: string): Promise<void> {
     return this.http.del<void>(`/api/admin/plans/prices/${encodeURIComponent(id)}`);
+  }
+
+  // ── runtime image catalog (§7b — the model-catalog treatment) ─────────────────
+  /** Every catalog image, every region, active + inactive. */
+  runtimeImages(): Promise<{ images: RuntimeImage[] }> {
+    return this.http.get<{ images: RuntimeImage[] }>("/api/admin/runtime-images");
+  }
+  /** Add a SKU to a region's catalog (`monthlyCredits` in WHOLE credits/month). */
+  createRuntimeImage(input: AdminRuntimeImageCreate): Promise<{ image: RuntimeImage }> {
+    return this.http.post<{ image: RuntimeImage }>("/api/admin/runtime-images", input);
+  }
+  /** Re-price / re-size / retire a region's SKU (audited). */
+  updateRuntimeImage(region: string, key: string, patch: AdminRuntimeImageUpdate): Promise<{ image: RuntimeImage }> {
+    return this.http.put<{ image: RuntimeImage }>(
+      `/api/admin/runtime-images/${encodeURIComponent(region)}/${encodeURIComponent(key)}`, patch,
+    );
+  }
+  /** Remove a SKU from a region's catalog (audited). Bound orgs keep serving off
+   *  their realized route; only the price stops resolving. */
+  deleteRuntimeImage(region: string, key: string): Promise<{ ok: boolean }> {
+    return this.http.del<{ ok: boolean }>(
+      `/api/admin/runtime-images/${encodeURIComponent(region)}/${encodeURIComponent(key)}`,
+    );
   }
 
   // ── impersonation (platform admin reaches into an org they don't belong to) ───
