@@ -100,3 +100,22 @@ export interface InvitePreview {
   orgName: string;
   role: MemberRole;
 }
+
+/** `org.infra()` — the caller org's runtime infrastructure + the one-time region
+ *  choice state. `regionChosen` gates the first-run region prompt. */
+export interface OrgInfra {
+  mode: string;
+  region: string | null;
+  tier: string | null;
+  status: string;
+  regionChosen: boolean;
+  /** Regions the org may pin to (id + label), for the picker. */
+  regions: Array<{ id: string; label?: string }>;
+}
+
+/** `org.chooseInfra()` — the one-time (idempotent) region/tier selection. */
+export interface OrgInfraChoice {
+  region: string;
+  /** infra tier id ('shared' | 'ded-small' | …); 'shared' is the free default. */
+  tier: string;
+}

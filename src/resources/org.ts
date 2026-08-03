@@ -6,7 +6,7 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
-import type { Org, OrgUpdate, Guardrails, GuardrailsPolicy } from "../contract/org.js";
+import type { Org, OrgUpdate, Guardrails, GuardrailsPolicy, OrgInfra, OrgInfraChoice } from "../contract/org.js";
 
 export class OrgClient {
   constructor(private readonly http: AuthedHttp) {}
@@ -17,6 +17,17 @@ export class OrgClient {
 
   update(patch: OrgUpdate): Promise<Org> {
     return this.http.patch<Org>("/api/org", patch);
+  }
+
+  /** The org's runtime infra + the one-time region-choice state (any member). */
+  infra(): Promise<OrgInfra> {
+    return this.http.get<OrgInfra>("/api/org/infra");
+  }
+
+  /** Make the one-time region/tier choice (org_admin; idempotent — flips
+   *  `regionChosen`, provisioning/moving the org's runtime as needed). */
+  chooseInfra(choice: OrgInfraChoice): Promise<OrgInfra> {
+    return this.http.post<OrgInfra>("/api/org/infra", choice);
   }
 
   /** The org-wide runtime guardrails policy (org_admin). */

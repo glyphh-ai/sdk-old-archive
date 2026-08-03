@@ -34,6 +34,27 @@ function guardrailsFromFlags(args: CliArgs): GuardrailsPolicy {
 
 export function registerOrg(reg: CommandRegistry): void {
   reg.register({
+    path: "org infra",
+    summary: "the org's runtime infra + region-choice state",
+    covers: ["org.infra"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.org.infra());
+    },
+  });
+
+  reg.register({
+    path: "org infra set",
+    summary: "make the region/tier choice: --region <id> [--tier shared]",
+    covers: ["org.chooseInfra"],
+    async run(ctx, args) {
+      const region = flagStr(args, "region");
+      if (!region) throw new Error("--region is required");
+      const tier = flagStr(args, "tier") ?? "shared";
+      ctx.printJson(await ctx.client.org.chooseInfra({ region, tier }));
+    },
+  });
+
+  reg.register({
     path: "org show",
     summary: "the caller's organization",
     covers: ["org.get"],
