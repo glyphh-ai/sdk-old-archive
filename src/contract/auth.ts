@@ -22,6 +22,11 @@ export interface Identity {
   imageUrl: string | null;
   /** The resolved avatar: `imageUrl` when set, else a Gravatar identicon for the email. */
   avatarUrl: string;
+  /** Has the user's org completed the one-time region/first-run choice? The server
+   *  derives this per-user on /api/auth/me (false = a genuinely NEW user → surfaces
+   *  the first-run flow; true = returning → skip it). Optional so an older server
+   *  that omits it degrades to "returning" rather than re-onboarding everyone. */
+  regionChosen?: boolean;
 }
 
 /** What every auth method returns from the server: an opaque session pair. */
