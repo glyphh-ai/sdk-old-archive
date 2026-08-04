@@ -10,6 +10,29 @@ import { flagStr } from "../args.js";
 
 export function registerProfile(reg: CommandRegistry): void {
   reg.register({
+    path: "profile prefs",
+    summary: "the caller's preference map",
+    covers: ["profile.prefs"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.profile.prefs());
+    },
+  });
+
+  reg.register({
+    path: "profile prefs set",
+    summary: "set a preference: --key <k> --value <json> (null value deletes)",
+    covers: ["profile.setPrefs"],
+    async run(ctx, args) {
+      const key = flagStr(args, "key");
+      if (!key) throw new Error("--key is required");
+      const raw = flagStr(args, "value");
+      let value = null;
+      if (raw !== undefined) { try { value = JSON.parse(raw); } catch { value = raw; } }
+      ctx.printJson(await ctx.client.profile.setPrefs({ [key]: value }));
+    },
+  });
+
+  reg.register({
     path: "profile show",
     summary: "the caller's editable profile",
     covers: ["profile.get"],

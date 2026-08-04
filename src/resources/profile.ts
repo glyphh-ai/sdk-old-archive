@@ -18,6 +18,17 @@ export class ProfileClient {
   }
 
   /** Update the caller's name and/or timezone. */
+  /** The caller's full preference map (theme, UI + layout state) — org→user
+   *  tenant content, stored in the stator. */
+  prefs(): Promise<Record<string, unknown>> {
+    return this.http.get<{ prefs: Record<string, unknown> }>("/api/me/prefs").then((r) => r.prefs);
+  }
+
+  /** Upsert preference keys; a `null` value DELETES that key. Returns the full map. */
+  setPrefs(patch: Record<string, unknown>): Promise<Record<string, unknown>> {
+    return this.http.patch<{ prefs: Record<string, unknown> }>("/api/me/prefs", { prefs: patch }).then((r) => r.prefs);
+  }
+
   update(patch: SelfProfileUpdate): Promise<SelfProfile> {
     return this.http.patch<SelfProfile>("/api/user/me", patch);
   }
