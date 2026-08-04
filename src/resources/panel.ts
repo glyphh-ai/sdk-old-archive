@@ -9,7 +9,7 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
-import type { PanelOpenInput, OpenedPanel } from "../contract/panel.js";
+import type { PanelOpenInput, OpenedPanel, TerminalOpenInput, OpenedTerminal } from "../contract/panel.js";
 
 export class PanelClient {
   constructor(private readonly http: AuthedHttp) {}
@@ -24,8 +24,19 @@ export class PanelClient {
     return this.http.post<{ ok: boolean }>(`/api/panel/browser/${encodeURIComponent(panelId)}/nav`, { url });
   }
 
-  /** Close (tear down) an open panel. */
+  /** Close (tear down) an open browser panel. */
   close(panelId: string): Promise<void> {
     return this.http.del<void>(`/api/panel/browser/${encodeURIComponent(panelId)}`);
+  }
+
+  /** Open a TERMINAL panel (a pty over WS). Same `{ panelId, wsUrl, token }` shape as a
+   *  browser panel — connect the WS with the token, pipe pty bytes ↔ xterm.js. */
+  openTerminal(input: TerminalOpenInput = {}): Promise<OpenedTerminal> {
+    return this.http.post<OpenedTerminal>("/api/panel/terminal", input);
+  }
+
+  /** Close (kill the pty of) an open terminal panel. */
+  closeTerminal(panelId: string): Promise<void> {
+    return this.http.del<void>(`/api/panel/terminal/${encodeURIComponent(panelId)}`);
   }
 }

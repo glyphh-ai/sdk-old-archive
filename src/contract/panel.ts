@@ -36,3 +36,24 @@ export interface OpenedPanel {
   /** Seconds until `token` expires (re-open to refresh). */
   expiresIn?: number;
 }
+
+/**
+ * A TERMINAL panel — the featherweight sibling of a browser panel. Instead of a
+ * screencast it is a pty in the pod whose BYTES stream over the WS and are rendered by
+ * xterm.js on the client (architecture-engines-memory.md §7). `panel.openTerminal` asks
+ * the control plane to spawn the pty (in the session sandbox) and returns the same
+ * `{ panelId, wsUrl, token, wire }` shape — the client connects the WS DIRECT to the pod
+ * with the scoped `token`, then pipes pty output → term.write and keystrokes/resize back.
+ */
+export interface TerminalOpenInput {
+  /** The originating runtime session (the pty's sandbox is keyed by it). */
+  sessionId?: string;
+  /** Initial terminal size (xterm cols × rows). Defaults 80×24 in the pod. */
+  cols?: number;
+  rows?: number;
+  /** A working dir RELATIVE to the session sandbox — clamped so it cannot escape. */
+  cwd?: string;
+}
+
+/** The opened terminal panel — same wire shape as {@link OpenedPanel}. */
+export type OpenedTerminal = OpenedPanel;
