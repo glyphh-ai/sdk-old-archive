@@ -152,8 +152,6 @@ export type {
   ModelSwitchResult,
   ModelSwitchSurface,
 } from "./contract/runtime.js";
-export { PanelClient } from "./resources/panel.js";
-export type { PanelOpenInput, OpenedPanel, PanelViewport } from "./contract/panel.js";
 export { GitClient } from "./resources/git.js";
 export type { GitConnection, GitConnectLink, Repo } from "./contract/git.js";
 export { AppsClient } from "./resources/apps.js";

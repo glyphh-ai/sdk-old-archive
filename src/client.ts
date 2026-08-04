@@ -31,7 +31,6 @@ import { ConnectionsClient } from "./resources/connections.js";
 import { UsageClient } from "./resources/usage.js";
 import { ApiKeysClient } from "./resources/api-keys.js";
 import { SessionsClient } from "./resources/sessions.js";
-import { PanelClient } from "./resources/panel.js";
 import { GitClient } from "./resources/git.js";
 import { AppsClient } from "./resources/apps.js";
 import { HostingClient } from "./resources/hosting.js";
@@ -127,8 +126,6 @@ export interface Client {
   apiKeys: ApiKeysClient;
   /** Control-plane runtime sessions — provision/list/get/deprovision (data plane is `session()`). */
   sessions: SessionsClient;
-  /** Server-brokered browser panels — open/nav/close a streamed third-party browser panel. */
-  panel: PanelClient;
   /** GitHub connection — link, list repos; sessions with a repo get a scoped clone token. */
   git: GitClient;
   /** The apps marketplace — browse, publish, install. */
@@ -216,7 +213,6 @@ export function createClient(opts: ClientOptions): Client {
     usage: new UsageClient(authed),
     apiKeys: new ApiKeysClient(authed),
     sessions: new SessionsClient(authed),
-    panel: new PanelClient(authed),
     git: new GitClient(authed),
     apps: new AppsClient(authed),
     hosting: new HostingClient(authed),
