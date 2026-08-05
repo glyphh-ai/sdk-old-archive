@@ -239,8 +239,10 @@ export function createClient(opts: ClientOptions): Client {
     // session bearer, it is carried per-call.
     guest: new GuestClient(http),
     icons: {
+      // v=2: cache-shape bump — clients that pinned the (formerly cacheable)
+      // 404s bypass those entries instead of replaying them for an hour.
       urlFor: (domain: string): string =>
-        `${opts.url.replace(/\/$/, "")}/api/icons?domain=${encodeURIComponent(domain.trim().toLowerCase())}`,
+        `${opts.url.replace(/\/$/, "")}/api/icons?domain=${encodeURIComponent(domain.trim().toLowerCase())}&v=2`,
     },
     token,
     refresh: async () => (await refresh.refresh()) !== null,
