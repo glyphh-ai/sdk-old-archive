@@ -23,6 +23,7 @@ import { registerConnections } from "./commands/connections.js";
 import { registerUsage } from "./commands/usage.js";
 import { registerApiKeys } from "./commands/api-keys.js";
 import { registerSessions } from "./commands/sessions.js";
+import { registerFiles } from "./commands/files.js";
 import { registerGit } from "./commands/git.js";
 import { registerApps } from "./commands/apps.js";
 import { registerLibrary } from "./commands/library.js";
@@ -62,6 +63,7 @@ export function buildRegistry(): CommandRegistry {
   registerUsage(reg);
   registerApiKeys(reg);
   registerSessions(reg);
+  registerFiles(reg);
   registerGit(reg);
   registerApps(reg);
   registerLibrary(reg);

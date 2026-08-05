@@ -35,4 +35,15 @@ export function registerAttach(reg: CommandRegistry): void {
       ctx.printJson(await ctx.client.attach.dispatch(method, params));
     },
   });
+
+  reg.register({
+    path: "attach fs-list",
+    summary: "browse a folder on your attached desktop",
+    usage: "attach fs-list [path]",
+    covers: ["attach.fsList"],
+    async run(ctx, args) {
+      const path = args.positional[0];
+      ctx.printJson(await ctx.client.attach.fsList(path));
+    },
+  });
 }

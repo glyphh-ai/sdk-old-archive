@@ -152,6 +152,8 @@ export type {
   ModelSwitchResult,
   ModelSwitchSurface,
 } from "./contract/runtime.js";
+export { FilesClient } from "./resources/files.js";
+export type { FileArtifact, FileKind, ListFilesQuery, CreateFileInput } from "./contract/files.js";
 export { GitClient } from "./resources/git.js";
 export type { GitConnection, GitConnectLink, Repo } from "./contract/git.js";
 export { AppsClient } from "./resources/apps.js";
