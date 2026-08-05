@@ -152,6 +152,14 @@ export type {
   ModelSwitchResult,
   ModelSwitchSurface,
 } from "./contract/runtime.js";
+export type {
+  SessionThread,
+  SessionThreadMeta,
+  SessionThreadMessage,
+  PushThreadInput,
+  PushThreadMessage,
+  PushThreadResult,
+} from "./contract/threads.js";
 export { FilesClient } from "./resources/files.js";
 export type { FileArtifact, FileKind, ListFilesQuery, CreateFileInput } from "./contract/files.js";
 export { GitClient } from "./resources/git.js";

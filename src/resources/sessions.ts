@@ -9,6 +9,7 @@
 
 import type { AuthedHttp } from "../core/authed-http.js";
 import type { CreateSessionInput, ProvisionedSession, RuntimeSession, ModelSwitchInput, ModelSwitchResult } from "../contract/runtime.js";
+import type { SessionThread, SessionThreadMeta, PushThreadInput, PushThreadResult } from "../contract/threads.js";
 
 export class SessionsClient {
   constructor(private readonly http: AuthedHttp) {}
@@ -31,6 +32,33 @@ export class SessionsClient {
   /** Deprovision + stop a session. */
   delete(id: string): Promise<void> {
     return this.http.del<void>(`/api/sessions/${encodeURIComponent(id)}`);
+  }
+
+  // ── threads — the durable conversations in the regional stator ──────────────
+
+  /** The caller's threads — metadata only (never message bodies), newest-updated first. */
+  threads(): Promise<SessionThreadMeta[]> {
+    return this.http.get<SessionThreadMeta[]>("/api/sessions/threads");
+  }
+
+  /** One thread with its messages (the server returns the LAST 500, in order). Owner-only. */
+  thread(id: string): Promise<SessionThread> {
+    return this.http.get<SessionThread>(`/api/sessions/threads/${encodeURIComponent(id)}`);
+  }
+
+  /**
+   * LWW upsert — the CLIENT CACHE SYNC path (drain your pendingPush here). Thread
+   * ids are client-minted uuids: an unknown id creates the thread. The push applies
+   * only when `body.updatedAt` is STRICTLY newer than the server's copy; either way
+   * the result carries the server's current state to reconcile against.
+   */
+  pushThread(id: string, body: PushThreadInput): Promise<PushThreadResult> {
+    return this.http.put<PushThreadResult>(`/api/sessions/threads/${encodeURIComponent(id)}`, body);
+  }
+
+  /** Tombstone a thread (owner-only) — messages purged; a stale push cannot resurrect it. */
+  deleteThread(id: string): Promise<void> {
+    return this.http.del<void>(`/api/sessions/threads/${encodeURIComponent(id)}`);
   }
 
   /**

@@ -11,8 +11,14 @@ import type { Client } from "../client.js";
 const SKIP = new Set(["constructor"]);
 
 function methodsOf(obj: object): string[] {
+  // Class-based sub-clients expose their surface on the PROTOTYPE (own props are
+  // internals — bound transports, callbacks). Object-LITERAL sub-clients (like
+  // `icons`) have no prototype of their own, so their surface is their own
+  // function properties — never Object.prototype's built-ins (valueOf, …).
   const proto = Object.getPrototypeOf(obj) as object | null;
-  const names = proto ? Object.getOwnPropertyNames(proto) : [];
+  const names = proto && proto !== Object.prototype
+    ? Object.getOwnPropertyNames(proto)
+    : Object.getOwnPropertyNames(obj);
   return names.filter((n) => !SKIP.has(n) && typeof (obj as Record<string, unknown>)[n] === "function");
 }
 

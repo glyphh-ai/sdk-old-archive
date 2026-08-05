@@ -6,9 +6,11 @@
  * open a data-plane stream to `session.runtimeUrl` with that token.
  */
 
+import { readFileSync } from "node:fs";
 import type { CommandRegistry } from "../registry.js";
 import { flagStr } from "../args.js";
 import type { CreateSessionInput, SessionLocus, ModelSwitchSurface } from "../../contract/runtime.js";
+import type { PushThreadInput } from "../../contract/threads.js";
 
 export function registerSessions(reg: CommandRegistry): void {
   reg.register({
@@ -93,6 +95,68 @@ export function registerSessions(reg: CommandRegistry): void {
       if (!id) throw new Error("usage: sessions delete <id>");
       await ctx.client.sessions.delete(id);
       ctx.printJson({ stopped: id });
+    },
+  });
+
+  // ── threads: the durable conversations in the regional stator (LWW sync) ────
+
+  reg.register({
+    path: "threads list",
+    summary: "your threads (metadata only, newest-updated first)",
+    covers: ["sessions.threads"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.sessions.threads());
+    },
+  });
+
+  reg.register({
+    path: "threads get",
+    summary: "one thread with its messages (last 500)",
+    usage: "threads get <id>",
+    covers: ["sessions.thread"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: threads get <id>");
+      ctx.printJson(await ctx.client.sessions.thread(id));
+    },
+  });
+
+  reg.register({
+    path: "threads push",
+    summary: "LWW-push a thread (cache sync — an unknown id creates it)",
+    usage: "threads push <id> [--file <body.json>] [--title <t>] [--mode <m>] [--source <s>] [--updated-at <iso>]",
+    covers: ["sessions.pushThread"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: threads push <id> [--file <body.json>] [--title …]");
+      // A full body (incl. messages) comes from --file; flags override its metadata.
+      const file = flagStr(args, "file");
+      const body: PushThreadInput = file
+        ? (JSON.parse(readFileSync(file, "utf8")) as PushThreadInput)
+        : { updatedAt: new Date().toISOString() };
+      const title = flagStr(args, "title");
+      if (title !== undefined) body.title = title;
+      const mode = flagStr(args, "mode");
+      if (mode !== undefined) body.mode = mode;
+      const source = flagStr(args, "source");
+      if (source !== undefined) body.source = source;
+      const updatedAt = flagStr(args, "updated-at");
+      if (updatedAt !== undefined) body.updatedAt = updatedAt;
+      if (!body.updatedAt) body.updatedAt = new Date().toISOString();
+      ctx.printJson(await ctx.client.sessions.pushThread(id, body));
+    },
+  });
+
+  reg.register({
+    path: "threads delete",
+    summary: "tombstone a thread (messages purged; stale pushes cannot revive it)",
+    usage: "threads delete <id>",
+    covers: ["sessions.deleteThread"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: threads delete <id>");
+      await ctx.client.sessions.deleteThread(id);
+      ctx.printJson({ deleted: id });
     },
   });
 }

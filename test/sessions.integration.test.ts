@@ -44,3 +44,47 @@ describe("@glyphh/sdk — sessions", () => {
     expect(still?.status ?? "stopped").not.toBe("ready");
   });
 });
+
+describe("@glyphh/sdk — session threads (LWW cache sync)", () => {
+  it("pushes a client-minted thread, lists metadata, reads messages, rejects stale, tombstones", async () => {
+    const client = await signIn();
+    const id = randomUUID();
+    const t0 = new Date(Date.now() - 60_000).toISOString();
+    const t1 = new Date(Date.now() - 30_000).toISOString();
+
+    // Create via push (the pendingPush drain path — unknown id creates).
+    const created = await client.sessions.pushThread(id, {
+      title: "first", mode: "chat", source: "cli", updatedAt: t1,
+      messages: [
+        { role: "user", content: "hello" },
+        { role: "assistant", content: [{ type: "text", text: "hi" }] },
+      ],
+    });
+    expect(created.applied).toBe(true);
+    expect(created.thread).toMatchObject({ id, title: "first", mode: "chat", source: "cli", messageCount: 2 });
+
+    // List: metadata only, no message bodies.
+    const listed = await client.sessions.threads();
+    const meta = listed.find((t) => t.id === id);
+    expect(meta?.messageCount).toBe(2);
+    expect(JSON.stringify(listed)).not.toContain("hello");
+
+    // Read: full thread, messages in order.
+    const full = await client.sessions.thread(id);
+    expect(full.messages.map((m) => m.role)).toEqual(["user", "assistant"]);
+    expect(full.messages[0]!.content).toBe("hello");
+
+    // A STALE push (older clock) is rejected and reports the server's state.
+    const stale = await client.sessions.pushThread(id, { title: "old-news", updatedAt: t0 });
+    expect(stale.applied).toBe(false);
+    expect(stale.thread.title).toBe("first");
+
+    // Tombstone: gone from list/read; a stale push cannot resurrect it.
+    await client.sessions.deleteThread(id);
+    expect((await client.sessions.threads()).some((t) => t.id === id)).toBe(false);
+    await expect(client.sessions.thread(id)).rejects.toMatchObject({ code: "E_NOT_FOUND" });
+    const zombie = await client.sessions.pushThread(id, { title: "zombie", updatedAt: t1 });
+    expect(zombie.applied).toBe(false);
+    await expect(client.sessions.thread(id)).rejects.toMatchObject({ code: "E_NOT_FOUND" });
+  });
+});
