@@ -11,8 +11,12 @@
 import type { AuthedHttp } from "../core/authed-http.js";
 
 export interface AttachedMachine {
+  /** Stable per-connection id — address ONE machine when several are attached. */
+  id?: string;
   app: string;
   version: string;
+  /** The machine's hostname — shown by pickers ("Chris's MacBook"). */
+  name?: string;
   capabilities: string[];
   since: number;
 }
