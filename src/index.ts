@@ -157,7 +157,6 @@ export type {
   SessionThreadMeta,
   SessionThreadMessage,
   PushThreadInput,
-  PushThreadMessage,
   PushThreadResult,
 } from "./contract/threads.js";
 export { FilesClient } from "./resources/files.js";

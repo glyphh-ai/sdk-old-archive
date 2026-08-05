@@ -48,20 +48,22 @@ describe("@glyphh/sdk — sessions", () => {
 describe("@glyphh/sdk — session threads (LWW cache sync)", () => {
   it("pushes a client-minted thread, lists metadata, reads messages, rejects stale, tombstones", async () => {
     const client = await signIn();
-    const id = randomUUID();
-    const t0 = new Date(Date.now() - 60_000).toISOString();
-    const t1 = new Date(Date.now() - 30_000).toISOString();
+    // The app's newChat id shape: c<ts36> (not a uuid).
+    const id = `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+    const t0 = Date.now() - 60_000;
+    const t1 = Date.now() - 30_000;
 
-    // Create via push (the pendingPush drain path — unknown id creates).
+    // Create via push (the pendingPush drain path — unknown id creates). Messages
+    // are CodeMsg objects, stored verbatim; clocks are epoch ms.
     const created = await client.sessions.pushThread(id, {
-      title: "first", mode: "chat", source: "cli", updatedAt: t1,
+      title: "first", mode: "code", source: { kind: "repo", repo: "glyphh-ai/sdk" }, updatedAt: t1,
       messages: [
-        { role: "user", content: "hello" },
-        { role: "assistant", content: [{ type: "text", text: "hi" }] },
+        { role: "user", text: "hello", at: t0 },
+        { role: "assistant", text: "hi", at: t0 + 1, kind: "answer" },
       ],
     });
     expect(created.applied).toBe(true);
-    expect(created.thread).toMatchObject({ id, title: "first", mode: "chat", source: "cli", messageCount: 2 });
+    expect(created.thread).toMatchObject({ id, title: "first", mode: "code", messageCount: 2, updatedAt: t1 });
 
     // List: metadata only, no message bodies.
     const listed = await client.sessions.threads();
@@ -69,10 +71,12 @@ describe("@glyphh/sdk — session threads (LWW cache sync)", () => {
     expect(meta?.messageCount).toBe(2);
     expect(JSON.stringify(listed)).not.toContain("hello");
 
-    // Read: full thread, messages in order.
+    // Read: full thread, CodeMsg round-trips verbatim, in order.
     const full = await client.sessions.thread(id);
-    expect(full.messages.map((m) => m.role)).toEqual(["user", "assistant"]);
-    expect(full.messages[0]!.content).toBe("hello");
+    expect(full.messages).toEqual([
+      { role: "user", text: "hello", at: t0 },
+      { role: "assistant", text: "hi", at: t0 + 1, kind: "answer" },
+    ]);
 
     // A STALE push (older clock) is rejected and reports the server's state.
     const stale = await client.sessions.pushThread(id, { title: "old-news", updatedAt: t0 });

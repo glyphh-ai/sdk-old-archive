@@ -48,9 +48,10 @@ export class SessionsClient {
 
   /**
    * LWW upsert — the CLIENT CACHE SYNC path (drain your pendingPush here). Thread
-   * ids are client-minted uuids: an unknown id creates the thread. The push applies
-   * only when `body.updatedAt` is STRICTLY newer than the server's copy; either way
-   * the result carries the server's current state to reconcile against.
+   * ids are client-minted text (`c<ts36>` style — not uuids): an unknown id creates
+   * the thread. The push applies only when `body.updatedAt` (epoch ms) is STRICTLY
+   * newer than the server's copy; either way the result carries the server's
+   * current state to reconcile against.
    */
   pushThread(id: string, body: PushThreadInput): Promise<PushThreadResult> {
     return this.http.put<PushThreadResult>(`/api/sessions/threads/${encodeURIComponent(id)}`, body);

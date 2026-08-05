@@ -124,7 +124,7 @@ export function registerSessions(reg: CommandRegistry): void {
   reg.register({
     path: "threads push",
     summary: "LWW-push a thread (cache sync — an unknown id creates it)",
-    usage: "threads push <id> [--file <body.json>] [--title <t>] [--mode <m>] [--source <s>] [--updated-at <iso>]",
+    usage: "threads push <id> [--file <body.json>] [--title <t>] [--mode <m>] [--source <json>] [--updated-at <epoch-ms>]",
     covers: ["sessions.pushThread"],
     async run(ctx, args) {
       const id = args.positional[0];
@@ -133,16 +133,20 @@ export function registerSessions(reg: CommandRegistry): void {
       const file = flagStr(args, "file");
       const body: PushThreadInput = file
         ? (JSON.parse(readFileSync(file, "utf8")) as PushThreadInput)
-        : { updatedAt: new Date().toISOString() };
+        : { updatedAt: Date.now() };
       const title = flagStr(args, "title");
       if (title !== undefined) body.title = title;
       const mode = flagStr(args, "mode");
       if (mode !== undefined) body.mode = mode;
       const source = flagStr(args, "source");
-      if (source !== undefined) body.source = source;
+      if (source !== undefined) body.source = JSON.parse(source);
       const updatedAt = flagStr(args, "updated-at");
-      if (updatedAt !== undefined) body.updatedAt = updatedAt;
-      if (!body.updatedAt) body.updatedAt = new Date().toISOString();
+      if (updatedAt !== undefined) {
+        const ms = Number(updatedAt);
+        if (!Number.isSafeInteger(ms) || ms < 0) throw new Error("--updated-at must be epoch milliseconds");
+        body.updatedAt = ms;
+      }
+      if (typeof body.updatedAt !== "number") body.updatedAt = Date.now();
       ctx.printJson(await ctx.client.sessions.pushThread(id, body));
     },
   });
