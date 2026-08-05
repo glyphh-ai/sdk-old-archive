@@ -22,6 +22,27 @@ export interface AttachStatus {
   machines: AttachedMachine[];
 }
 
+/** One entry in an attached machine's directory listing (`attach.fsList`). */
+export interface FsEntry {
+  /** Base name (no path). */
+  name: string;
+  /** Absolute path on the attached machine. */
+  path: string;
+  /** A directory the browser can descend into vs. a leaf file. */
+  dir: boolean;
+  /** True when the directory is itself a git working tree (a repo root). */
+  git?: boolean;
+}
+
+/** The result of an `attach.fsList` walk: the listed directory + its children. */
+export interface FsListing {
+  /** The absolute path that was listed (the machine's root when none was asked for). */
+  path: string;
+  /** The parent path to walk back up to, or null at the machine root. */
+  parent: string | null;
+  entries: FsEntry[];
+}
+
 export class AttachClient {
   constructor(private readonly http: AuthedHttp) {}
 
@@ -34,5 +55,17 @@ export class AttachClient {
   async dispatch<T = unknown>(method: string, params?: Record<string, unknown>): Promise<T> {
     const { result } = await this.http.post<{ result: T }>("/api/attach/dispatch", { method, params: params ?? {} });
     return result;
+  }
+
+  /**
+   * Browse the attached machine's OWN filesystem (self only), for picking a
+   * folder to run a LOCAL session in. Omit `path` to start at the root the
+   * desktop chooses to expose. Thin typed wrapper over `dispatch('fs.list')`;
+   * a machine whose desktop build predates the `fs.list` handler rejects the
+   * dispatch — callers should surface that as an honest "needs a desktop
+   * update" state rather than an error.
+   */
+  fsList(path?: string): Promise<FsListing> {
+    return this.dispatch<FsListing>("fs.list", path ? { path } : {});
   }
 }

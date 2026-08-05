@@ -186,7 +186,7 @@ export type { Deployment, DeployStatus, DeployInput } from "./contract/hosting.j
 export { LibraryClient } from "./resources/library.js";
 export type { LibraryItem, LibraryKind, LibraryScope, SaveLibraryItemInput } from "./contract/library.js";
 export { RelayClient } from "./resources/relay.js";
-export { AttachClient, type AttachStatus, type AttachedMachine } from "./resources/attach.js";
+export { AttachClient, type AttachStatus, type AttachedMachine, type FsEntry, type FsListing } from "./resources/attach.js";
 export type {
   RelayPolicy,
   RelayDevice,

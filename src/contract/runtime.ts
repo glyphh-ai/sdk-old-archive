@@ -43,6 +43,15 @@ export interface CreateSessionInput {
   repo?: string;
   branch?: string;
   path?: string;
+  /**
+   * Provision an EMPTY, git-initialized cloud project with NO GitHub remote —
+   * the pod `git init`s a fresh workspace that R2 persists across restarts, so
+   * a user can build without ever connecting GitHub. Ignored when `repo` or a
+   * local `path` is given (those already carry their working context). Requires
+   * server support for durable R2-backed project workspaces; without it the
+   * session still provisions but is not persisted.
+   */
+  newProject?: boolean;
 }
 
 /** `sessions.create` returns the record plus the runtime bearer, shown ONCE. */
