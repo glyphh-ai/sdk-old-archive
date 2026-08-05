@@ -10,6 +10,7 @@ import { CommandRegistry } from "./registry.js";
 import { registerAuth } from "./commands/auth.js";
 import { registerSession } from "./commands/session.js";
 import { registerRotor } from "./commands/rotor.js";
+import { registerHarness } from "./commands/harness.js";
 import { registerMeta } from "./commands/meta.js";
 import { registerOrg } from "./commands/org.js";
 import { registerMemberships } from "./commands/memberships.js";
@@ -51,6 +52,7 @@ export function buildRegistry(): CommandRegistry {
   registerAgents(reg);
   registerSession(reg);
   registerRotor(reg);
+  registerHarness(reg);
   registerMeta(reg);
   registerOrg(reg);
   registerMemberships(reg);

@@ -15,6 +15,7 @@ import { sessionTokenProvider, staticTokenProvider, type TokenProvider } from ".
 import { createLogger, type LoggerOptions } from "./core/logger.js";
 import { AuthedHttp } from "./core/authed-http.js";
 import { SseTransport } from "./transport/sse-transport.js";
+import { HarnessClient, type HarnessRunOptions } from "./transport/harness.js";
 import { Session, type SessionConfig } from "./session/session.js";
 import { OrgClient } from "./resources/org.js";
 import { MembersClient } from "./resources/members.js";
@@ -78,6 +79,19 @@ export interface OpenSessionOptions extends SessionConfig {
   token?: TokenProvider;
   /** Injectable fetch for the runtime stream (defaults to the client's). */
   fetch?: FetchLike;
+}
+
+/** Options for opening a HARNESS pod (the `glyphh.harness/v1` data plane). */
+export interface OpenHarnessOptions {
+  /** The pod's base URL (the provisioned session's `runtimeUrl`). */
+  url: string;
+  /** Runtime bearer — the session's `gy_rk_` runtime token (NOT the
+   *  control-plane session token). Loopback/auth-off pods need none. */
+  token?: TokenProvider;
+  /** Injectable fetch for the pod (defaults to the client's). */
+  fetch?: FetchLike;
+  /** Reconnect/poll/WS knobs for this pod's runs. */
+  run?: HarnessRunOptions;
 }
 
 export interface Client {
@@ -174,6 +188,9 @@ export interface Client {
   me(): Promise<Identity>;
   /** Open a rotor session on the runtime (streaming turns, durable reconnect). */
   session(opts: OpenSessionOptions): Session;
+  /** Open a HARNESS pod (`glyphh.harness/v1`) — interactive chat/cowork/code
+   *  turns streamed as agent frames, durable across reconnects. */
+  harness(opts: OpenHarnessOptions): HarnessClient;
 }
 
 export function createClient(opts: ClientOptions): Client {
@@ -259,5 +276,14 @@ export function createClient(opts: ClientOptions): Client {
       });
       return new Session(transport, { ...sopts, run: { logger, ...(sopts.run ?? {}) } });
     },
+    harness: (hopts: OpenHarnessOptions): HarnessClient =>
+      // Like `session()`: the pod bearer is the provisioned runtimeToken, a
+      // SEPARATE credential — only attach one if the caller supplies it.
+      new HarnessClient({
+        baseUrl: hopts.url,
+        ...(hopts.token ? { token: hopts.token } : {}),
+        ...(hopts.fetch ?? opts.fetch ? { fetchImpl: hopts.fetch ?? opts.fetch } : {}),
+        run: { logger, ...(hopts.run ?? {}) },
+      }),
   };
 }
