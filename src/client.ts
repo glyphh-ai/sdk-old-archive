@@ -161,6 +161,9 @@ export interface Client {
   gateway: GatewayClient;
   /** The anonymous (no-account) chat surface — mint a guest token + chat via the gateway. */
   guest: GuestClient;
+  /** App-icon resolution — the server's cached icon for a domain, as a URL an
+   *  <img>/texture loads directly (public endpoint, no bearer). */
+  icons: { urlFor(domain: string): string };
   /** The bearer supplier for authenticated calls / the rotor transport. */
   token: TokenProvider;
   /** Force a session refresh (rotation). Resolves false if signed out. */
@@ -235,6 +238,10 @@ export function createClient(opts: ClientOptions): Client {
     // The guest surface rides the UNAUTHENTICATED transport — a guest token is not a
     // session bearer, it is carried per-call.
     guest: new GuestClient(http),
+    icons: {
+      urlFor: (domain: string): string =>
+        `${opts.url.replace(/\/$/, "")}/api/icons?domain=${encodeURIComponent(domain.trim().toLowerCase())}`,
+    },
     token,
     refresh: async () => (await refresh.refresh()) !== null,
     getSession: () => store.load(),
