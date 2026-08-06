@@ -123,9 +123,21 @@ export interface HarnessRunBody {
   history?: HarnessChatTurn[];
   attachments?: HarnessAttachmentRef[];
   gatewayUrl?: string;
+  /**
+   * The control plane's origin, for the app tool surface the pod lends itself
+   * (scaffold_app / create_app_entry / build_app / deploy_app / get_app /
+   * list_apps).
+   *
+   * NORMALLY OMITTED: the pod derives it from `gatewayUrl`, which is always
+   * `<control-plane-origin>/api/gateway`. Pass it only for a deployment that
+   * splits the gateway from the control plane.
+   */
+  controlUrl?: string;
   /** The run's gateway credential. A provisioned cloud pod carries its own
    *  (`GLYPHH_RUNTIME_TOKEN`); a LOCAL auth-off pod has none, so the caller
-   *  passes its control-plane access token here per run. */
+   *  passes its control-plane access token here per run. The pod presents this
+   *  same credential to the control plane's app tools, so one token both meters
+   *  the turn and publishes what the turn builds. */
   runtimeToken?: string;
   /** Caller-lent HTTP MCP servers wired into the run's toolset (cowork/code). */
   mcpServers?: HarnessMcpServerRef[];
