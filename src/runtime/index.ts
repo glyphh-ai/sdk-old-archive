@@ -16,6 +16,16 @@ export {
 } from "./supervisor.js";
 export type { RuntimeRecord } from "./discovery.js";
 
+// The machine's one LOCAL HARNESS POD (rrotor ROTOR_MODE=harness, auth off,
+// loopback) — the local seat of "one harness everywhere". Shared by CLI + desktop.
+export {
+  ensureLocalHarnessPod,
+  localHarnessPodStatus,
+  stopLocalHarnessPod,
+  resolveHarnessCommand,
+  type LocalHarnessPodOptions,
+} from "./harness-pod.js";
+
 // The governed model bridge: resolve a rotor's role→model binding into rrotor's
 // endpoint map, plus per-session model switching with an audit trail.
 export {

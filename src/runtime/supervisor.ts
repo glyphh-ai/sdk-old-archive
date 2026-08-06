@@ -46,8 +46,15 @@ export interface EnsureRuntimeOptions {
   home?: string;
   /** The `rrotor` executable (default resolves `rrotor` on PATH). */
   bin?: string;
+  /** Args inserted BEFORE `serve` — e.g. a script path when `bin` is `node`
+   *  (the dev launch of a repo-built entry). */
+  preArgs?: string[];
   /** Extra args appended after `serve -p <port>`. */
   args?: string[];
+  /** Extra environment for the spawned runtime (e.g. `ROTOR_MODE=harness`).
+   *  Merged over the inherited process env; only applies on spawn — attaching
+   *  to an already-running runtime never re-shapes its env. */
+  env?: Record<string, string | undefined>;
   /** How long to wait for the runtime to come up (default 15s). */
   startTimeoutMs?: number;
   // ── test seams ──────────────────────────────────────────────────────────────
@@ -62,7 +69,9 @@ interface Ctx {
   lockDir: string;
   logPath: string;
   bin: string;
+  preArgs: string[];
   args: string[];
+  env: Record<string, string | undefined>;
   startTimeoutMs: number;
   fetchImpl: typeof fetch;
   spawnImpl: SpawnLike;
@@ -116,10 +125,10 @@ async function startRuntime(ctx: Ctx): Promise<LocalRuntime> {
 
   const logFd = openSync(ctx.logPath, "a");
   try {
-    const child = ctx.spawnImpl(ctx.bin, ["serve", "-p", String(port), ...ctx.args], {
+    const child = ctx.spawnImpl(ctx.bin, [...ctx.preArgs, "serve", "-p", String(port), ...ctx.args], {
       detached: true, // own process group → outlives this client
       stdio: ["ignore", logFd, logFd],
-      env: { ...process.env, PORT: String(port) },
+      env: { ...process.env, ...ctx.env, PORT: String(port) },
     });
     // A missing binary surfaces as an ASYNC 'error' (ENOENT), not a throw —
     // unhandled it is an uncaught exception that crashes the HOST app (the
@@ -159,7 +168,9 @@ function context(opts: EnsureRuntimeOptions): Ctx {
     lockDir: join(home, "runtime.lock"),
     logPath: join(home, "runtime.log"),
     bin: opts.bin ?? process.env.GLYPHH_ROTOR_BIN ?? "rrotor",
+    preArgs: opts.preArgs ?? [],
     args: opts.args ?? [],
+    env: opts.env ?? {},
     startTimeoutMs: opts.startTimeoutMs ?? 15_000,
     fetchImpl: opts.fetchImpl ?? fetch,
     spawnImpl: opts.spawnImpl ?? (nodeSpawn as unknown as SpawnLike),
