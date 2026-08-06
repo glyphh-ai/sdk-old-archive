@@ -90,6 +90,24 @@ export interface HarnessChatTurn {
   content: string;
 }
 
+/** One caller-lent HTTP MCP server (the pod allows max 4; plaintext http is
+ *  loopback-only pod-side). */
+export interface HarnessMcpServerRef {
+  name: string;
+  url: string;
+  headers?: Record<string, string>;
+}
+
+/** One inline image for a turn — base64, ridden to the model as a vision
+ *  content block. The run body's `prompt` is text, so this is the only path a
+ *  pasted screenshot reaches the model. Pod caps: 8 per turn, ~7.5 MiB each,
+ *  media type one of image/png · image/jpeg · image/gif · image/webp. */
+export interface HarnessImageRef {
+  mediaType: string;
+  /** Base64 payload — NO `data:` prefix. */
+  data: string;
+}
+
 /** The `POST /run` body (prompt required; the bearer defaults `runtimeToken`
  *  and the token's binding defaults `sessionId` — omit both normally). */
 export interface HarnessRunBody {
@@ -105,6 +123,26 @@ export interface HarnessRunBody {
   history?: HarnessChatTurn[];
   attachments?: HarnessAttachmentRef[];
   gatewayUrl?: string;
+  /** The run's gateway credential. A provisioned cloud pod carries its own
+   *  (`GLYPHH_RUNTIME_TOKEN`); a LOCAL auth-off pod has none, so the caller
+   *  passes its control-plane access token here per run. */
+  runtimeToken?: string;
+  /** Caller-lent HTTP MCP servers wired into the run's toolset (cowork/code). */
+  mcpServers?: HarnessMcpServerRef[];
+  /** Inline images for THIS turn, as vision blocks ahead of the prompt text. */
+  images?: HarnessImageRef[];
+  /**
+   * The run's working directory — an ABSOLUTE host path the pod's own preset
+   * tools (Bash/Read/Edit/Glob/Grep) anchor at.
+   *
+   * LOCAL PODS ONLY. A pod with auth enabled (i.e. any cloud/tenant pod) 400s
+   * this field: only the loopback-bound auth-off pod running on the user's own
+   * machine may be pointed at a host path. Validated pod-side (absolute,
+   * exists, is a directory, realpath'd). Attachments deliberately do NOT
+   * follow it — they stay in the pod's per-session sandbox so a run never
+   * litters the user's folder.
+   */
+  workdir?: string;
   maxTurns?: number;
 }
 
