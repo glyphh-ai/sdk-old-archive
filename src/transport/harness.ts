@@ -332,9 +332,17 @@ export class HarnessClient {
   ): Promise<"terminal" | "drop" | "unavailable"> {
     return new Promise((resolve) => {
       void (async (): Promise<void> => {
-        const wsUrl = `${this.baseUrl.replace(/^http/i, "ws")}/ws`;
+        const bearer = this.token ? await this.token() : "";
         const headers: Record<string, string> = {};
-        if (this.token) headers["authorization"] = `Bearer ${await this.token()}`;
+        if (bearer) headers["authorization"] = `Bearer ${bearer}`;
+        // A BROWSER cannot set WS headers, so the pod also accepts `?token=`
+        // (same introspection gate). Without this every browser client failed
+        // the upgrade — "HTTP Authentication failed" — and silently degraded
+        // to frame POLLING, so web turns arrived in ~1.5s lumps instead of
+        // streaming. Header-capable callers (node, the desktop) keep using it.
+        const wsBase = `${this.baseUrl.replace(/^http/i, "ws")}/ws`;
+        const browser = typeof (globalThis as { document?: unknown }).document !== "undefined";
+        const wsUrl = browser && bearer ? `${wsBase}?token=${encodeURIComponent(bearer)}` : wsBase;
         let ws: HarnessWsLike;
         try {
           ws = factory(wsUrl, headers);
