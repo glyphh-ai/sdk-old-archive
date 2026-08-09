@@ -67,6 +67,11 @@ function supervisorOptions(opts: LocalHarnessPodOptions): EnsureRuntimeOptions {
       ROTOR_AUTH_SERVICE_TOKEN: undefined,
       // Sandboxes + agent config dirs under the harness home, not tmp.
       HARNESS_HOME: join(home, "state"),
+      // The local pod defaults to 1 concurrent run ("the one session it exists
+      // for"), but it now ALSO serves relayed runs from the user's OTHER devices
+      // (phone → attach.run). One in-flight or parked turn must not 409 every
+      // other session. An explicit env still wins.
+      HARNESS_MAX_RUNS: process.env.HARNESS_MAX_RUNS ?? "12",
     },
     ...(opts.startTimeoutMs !== undefined ? { startTimeoutMs: opts.startTimeoutMs } : {}),
     ...(opts.fetchImpl ? { fetchImpl: opts.fetchImpl } : {}),

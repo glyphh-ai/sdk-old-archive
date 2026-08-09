@@ -105,6 +105,14 @@ export class AttachClient {
     const finish = (r: RelayResult): void => { if (done) return; done = true; settle(r); };
     let text = "";
 
+    // Stop must reach the MACHINE, not just close the local stream: aborting the
+    // fetch relies on the server noticing the disconnect. Explicitly dispatch
+    // agent.stop so the desktop aborts the run (and frees its pod slot) for sure.
+    if (opts.signal) {
+      if (opts.signal.aborted) void this.stopRun(runId);
+      else opts.signal.addEventListener("abort", () => { void this.stopRun(runId); }, { once: true });
+    }
+
     const pump = async (): Promise<void> => {
       let resp: Response;
       try {
