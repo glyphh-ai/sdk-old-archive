@@ -45,8 +45,11 @@ export interface LoopManifest {
   skills?: string[];
   /** Connection slugs the loop may use. */
   connections?: string[];
-  /** Whether the loop reads from / writes to memory. */
-  memory?: { read?: boolean; write?: boolean };
+  /** The loop's MEMORY POLICY: `read` gates recall-before-the-turn, `write`
+   *  gates persist-after; topK/threshold tune the semantic recall; `entity`
+   *  names the fact owner (default `user`). Rides the run body to the runtime
+   *  as HarnessMemoryPolicy. */
+  memory?: { read?: boolean; write?: boolean; topK?: number; threshold?: number; entity?: string };
   /** Layout the workspace re-orients to while this loop is active. Desktop only —
    *  a CLI run has no layout and ignores it. */
   layout?: string;
