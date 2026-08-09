@@ -156,6 +156,25 @@ export interface HarnessRunBody {
    */
   workdir?: string;
   maxTurns?: number;
+  /** The LOOP's memory policy for this turn: whether the turn rotates around the
+   *  stator and how. Absent ⇒ the runtime default (recall + write on). This is how
+   *  a loop hands "when memory is used and how" to the turn (docs/runtime-stator-split.md). */
+  memory?: HarnessMemoryPolicy;
+}
+
+/** How a loop wants a turn to use memory. All optional; absent fields take the
+ *  runtime default. */
+export interface HarnessMemoryPolicy {
+  /** Recall + inject before the loop. Default true. */
+  recall?: boolean;
+  /** Persist the exchange after the loop. Default true. */
+  write?: boolean;
+  /** Semantic-recall breadth. */
+  topK?: number;
+  /** Minimum cosine for a semantic hit. */
+  threshold?: number;
+  /** The fact-owning entity (default `user`). */
+  entity?: string;
 }
 
 /** The `POST /run` 200 ack. */
