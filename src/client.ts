@@ -191,6 +191,12 @@ export interface Client {
   /** Open a HARNESS pod (`glyphh.harness/v1`) — interactive chat/cowork/code
    *  turns streamed as agent frames, durable across reconnects. */
   harness(opts: OpenHarnessOptions): HarnessClient;
+  /** THE SINGLE FRONT DOOR for interactive turns: a HarnessClient bound to the
+   *  control-plane turn proxy (`/api/harness`), which region-routes to the org's
+   *  regional rrotor + stator. No pod URL, no provisioning — the caller's session
+   *  token authenticates and the server picks the region. Every surface should run
+   *  turns through this (docs/turn-proxy.md). */
+  harnessViaApi(): HarnessClient;
 }
 
 export function createClient(opts: ClientOptions): Client {
@@ -284,6 +290,16 @@ export function createClient(opts: ClientOptions): Client {
         ...(hopts.token ? { token: hopts.token } : {}),
         ...(hopts.fetch ?? opts.fetch ? { fetchImpl: hopts.fetch ?? opts.fetch } : {}),
         run: { logger, ...(hopts.run ?? {}) },
+      }),
+    harnessViaApi: (): HarnessClient =>
+      // The single front door: bind to the control-plane proxy, authenticated by
+      // the user's OWN session token (not a pod runtimeToken). The server
+      // region-routes and forwards the bearer; the rrotor introspects + owner-scopes.
+      new HarnessClient({
+        baseUrl: `${opts.url.replace(/\/+$/, "")}/api/harness`,
+        token,
+        ...(opts.fetch ? { fetchImpl: opts.fetch } : {}),
+        run: { logger },
       }),
   };
 }
