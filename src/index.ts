@@ -6,7 +6,7 @@
  */
 
 export { createClient } from "./client.js";
-export type { Client, ClientOptions, OpenSessionOptions, OpenHarnessOptions } from "./client.js";
+export type { Client, ClientOptions, OpenSessionOptions, OpenHarnessOptions, RunTurnOptions, RunHandle } from "./client.js";
 export type { AuthedHttp } from "./core/authed-http.js";
 
 export { Session } from "./session/session.js";
@@ -205,6 +205,7 @@ export { LibraryClient } from "./resources/library.js";
 export type { LibraryItem, LibraryKind, LibraryScope, SaveLibraryItemInput } from "./contract/library.js";
 export { RelayClient } from "./resources/relay.js";
 export { AttachClient, type AttachStatus, type AttachedMachine, type FsEntry, type FsListing } from "./resources/attach.js";
+export { RunStreamClient, type RunStreamHandle, type RunStreamFrame } from "./resources/run-stream.js";
 export type {
   RelayPolicy,
   RelayDevice,

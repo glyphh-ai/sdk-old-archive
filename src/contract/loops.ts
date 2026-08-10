@@ -39,6 +39,9 @@ export interface LoopRole {
 export interface LoopManifest {
   /** Manifest shape version, for forward migration. */
   version?: number;
+  /** The loop's KIND. A normal work `turn`, or a `memory` loop whose role slots
+   *  (encoder / reasoner / governor) power the memory rotor. Default `turn`. */
+  type?: "turn" | "memory";
   /** The model slots this loop declares. */
   roles?: LoopRole[];
   /** Skill slugs the loop may call. */

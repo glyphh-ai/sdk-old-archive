@@ -15,7 +15,7 @@ import { sessionTokenProvider, staticTokenProvider, type TokenProvider } from ".
 import { createLogger, type LoggerOptions } from "./core/logger.js";
 import { AuthedHttp } from "./core/authed-http.js";
 import { SseTransport } from "./transport/sse-transport.js";
-import { HarnessClient, type HarnessRunOptions } from "./transport/harness.js";
+import { HarnessClient, type HarnessRunOptions, type HarnessStartOptions } from "./transport/harness.js";
 import { Session, type SessionConfig } from "./session/session.js";
 import { OrgClient } from "./resources/org.js";
 import { MembersClient } from "./resources/members.js";
@@ -39,6 +39,41 @@ import { HostingClient } from "./resources/hosting.js";
 import { LibraryClient } from "./resources/library.js";
 import { RelayClient } from "./resources/relay.js";
 import { AttachClient } from "./resources/attach.js";
+import { RunStreamClient } from "./resources/run-stream.js";
+
+/**
+ * THE ONE PATH. Every surface runs a turn through `client.run()` — never by
+ * choosing `harness()` vs `attach.run()` itself. The SDK routes on `target`:
+ * `desktop` relays the turn to the caller's attached machine (its real files +
+ * tools); `cloud` runs it on a runtime pod through the region-routed proxy. Both
+ * return the SAME {@link RunHandle}, so callers consume every turn identically.
+ */
+export interface RunTurnOptions {
+  /** Where the turn executes. Default `cloud`. */
+  target?: "desktop" | "cloud";
+  runId?: string;
+  threadId?: string;
+  prompt?: string;
+  messages?: Array<{ role: string; text?: string; content?: string }>;
+  mode?: "chat" | "cowork" | "code";
+  workdir?: string;
+  /** Cloud-target extras (a desktop-relay turn uses the machine's own defaults). */
+  model?: string;
+  permission?: string;
+  images?: Array<{ mediaType: string; data: string }>;
+  /** The loop's memory policy (rides to the runtime as HarnessMemoryPolicy). */
+  memory?: unknown;
+  signal?: AbortSignal;
+}
+
+/** The single run handle — identical for desktop-relay and cloud-pod turns. */
+export interface RunHandle {
+  readonly runId?: string;
+  on(cb: (frame: { type: string; [k: string]: unknown }) => void): () => void;
+  readonly done: Promise<{ runId: string; text?: string; stopped?: boolean; error?: string }>;
+  answer(id: string, reply: { allow?: boolean; answers?: string[] }): Promise<void>;
+  stop(): Promise<void>;
+}
 import { RotorConfigClient } from "./resources/rotor-config.js";
 import { GatewayClient } from "./resources/gateway.js";
 import { GuestClient } from "./resources/guest.js";
@@ -165,6 +200,9 @@ export interface Client {
   relay: RelayClient;
   /** Attached-desktop control — status + dispatch a method to the caller's own live machine. */
   attach: AttachClient;
+  /** Attach to a thread's live run and stream its frames (the run-stream broker) —
+   *  "open a thread anywhere, see the live turn". */
+  runStream: RunStreamClient;
   /** Rotor catalog + role→model bindings + the resolved runtime registry. */
   rotorConfig: RotorConfigClient;
   /** The org's SUPPORTED model set + model-governance audit (org_admin). */
@@ -197,6 +235,12 @@ export interface Client {
    *  token authenticates and the server picks the region. Every surface should run
    *  turns through this (docs/turn-proxy.md). */
   harnessViaApi(): HarnessClient;
+
+  /** THE ONE PATH. Run a turn — `target: 'desktop'` relays to the caller's
+   *  attached machine, `target: 'cloud'` (default) runs on a runtime pod — and
+   *  get back the same {@link RunHandle} either way. Surfaces call this, never
+   *  `harness()`/`attach.run` directly. */
+  run(opts: RunTurnOptions): RunHandle;
 }
 
 export function createClient(opts: ClientOptions): Client {
@@ -254,6 +298,7 @@ export function createClient(opts: ClientOptions): Client {
     messageSessions: new LibraryClient(authed, "message_session"),
     relay: new RelayClient(authed),
     attach: new AttachClient(authed),
+    runStream: new RunStreamClient(authed),
     rotorConfig: new RotorConfigClient(authed),
     orgModels: new OrgModelsClient(authed),
     models: new ModelsClient(authed),
@@ -301,5 +346,47 @@ export function createClient(opts: ClientOptions): Client {
         ...(opts.fetch ? { fetchImpl: opts.fetch } : {}),
         run: { logger },
       }),
+
+    // THE ONE PATH every surface uses. Routes to the right executor and returns
+    // the common RunHandle. `harness()`/`attach.run` remain as the transports it
+    // delegates to — nothing else should call them directly.
+    run: (ropts: RunTurnOptions): RunHandle => {
+      const { target = "cloud", signal, mode } = ropts;
+      if (target === "desktop") {
+        const attachMode: "cowork" | "code" = mode === "cowork" ? "cowork" : "code";
+        return new AttachClient(authed).run(
+          {
+            ...(ropts.runId ? { runId: ropts.runId } : {}),
+            ...(ropts.threadId ? { threadId: ropts.threadId } : {}),
+            ...(ropts.prompt ? { prompt: ropts.prompt } : {}),
+            ...(ropts.messages ? { messages: ropts.messages } : {}),
+            mode: attachMode,
+            ...(ropts.workdir ? { workdir: ropts.workdir } : {}),
+            ...(ropts.permission ? { permission: ropts.permission as "ask" | "plan" | "acceptEdits" | "auto" | "bypass" } : {}),
+          },
+          signal ? { signal } : {},
+        ) as unknown as RunHandle;
+      }
+      const hc = new HarnessClient({
+        baseUrl: `${opts.url.replace(/\/+$/, "")}/api/harness`,
+        token,
+        ...(opts.fetch ? { fetchImpl: opts.fetch } : {}),
+        run: { logger },
+      });
+      const body = {
+        ...(ropts.runId ? { runId: ropts.runId } : {}),
+        ...(ropts.threadId ? { threadId: ropts.threadId } : {}),
+        ...(ropts.prompt ? { prompt: ropts.prompt } : {}),
+        ...(ropts.messages ? { messages: ropts.messages } : {}),
+        ...(ropts.mode ? { mode: ropts.mode } : {}),
+        ...(ropts.workdir ? { workdir: ropts.workdir } : {}),
+        ...(ropts.model ? { model: ropts.model } : {}),
+        ...(ropts.permission ? { permission: ropts.permission } : {}),
+        ...(ropts.images && ropts.images.length ? { images: ropts.images } : {}),
+        ...(ropts.memory ? { memory: ropts.memory } : {}),
+        ...(signal ? { signal } : {}),
+      } as HarnessStartOptions;
+      return hc.start(body) as unknown as RunHandle;
+    },
   };
 }

@@ -175,6 +175,17 @@ export interface HarnessMemoryPolicy {
   threshold?: number;
   /** The fact-owning entity (default `user`). */
   entity?: string;
+  /** The MEMORY ROTOR (opt-in, org-governed): when enabled, a cheap assembler model
+   *  builds the worker's system prompt from recalled memory instead of raw-injecting
+   *  it. The control plane sets this from the org's memory-rotor settings; clients
+   *  stay blind. Absent/disabled ⇒ unchanged behavior. */
+  rotor?: {
+    enabled?: boolean;
+    /** The org's chosen assembler model id (a supported catalog model). */
+    model?: string;
+    /** Cached standards/rules text (the shipped baseline / org rules). */
+    standards?: string;
+  };
 }
 
 /** The `POST /run` 200 ack. */

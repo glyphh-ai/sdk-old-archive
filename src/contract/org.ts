@@ -32,6 +32,10 @@ export interface Org {
   billingSameAsAddress: boolean;
   billingContact: BillingContact | null;
   workosOrgId: string | null;
+  /** Opt into the metered memory rotor (org-admin). */
+  memoryRotorEnabled: boolean;
+  /** The org's chosen memory-rotor assembler model (a supported catalog model), or null. */
+  memoryRotorModel: string | null;
 }
 
 export interface OrgUpdate {
@@ -40,6 +44,8 @@ export interface OrgUpdate {
   billingAddress?: Address | null;
   billingSameAsAddress?: boolean;
   billingContact?: BillingContact | null;
+  memoryRotorEnabled?: boolean;
+  memoryRotorModel?: string | null;
 }
 
 /**
