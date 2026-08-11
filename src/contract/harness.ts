@@ -120,6 +120,9 @@ export interface HarnessRunBody {
    *  transcript; auth stays bound to the token's sessionId. */
   threadId?: string;
   mode?: HarnessMode;
+  /** The session's GitHub repo (`owner/repo`) — a cloud workspace's source.
+   *  The pod tells the agent and clones it into the workspace when absent. */
+  repo?: string;
   sessionId?: string;
   model?: string;
   system?: string;
