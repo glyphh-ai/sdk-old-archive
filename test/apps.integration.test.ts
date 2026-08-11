@@ -57,10 +57,11 @@ describe("@glyphh/sdk — apps + hosting", () => {
 
     const dep = await client.hosting.deploy({ appSlug: slug });
     expect(dep.status).toBe("live");
-    // The wire url is always the app's BRAND origin — see contract/hosting.ts. The
-    // driver's real serving url (…/hosted/<slug>/) is the internal origin the edge
-    // proxies to and refuses direct traffic, so it is deliberately never published.
-    expect(dep.url).toBe(`https://${slug}.glyphh.app`);
+    // The wire url is the address a PERSON opens: the BRAND origin in prod
+    // (behind the edge), the real /hosted route on a DEV server (localhost
+    // publicUrl — no edge in front, the brand origin would be dead there).
+    // This suite runs against the local dev server, so expect the dev form.
+    expect(dep.url).toMatch(new RegExp(`^https?://[^/]+/hosted/${slug}/$|^https://${slug}\\.glyphh\\.app$`));
 
     const got = await client.hosting.status(dep.id);
     expect(got.id).toBe(dep.id);
