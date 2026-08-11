@@ -83,6 +83,13 @@ export class AttachClient {
     await this.http.post("/api/attach/run/stop", { runId }).catch(() => { /* run may be done */ });
   }
 
+  /** Change the permission mode of a relayed (on-machine) run mid-flight — the
+   *  desktop pushes it to its local pod so the gate re-evaluates. Best-effort:
+   *  a run that already finished 404s, which we swallow. */
+  async setRunPermission(runId: string, permission: "ask" | "plan" | "acceptEdits" | "auto" | "bypass"): Promise<void> {
+    await this.http.post("/api/attach/run/permission", { runId, permission }).catch(() => { /* run may be done */ });
+  }
+
   /**
    * Run a turn ON the caller's attached machine (not a cloud pod) and stream its
    * frames back. Same shape as the harness run handle so callers consume relay
@@ -156,6 +163,7 @@ export class AttachClient {
       get done() { return donePromise; },
       answer: (id, reply) => this.answerRun(id, reply),
       stop: () => this.stopRun(runId),
+      setPermission: (mode) => this.setRunPermission(runId, mode),
     };
   }
 }
@@ -168,4 +176,6 @@ export interface RelayRunHandle {
   readonly done: Promise<RelayResult>;
   answer(id: string, reply: { allow?: boolean; answers?: string[] }): Promise<void>;
   stop(): Promise<void>;
+  /** Change the run's permission mode mid-flight (POST /api/attach/run/permission). */
+  setPermission(mode: "ask" | "plan" | "acceptEdits" | "auto" | "bypass"): Promise<void>;
 }

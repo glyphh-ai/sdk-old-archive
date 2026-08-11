@@ -29,6 +29,7 @@ import {
   HARNESS_WIRE_VERSION,
   isHarnessWireFrame,
   type HarnessAnswer,
+  type HarnessPermission,
   type HarnessRunAck,
   type HarnessRunBody,
   type HarnessRunResult,
@@ -126,7 +127,7 @@ export class HarnessRun {
     this.rejectDone = rej;
   });
 
-  constructor(private readonly ops: { answer: (run: HarnessRun, id: string, reply: HarnessAnswer) => Promise<void>; stop: (run: HarnessRun) => Promise<void> }) {
+  constructor(private readonly ops: { answer: (run: HarnessRun, id: string, reply: HarnessAnswer) => Promise<void>; stop: (run: HarnessRun) => Promise<void>; setPermission: (run: HarnessRun, mode: HarnessPermission) => Promise<void> }) {
     // Same safety net as transport/run.ts: a start failure rejects BOTH
     // promises; a consumer watching only one must not crash the host process.
     void this.whenStarted.catch(() => {});
@@ -154,6 +155,14 @@ export class HarnessRun {
   /** Resolve a parked `approval` ({allow}) or `ask` ({answers}) frame. */
   answer(id: string, reply: HarnessAnswer): Promise<void> {
     return this.ops.answer(this, id, reply);
+  }
+
+  /** Change the permission mode of THIS in-flight run (POST /runs/:id/permission).
+   *  The pod re-reads it on the next gate decision, so a plan→auto flip unblocks a
+   *  running turn without waiting for the next run. A settled run no-ops. */
+  setPermission(mode: HarnessPermission): Promise<void> {
+    if (this.settledFlag) return Promise.resolve();
+    return this.ops.setPermission(this, mode);
   }
 
   /** Abort the run: best-effort `POST /runs/:id/stop` (the pod frees its slot
@@ -238,6 +247,10 @@ export class HarnessClient {
       stop: async (r) => {
         const ack = await r.whenStarted;
         await this.post(`/runs/${encodeURIComponent(ack.runId)}/stop`, {});
+      },
+      setPermission: async (r, mode) => {
+        const ack = await r.whenStarted;
+        await this.post(`/runs/${encodeURIComponent(ack.runId)}/permission`, { permission: mode });
       },
     });
     if (signal?.aborted) void run.stop();

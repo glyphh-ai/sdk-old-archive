@@ -73,6 +73,10 @@ export interface RunHandle {
   readonly done: Promise<{ runId: string; text?: string; stopped?: boolean; error?: string }>;
   answer(id: string, reply: { allow?: boolean; answers?: string[] }): Promise<void>;
   stop(): Promise<void>;
+  /** Change the permission mode of THIS in-flight turn — the executor (desktop or
+   *  cloud pod) re-reads it on the next tool decision, so a mode flip lands mid-run
+   *  instead of only on the next turn. */
+  setPermission(mode: "ask" | "plan" | "acceptEdits" | "auto" | "bypass"): Promise<void>;
 }
 import { RotorConfigClient } from "./resources/rotor-config.js";
 import { GatewayClient } from "./resources/gateway.js";

@@ -16,6 +16,7 @@
  *   ask       PAUSES the run — answer { id, answers } (or the pod's ask
  *             timeout resolves empty and the agent re-plans)
  *   setup     reserved (desktop model download/build UI); pod v1 never emits
+ *   permission the run's live permission mode changed mid-flight (advisory)
  *   done      terminal; stopped=true when aborted
  *   error     terminal; human-readable
  *
@@ -57,6 +58,9 @@ export type HarnessFrame =
   | { type: "approval"; id: string; kind: HarnessActionKind; title: string; detail: string }
   | { type: "ask"; id: string; questions: HarnessAskQuestion[] }
   | { type: "setup"; phase: string; [k: string]: unknown }
+  /** The run's live permission mode changed mid-flight — advisory + non-terminal,
+   *  so every surface observing the run re-renders its mode chip together. */
+  | { type: "permission"; permission: HarnessPermission }
   | { type: "done"; stopped: boolean }
   | { type: "error"; error: string };
 
