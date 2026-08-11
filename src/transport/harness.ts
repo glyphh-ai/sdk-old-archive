@@ -127,7 +127,7 @@ export class HarnessRun {
     this.rejectDone = rej;
   });
 
-  constructor(private readonly ops: { answer: (run: HarnessRun, id: string, reply: HarnessAnswer) => Promise<void>; stop: (run: HarnessRun) => Promise<void>; setPermission: (run: HarnessRun, mode: HarnessPermission) => Promise<void> }) {
+  constructor(private readonly ops: { answer: (run: HarnessRun, id: string, reply: HarnessAnswer) => Promise<void>; stop: (run: HarnessRun) => Promise<void>; setPermission: (run: HarnessRun, mode: HarnessPermission) => Promise<void>; inject: (run: HarnessRun, text: string) => Promise<void> }) {
     // Same safety net as transport/run.ts: a start failure rejects BOTH
     // promises; a consumer watching only one must not crash the host process.
     void this.whenStarted.catch(() => {});
@@ -163,6 +163,15 @@ export class HarnessRun {
   setPermission(mode: HarnessPermission): Promise<void> {
     if (this.settledFlag) return Promise.resolve();
     return this.ops.setPermission(this, mode);
+  }
+
+  /** Add a USER message to THIS in-flight run (POST /runs/:id/inject). The pod
+   *  queues it and the engine starts a fresh turn at the next between-turn
+   *  boundary — steering the run without stopping it. Rejects (409) once the
+   *  run stops taking input; a settled run no-ops. */
+  inject(text: string): Promise<void> {
+    if (this.settledFlag) return Promise.resolve();
+    return this.ops.inject(this, text);
   }
 
   /** Abort the run: best-effort `POST /runs/:id/stop` (the pod frees its slot
@@ -251,6 +260,10 @@ export class HarnessClient {
       setPermission: async (r, mode) => {
         const ack = await r.whenStarted;
         await this.post(`/runs/${encodeURIComponent(ack.runId)}/permission`, { permission: mode });
+      },
+      inject: async (r, text) => {
+        const ack = await r.whenStarted;
+        await this.post(`/runs/${encodeURIComponent(ack.runId)}/inject`, { text });
       },
     });
     if (signal?.aborted) void run.stop();
