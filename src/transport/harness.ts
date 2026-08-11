@@ -82,6 +82,18 @@ export interface HarnessStartOptions extends HarnessRunBody {
   signal?: AbortSignal;
 }
 
+// ── The workspace FS surface (pod /fs/* — see rrotor harness/fs-routes.ts) ───
+// Shapes REPLICATE the desktop wb bridge (app preload.ts / working-directory.ts)
+// so the web workbench renders pod answers identically to desktop ones. On a
+// SHARED pod every call names its session `scope` (the client thread/chat id);
+// a dedicated pod ignores it (the token binds the workspace).
+
+export interface HarnessFsEntry { name: string; path: string; kind: "dir" | "file" }
+export interface HarnessFsSearchEntry extends HarnessFsEntry { rel: string }
+export interface HarnessFsInfo { root: string; isRepo: boolean; branch?: string }
+export interface HarnessFsEvent { seq: number; type: "file-changed" | "git-changed"; path?: string }
+export interface HarnessFsEventsPage { seq: number; root: string; events: HarnessFsEvent[] }
+
 function majorOf(wire: string): string {
   const m = /\/v(\d+)/.exec(wire);
   return m ? m[1]! : wire;
@@ -418,6 +430,51 @@ export class HarnessClient {
         ws.onclose = (): void => finish(opened ? "drop" : "unavailable");
       })();
     });
+  }
+
+  // ── the workspace FS surface (pod /fs/*) ───────────────────────────────────
+  // Thin typed calls over the pod's fs routes; fs-level failures ride IN the
+  // returned shape (the pod replicates the desktop's error shapes), so only
+  // transport/auth/param failures reject.
+
+  /** The session workspace's root + git identity. */
+  fsInfo(opts: { scope?: string } = {}): Promise<HarnessFsInfo> {
+    return this.post("/fs/info", opts) as Promise<HarnessFsInfo>;
+  }
+
+  /** Immediate children of `dir` (defaults to the workspace root). */
+  fsList(opts: { dir?: string; scope?: string } = {}): Promise<{ entries: HarnessFsEntry[]; error?: string }> {
+    return this.post("/fs/list", opts) as Promise<{ entries: HarnessFsEntry[]; error?: string }>;
+  }
+
+  /** Read a workspace text file (pod-side 1MB cap, desktop-identical error). */
+  fsRead(opts: { path: string; scope?: string }): Promise<{ content: string; error?: string }> {
+    return this.post("/fs/read", opts) as Promise<{ content: string; error?: string }>;
+  }
+
+  /** Write a workspace text file, creating parents (pod-side 2MB cap). */
+  fsWrite(opts: { path: string; content: string; scope?: string }): Promise<{ ok: boolean; error?: string }> {
+    return this.post("/fs/write", opts) as Promise<{ ok: boolean; error?: string }>;
+  }
+
+  /** Unified working-tree diff (staged + unstaged + untracked). */
+  fsDiff(opts: { scope?: string } = {}): Promise<{ text: string; error?: string }> {
+    return this.post("/fs/diff", opts) as Promise<{ text: string; error?: string }>;
+  }
+
+  /** Recursive name search under the workspace root. */
+  fsSearch(opts: { query: string; scope?: string }): Promise<{ entries: HarnessFsSearchEntry[]; truncated?: boolean; error?: string }> {
+    return this.post("/fs/search", opts) as Promise<{ entries: HarnessFsSearchEntry[]; truncated?: boolean; error?: string }>;
+  }
+
+  /** Cursor-poll workspace change events. `from < 0` (or absent) establishes
+   *  the cursor without a backlog; poll again with the returned `seq`. */
+  fsEvents(opts: { from?: number; scope?: string } = {}): Promise<HarnessFsEventsPage> {
+    const qs = new URLSearchParams();
+    if (opts.from !== undefined) qs.set("from", String(opts.from));
+    if (opts.scope) qs.set("scope", opts.scope);
+    const q = qs.toString();
+    return this.get(`/fs/events${q ? `?${q}` : ""}`) as Promise<HarnessFsEventsPage>;
   }
 
   // ── HTTP ───────────────────────────────────────────────────────────────────
