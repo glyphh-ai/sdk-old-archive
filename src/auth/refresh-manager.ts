@@ -32,6 +32,9 @@ function toStored(issued: IssuedSession, now: number): StoredSession {
 
 export class RefreshManager {
   private inFlight: Promise<StoredSession | null> | null = null;
+  /** Bumped on sign-out: a refresh that started before the bump must NOT save
+   *  its rotated session back (that resurrection made logout take two tries). */
+  private gen = 0;
   private readonly marginMs: number;
   private readonly onSignedOut: (() => void) | undefined;
   private readonly log: Logger;
@@ -73,11 +76,14 @@ export class RefreshManager {
   }
 
   private async doRefresh(): Promise<StoredSession | null> {
+    const gen = this.gen;
     const session = await this.store.load();
     if (!session) return null;
     try {
       const issued = await this.http.post<IssuedSession>("/api/session/refresh", { refreshToken: session.refreshToken });
       this.log.debug("session refreshed");
+      // Signed out while this refresh was in flight — discard, never resurrect.
+      if (gen !== this.gen) return null;
       return await this.adopt(issued);
     } catch (e) {
       // A 401 means the refresh is dead (rotated/reused/revoked/expired) → sign out.
@@ -114,13 +120,21 @@ export class RefreshManager {
   }
 
   async #signOutVia(path: string): Promise<void> {
+    // LOCAL FIRST. The old order (network revoke, THEN clear) raced the
+    // background auto-refresh: a rotation mid-logout made the revoke's bearer
+    // stale (family never revoked server-side) and/or the in-flight refresh
+    // saved the rotated session back AFTER the clear — logout resurrected, the
+    // next device flow silently re-entered the old account. Bump the
+    // generation so no in-flight refresh may save, clear, then revoke
+    // best-effort with the pre-read token.
     const session = await this.store.load();
+    this.gen++;
+    this.inFlight = null;
+    await this.store.clear();
     try {
       if (session) await this.http.post(path, undefined, { bearer: session.accessToken });
     } catch {
-      /* revoke is best-effort; local clear is what matters for the device */
-    } finally {
-      await this.store.clear();
+      /* revoke is best-effort; the local clear is what signs the device out */
     }
   }
 }
