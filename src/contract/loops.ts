@@ -122,5 +122,8 @@ export interface ResolvedLoopRole {
     inputCreditsPerMTok: number;
     outputCreditsPerMTok: number;
     isPlatformDefault: boolean;
+    /** The gateway can serve this model right now (routable + keyed). Absent on
+     *  older servers = assume ready. Rover pools and auto-binding skip false. */
+    gatewayReady?: boolean;
   }>;
 }
