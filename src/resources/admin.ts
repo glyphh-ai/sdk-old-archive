@@ -13,7 +13,7 @@ import type { Provider, Model, ProviderCreate, ModelCreate, ModelPricing } from 
 import type {
   AdminStats, AdminOrgsPage, AdminOrgListItem, AdminOrgDetail, AdminOrgPatch, AdminCreateOrg,
   AdminUsersPage, AdminUser, AdminUserPatch,
-  AdminPlan, AdminPlanUpdate, AdminOrgPlanInput, AdminOrgPlanPatch, AdminModel, AdminModelUpdate, AdminPlanPrice,
+  AdminPlan, AdminPlanUpdate, AdminPlanCreate, AdminOrgPlanInput, AdminOrgPlanPatch, AdminModel, AdminModelUpdate, AdminPlanPrice,
   AuditPage, AuditQuery, AdminUsageByUser, AdminUsageDay, AdminDailyQuery, AdminListQuery,
   AdminUsageByRuntime, AdminRuntimeUsageQuery, RuntimeMode,
 } from "../contract/admin.js";
@@ -106,6 +106,10 @@ export class AdminClient {
   }
   updatePlan(tier: string, patch: AdminPlanUpdate): Promise<{ plan: AdminPlan }> {
     return this.http.put<{ plan: AdminPlan }>(`/api/admin/plans/${encodeURIComponent(tier)}`, patch);
+  }
+  /** Create a NEW global tier; Stripe prices attach afterward via addPlanPrice. */
+  createPlan(input: AdminPlanCreate): Promise<{ plan: AdminPlan }> {
+    return this.http.post<{ plan: AdminPlan }>("/api/admin/plans", input);
   }
   /** Create/replace an org's bespoke (enterprise) plan — custom seat cap + per-seat price + allowance. */
   setOrgPlan(orgId: string, input: AdminOrgPlanInput): Promise<{ plan: AdminPlan }> {

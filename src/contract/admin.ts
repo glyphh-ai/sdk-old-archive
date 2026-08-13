@@ -103,6 +103,16 @@ export interface AdminPlanUpdate {
   /** Gateway requests/minute; null clears the limit (unlimited). */
   rate_limit_rpm?: number | null;
 }
+export interface AdminPlanCreate {
+  /** New tier key — lowercase letters, digits, dashes. */
+  tier: string;
+  display_name: string;
+  monthly_usd_cents: number;
+  included_credits: number;
+  max_seats: number;
+  rate_limit_rpm?: number | null;
+  active?: boolean;
+}
 
 /**
  * A per-org bespoke (enterprise) plan. Unlike the snake_case global-plan shapes above,

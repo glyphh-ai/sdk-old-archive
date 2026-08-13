@@ -10,7 +10,7 @@
 import type { CommandRegistry } from "../registry.js";
 import type { CliArgs } from "../args.js";
 import { flagStr } from "../args.js";
-import type { AdminOrgPatch, AdminUserPatch, AdminPlanUpdate, AdminOrgPlanPatch, AdminModelUpdate } from "../../contract/admin.js";
+import type { AdminOrgPatch, AdminUserPatch, AdminPlanUpdate, AdminPlanCreate, AdminOrgPlanPatch, AdminModelUpdate } from "../../contract/admin.js";
 
 function flagNum(args: CliArgs, name: string): number | undefined {
   const v = flagStr(args, name);
@@ -203,6 +203,28 @@ export function registerAdmin(reg: CommandRegistry): void {
       const seats = flagNum(args, "seats"); if (seats !== undefined) patch.max_seats = seats;
       const active = flagBool(args, "active"); if (active !== undefined) patch.active = active;
       ctx.printJson(await ctx.client.admin.updatePlan(tier, patch));
+    },
+  });
+
+  reg.register({
+    path: "admin plan create",
+    summary: "create a NEW global tier (super_admin)",
+    usage: "admin plan create <tier> --name <displayName> --cents <usd_cents> --credits <micro> --seats <n> [--rpm <n>] [--active true|false]",
+    covers: ["admin.createPlan"],
+    async run(ctx, args) {
+      const tier = args.positional[0];
+      const name = flagStr(args, "name");
+      if (!tier || !name) throw new Error("usage: admin plan create <tier> --name <displayName> --cents .. --credits .. --seats ..");
+      const input: AdminPlanCreate = {
+        tier,
+        display_name: name,
+        monthly_usd_cents: flagNum(args, "cents") ?? 0,
+        included_credits: flagNum(args, "credits") ?? 0,
+        max_seats: flagNum(args, "seats") ?? 1,
+      };
+      const rpm = flagNum(args, "rpm"); if (rpm !== undefined) input.rate_limit_rpm = rpm;
+      const active = flagBool(args, "active"); if (active !== undefined) input.active = active;
+      ctx.printJson(await ctx.client.admin.createPlan(input));
     },
   });
 
