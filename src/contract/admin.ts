@@ -91,6 +91,8 @@ export interface AdminPlan {
   org_id: string | null;
   /** The bespoke plan's org name (null for global plans). */
   org_name: string | null;
+  /** Gateway requests/minute for orgs on this plan; null = unlimited. */
+  rate_limit_rpm?: number | null;
 }
 export interface AdminPlanUpdate {
   display_name?: string;
@@ -98,6 +100,8 @@ export interface AdminPlanUpdate {
   included_credits?: number;
   max_seats?: number;
   active?: boolean;
+  /** Gateway requests/minute; null clears the limit (unlimited). */
+  rate_limit_rpm?: number | null;
 }
 
 /**
