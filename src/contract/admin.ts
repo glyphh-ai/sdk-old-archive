@@ -103,6 +103,16 @@ export interface AdminPlanUpdate {
   /** Gateway requests/minute; null clears the limit (unlimited). */
   rate_limit_rpm?: number | null;
 }
+/** One PLATFORM provider key row — write-only: label + last-4 hint, never the secret. */
+export interface AdminProviderKey {
+  id: string;
+  label: string;
+  /** Last 4 characters of the key, for identification. */
+  hint: string;
+  active: boolean;
+  createdAt: string;
+}
+
 export interface AdminPlanCreate {
   /** New tier key — lowercase letters, digits, dashes. */
   tier: string;

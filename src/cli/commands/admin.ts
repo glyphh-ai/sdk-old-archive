@@ -228,6 +228,63 @@ export function registerAdmin(reg: CommandRegistry): void {
     },
   });
 
+  // ── platform provider keys (rotation: add + activate/deactivate) ─────────────
+  reg.register({
+    path: "admin providers",
+    summary: "list providers + active platform-key counts (super_admin)",
+    covers: ["admin.providers"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.admin.providers());
+    },
+  });
+  reg.register({
+    path: "admin provider keys",
+    summary: "list a provider's platform keys (label + hint, never the secret)",
+    usage: "admin provider keys <slug>",
+    covers: ["admin.providerKeys"],
+    async run(ctx, args) {
+      const slug = args.positional[0];
+      if (!slug) throw new Error("usage: admin provider keys <slug>");
+      ctx.printJson(await ctx.client.admin.providerKeys(slug));
+    },
+  });
+  reg.register({
+    path: "admin provider key-add",
+    summary: "add a platform key for a provider (encrypted at rest)",
+    usage: "admin provider key-add <slug> --key <secret> [--label <name>]",
+    covers: ["admin.addProviderKey"],
+    async run(ctx, args) {
+      const slug = args.positional[0];
+      const key = flagStr(args, "key");
+      if (!slug || !key) throw new Error("usage: admin provider key-add <slug> --key <secret> [--label <name>]");
+      ctx.printJson(await ctx.client.admin.addProviderKey(slug, key, flagStr(args, "label")));
+    },
+  });
+  reg.register({
+    path: "admin provider key-active",
+    summary: "activate/deactivate a platform key (rotation)",
+    usage: "admin provider key-active <keyId> --active true|false",
+    covers: ["admin.setProviderKeyActive"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      const active = flagBool(args, "active");
+      if (!id || active === undefined) throw new Error("usage: admin provider key-active <keyId> --active true|false");
+      ctx.printJson(await ctx.client.admin.setProviderKeyActive(id, active));
+    },
+  });
+  reg.register({
+    path: "admin provider key-remove",
+    summary: "remove a platform key outright",
+    usage: "admin provider key-remove <keyId>",
+    covers: ["admin.removeProviderKey"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: admin provider key-remove <keyId>");
+      await ctx.client.admin.removeProviderKey(id);
+      ctx.printJson({ removed: id });
+    },
+  });
+
   // ── per-org bespoke (enterprise) plans ────────────────────────────────────────
   reg.register({
     path: "admin org-plan set",

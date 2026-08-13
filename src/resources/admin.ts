@@ -13,7 +13,7 @@ import type { Provider, Model, ProviderCreate, ModelCreate, ModelPricing } from 
 import type {
   AdminStats, AdminOrgsPage, AdminOrgListItem, AdminOrgDetail, AdminOrgPatch, AdminCreateOrg,
   AdminUsersPage, AdminUser, AdminUserPatch,
-  AdminPlan, AdminPlanUpdate, AdminPlanCreate, AdminOrgPlanInput, AdminOrgPlanPatch, AdminModel, AdminModelUpdate, AdminPlanPrice,
+  AdminPlan, AdminPlanUpdate, AdminPlanCreate, AdminProviderKey, AdminOrgPlanInput, AdminOrgPlanPatch, AdminModel, AdminModelUpdate, AdminPlanPrice,
   AuditPage, AuditQuery, AdminUsageByUser, AdminUsageDay, AdminDailyQuery, AdminListQuery,
   AdminUsageByRuntime, AdminRuntimeUsageQuery, RuntimeMode,
 } from "../contract/admin.js";
@@ -110,6 +110,25 @@ export class AdminClient {
   /** Create a NEW global tier; Stripe prices attach afterward via addPlanPrice. */
   createPlan(input: AdminPlanCreate): Promise<{ plan: AdminPlan }> {
     return this.http.post<{ plan: AdminPlan }>("/api/admin/plans", input);
+  }
+
+  // ── platform provider keys — encrypted in the DB, several per provider ──────
+  /** The console's provider list: catalog rows + active-key counts (no secrets). */
+  providers(): Promise<{ providers: Array<Record<string, unknown> & { slug: string; activeKeys: number }> }> {
+    return this.http.get<{ providers: Array<Record<string, unknown> & { slug: string; activeKeys: number }> }>("/api/admin/providers");
+  }
+  providerKeys(slug: string): Promise<{ keys: AdminProviderKey[] }> {
+    return this.http.get<{ keys: AdminProviderKey[] }>(`/api/admin/providers/${encodeURIComponent(slug)}/keys`);
+  }
+  /** Append a key (active immediately). Rotation = add new, deactivate old. */
+  addProviderKey(slug: string, key: string, label?: string): Promise<{ key: AdminProviderKey }> {
+    return this.http.post<{ key: AdminProviderKey }>(`/api/admin/providers/${encodeURIComponent(slug)}/keys`, { key, ...(label ? { label } : {}) });
+  }
+  setProviderKeyActive(id: string, active: boolean): Promise<{ key: AdminProviderKey }> {
+    return this.http.post<{ key: AdminProviderKey }>(`/api/admin/providers/keys/${encodeURIComponent(id)}/active`, { active });
+  }
+  removeProviderKey(id: string): Promise<void> {
+    return this.http.del<void>(`/api/admin/providers/keys/${encodeURIComponent(id)}`);
   }
   /** Create/replace an org's bespoke (enterprise) plan — custom seat cap + per-seat price + allowance. */
   setOrgPlan(orgId: string, input: AdminOrgPlanInput): Promise<{ plan: AdminPlan }> {
