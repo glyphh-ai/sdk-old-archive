@@ -65,6 +65,9 @@ export interface ProgramCapabilities {
   /** App slugs `ctx.app()` may drive. */
   apps?: string[] | undefined;
   memory?: { read?: boolean | undefined; write?: boolean | undefined } | undefined;
+  /** "rover": every agent()/turn() call hops to the NEXT bound model — never
+   *  the same model twice in a row. The pool is the distinct role bindings. */
+  rotation?: "rover" | undefined;
   /** Headless browser automation (`ctx.browser()`). The host provides it — the
    *  desktop drives off-screen pages; an unattended CLI daemon does too; a
    *  cloud runner has none. */
@@ -256,6 +259,23 @@ export async function runProgram(
   const state: Record<string, unknown> = {};
   let currentParent: string | undefined;
 
+  // ── Rover rotation ────────────────────────────────────────────────────────
+  // A rover loop hops models on EVERY model call: round-robin over the
+  // distinct bound models, so the same model never answers twice in a row
+  // (pool > 1). Memory/hot-prompt reassembles full context per call, which is
+  // what makes the hop free.
+  const roverPool = caps.rotation === "rover"
+    ? Array.from(new Set(Object.values(caps.roles ?? {}).filter((m): m is string => !!m)))
+    : null;
+  let roverIdx = -1;
+  function boundModel(role: string): string | undefined {
+    if (roverPool && roverPool.length > 0) {
+      roverIdx = (roverIdx + 1) % roverPool.length;
+      return roverPool[roverIdx];
+    }
+    return caps.roles?.[role];
+  }
+
   // The catalog answers what a role's model can hold; cached per run because a
   // loop asks repeatedly while deciding what to send.
   let availableCache: Awaited<ReturnType<Client["models"]["available"]>> | null = null;
@@ -282,7 +302,7 @@ export async function runProgram(
   async function agent(role: string, prompt: string, o: { system?: string; maxTokens?: number } = {}): Promise<string> {
     assertLive();
     assertWithinBudget();
-    const modelId = caps.roles?.[role];
+    const modelId = boundModel(role);
     if (!modelId) {
       const offered = Object.keys(caps.roles ?? {});
       throw new CapabilityError(
@@ -333,7 +353,7 @@ export async function runProgram(
   ) {
     assertLive();
     assertWithinBudget();
-    const modelId = caps.roles?.[role];
+    const modelId = boundModel(role);
     if (!modelId) {
       const offered = Object.keys(caps.roles ?? {});
       throw new CapabilityError(
