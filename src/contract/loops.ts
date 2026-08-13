@@ -67,6 +67,10 @@ export interface LoopSummary {
   slug: string;
   name: string;
   description: string;
+  /** The manifest's `type` discriminator, surfaced on summaries so LIST
+   *  consumers (loop dropdowns) can hide memory loops without fetching every
+   *  manifest. Absent means `turn`. */
+  type?: LoopManifest["type"];
   builtIn: boolean;
   updatedAt: string;
 }
