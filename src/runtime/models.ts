@@ -57,6 +57,12 @@ export interface ResolveModelsOptions {
    * session's current overrides (see {@link sessionOverrides}) for live switches.
    */
   overrides?: Record<string, string>;
+  /**
+   * Where the resolved models will EXECUTE. "cloud" (a hosted pod) excludes
+   * on-device models server-side — their weights only exist on a user's machine.
+   * Defaults to "local" (the desktop's embedded runtime).
+   */
+  context?: "local" | "cloud";
 }
 
 /** Strip a catalog id's `provider::` prefix down to the bare model id. */
@@ -79,7 +85,7 @@ export async function resolveModels(
   const { loop, token, server, overrides } = opts;
   let roles;
   try {
-    roles = await client.loops.roles(loop, overrides ?? {});
+    roles = await client.loops.roles(loop, overrides ?? {}, { context: opts.context ?? "local" });
   } catch {
     return undefined; // control plane doesn't know this loop / not reachable
   }

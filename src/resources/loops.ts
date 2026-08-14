@@ -29,8 +29,15 @@ export class LoopsClient {
    *
    * The dropdown and the run agree by construction, because both read this.
    */
-  async roles(ref: string, selections: Record<string, string> = {}): Promise<ResolvedLoopRole[]> {
+  async roles(
+    ref: string,
+    selections: Record<string, string> = {},
+    opts: { context?: "local" | "cloud" } = {},
+  ): Promise<ResolvedLoopRole[]> {
     const qs = Object.entries(selections).map(([role, model]) => `select=${encodeURIComponent(`${role}:${model}`)}`);
+    // context=cloud resolves for a CLOUD session — the server excludes on-device
+    // models, whose weights only exist on the caller's machine.
+    if (opts.context === "cloud") qs.push("context=cloud");
     const { roles } = await this.http.get<{ roles: ResolvedLoopRole[] }>(
       `/api/loops/${encodeURIComponent(ref)}/roles${qs.length ? `?${qs.join("&")}` : ""}`,
     );
