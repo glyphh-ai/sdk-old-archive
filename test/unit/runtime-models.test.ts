@@ -87,7 +87,7 @@ describe("resolveModels", () => {
   it("passes overrides through to the server-side resolver (governance filters there)", async () => {
     const { client, rolesFn } = fakeClient(roles());
     await resolveModels(client, { ...OPTS, overrides: { default: "anthropic::claude-haiku-5" } });
-    expect(rolesFn).toHaveBeenCalledWith("default", { default: "anthropic::claude-haiku-5" });
+    expect(rolesFn).toHaveBeenCalledWith("default", { default: "anthropic::claude-haiku-5" }, { context: "local" });
   });
 
   it("returns undefined when no slot resolves a model", async () => {
@@ -129,7 +129,7 @@ describe("switchModel", () => {
     expect(sessionOverrides("s1", "default")).toEqual({ default: "anthropic::claude-haiku-5" });
     // …and the next resolve hands it to the server-side resolver.
     await resolveModels(client, { ...OPTS, overrides: sessionOverrides("s1", "default") });
-    expect(rolesFn).toHaveBeenLastCalledWith("default", { default: "anthropic::claude-haiku-5" });
+    expect(rolesFn).toHaveBeenLastCalledWith("default", { default: "anthropic::claude-haiku-5" }, { context: "local" });
   });
 
   it("audits again on a second switch (haiku→sonnet) and updates the override", async () => {

@@ -99,6 +99,20 @@ function recallToolCallExtras(id: string): Record<string, unknown> {
   return toolCallExtras.get(toolId(id)) ?? {};
 }
 
+/** Gemini 3 REQUIRES a thought_signature on every replayed function call —
+ *  our extras map is in-process, so a fleet hop, restart, or eviction loses
+ *  the real one and Gemini 400s the whole turn. Google documents this exact
+ *  placeholder for client-managed history: reasoning continuity degrades
+ *  gracefully instead of the request dying. */
+const GEMINI_SIGNATURE_FALLBACK = {
+  extra_content: { google: { thought_signature: "context_engineering_is_the_way_to_go" } },
+};
+function toolCallExtrasFor(id: string, model: string): Record<string, unknown> {
+  const real = recallToolCallExtras(id);
+  if (Object.keys(real).length) return real;
+  return /gemini/i.test(model) ? GEMINI_SIGNATURE_FALLBACK : {};
+}
+
 /**
  * Restore a tool name the model shortened. MCP tools reach the model as
  * `mcp__<server>__<tool>`; Claude reproduces that faithfully, but open models
@@ -176,7 +190,7 @@ export function toOpenAIRequest(req: AnthropicRequest, model: string, opts: ToOp
           function: { name: u.name ?? "", arguments: JSON.stringify(u.input ?? {}) },
           // Gemini 3's thought_signature (and any other provider extras) ride
           // back exactly as they arrived.
-          ...recallToolCallExtras(String(u.id ?? "")),
+          ...toolCallExtrasFor(String(u.id ?? ""), model),
         })),
       });
     } else if (text || !toolResults.length) {
