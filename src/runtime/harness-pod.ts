@@ -35,6 +35,17 @@ export interface LocalHarnessPodOptions
   /** Launch command override (whitespace-split; first token is the executable).
    *  Defaults to `$GLYPHH_LOCAL_ROTOR_CMD`, then `$GLYPHH_ROTOR_BIN`, then `rrotor`. */
   cmd?: string;
+  /**
+   * Structured launch override — wins over `cmd`. Exists because `cmd` is
+   * whitespace-split, which can never carry an executable path with a space in
+   * it, and the packaged desktop's is one: `…/Glyphh Desktop.app/…/Glyphh`
+   * (spawned as Electron-as-node against the bundled rotor).
+   */
+  bin?: string;
+  preArgs?: string[];
+  /** Extra spawn env (e.g. ELECTRON_RUN_AS_NODE). Merged UNDER the pod's own
+   *  contract keys — a caller cannot clobber ROTOR_MODE or re-enable auth. */
+  env?: Record<string, string | undefined>;
 }
 
 function harnessHome(opts: LocalHarnessPodOptions): string {
@@ -53,12 +64,15 @@ export function resolveHarnessCommand(cmd?: string): { bin: string; preArgs: str
 
 function supervisorOptions(opts: LocalHarnessPodOptions): EnsureRuntimeOptions {
   const home = harnessHome(opts);
-  const { bin, preArgs } = resolveHarnessCommand(opts.cmd);
+  const { bin, preArgs } = opts.bin
+    ? { bin: opts.bin, preArgs: opts.preArgs ?? [] }
+    : resolveHarnessCommand(opts.cmd);
   return {
     home,
     bin,
     preArgs,
     env: {
+      ...(opts.env ?? {}),
       ROTOR_MODE: "harness",
       // Auth OFF is the local contract — the pod loopback-binds itself and the
       // caller's control-plane token rides each run's `runtimeToken`. Clear any
