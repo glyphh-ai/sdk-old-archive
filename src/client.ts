@@ -33,7 +33,7 @@ import { UsageClient } from "./resources/usage.js";
 import { ApiKeysClient } from "./resources/api-keys.js";
 import { SessionsClient } from "./resources/sessions.js";
 import { FilesClient } from "./resources/files.js";
-import { OfficeSlidesClient } from "./resources/office.js";
+import { OfficeSlidesClient, OfficeDocsClient, OfficeDriveClient } from "./resources/office.js";
 import { GitClient } from "./resources/git.js";
 import { AppsClient } from "./resources/apps.js";
 import { HostingClient } from "./resources/hosting.js";
@@ -191,6 +191,10 @@ export interface Client {
   files: FilesClient;
   /** Glyphh Office · Slides — the org's shared, agent-authored slide decks (list/get/put/delete). */
   officeSlides: OfficeSlidesClient;
+  /** Glyphh Office · Docs — markdown documents + the review-and-approve suggestion flow + templates. */
+  officeDocs: OfficeDocsClient;
+  /** Glyphh Drive — folders and the pointer view over every Office file. */
+  officeDrive: OfficeDriveClient;
   /** GitHub connection — link, list repos; sessions with a repo get a scoped clone token. */
   git: GitClient;
   /** The apps marketplace — browse, publish, install. */
@@ -302,6 +306,8 @@ export function createClient(opts: ClientOptions): Client {
     sessions: new SessionsClient(authed),
     files: new FilesClient(authed),
     officeSlides: new OfficeSlidesClient(authed),
+    officeDocs: new OfficeDocsClient(authed),
+    officeDrive: new OfficeDriveClient(authed),
     git: new GitClient(authed),
     apps: new AppsClient(authed),
     hosting: new HostingClient(authed),

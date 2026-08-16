@@ -67,4 +67,184 @@ export function registerOffice(reg: CommandRegistry): void {
       ctx.printJson({ deleted: file });
     },
   });
+
+  // ── DOCS ────────────────────────────────────────────────────────────────────
+
+  reg.register({
+    path: "docs list",
+    summary: "the org's documents (newest first)",
+    usage: "docs list",
+    covers: ["officeDocs.list"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.officeDocs.list());
+    },
+  });
+
+  reg.register({
+    path: "docs get",
+    summary: "one document by name — metadata + markdown (--out writes the markdown)",
+    usage: "docs get <file> [--out <path>]",
+    covers: ["officeDocs.get"],
+    async run(ctx, args) {
+      const file = args.positional[0];
+      if (!file) throw new Error("usage: docs get <file> [--out <path>]");
+      const doc = await ctx.client.officeDocs.get(file);
+      const out = flagStr(args, "out");
+      if (out) {
+        writeFileSync(out, doc.markdown, "utf8");
+        const { markdown: _md, ...meta } = doc;
+        ctx.printJson({ ...meta, wrote: out });
+        return;
+      }
+      ctx.printJson(doc);
+    },
+  });
+
+  reg.register({
+    path: "docs save",
+    summary: "create/overwrite a document from a local markdown file",
+    usage: "docs save <path> [--name <file>] [--folder <folderId>]",
+    covers: ["officeDocs.put"],
+    async run(ctx, args) {
+      const path = args.positional[0];
+      if (!path) throw new Error("usage: docs save <path> [--name <file>] [--folder <folderId>]");
+      const name = flagStr(args, "name") ?? basename(path);
+      const folder = flagStr(args, "folder");
+      ctx.printJson(await ctx.client.officeDocs.put(name, readFileSync(path, "utf8"), folder === undefined ? undefined : folder || null));
+    },
+  });
+
+  reg.register({
+    path: "docs delete",
+    summary: "delete a document for the whole org",
+    usage: "docs delete <file>",
+    covers: ["officeDocs.delete"],
+    async run(ctx, args) {
+      const file = args.positional[0];
+      if (!file) throw new Error("usage: docs delete <file>");
+      await ctx.client.officeDocs.delete(file);
+      ctx.printJson({ deleted: file });
+    },
+  });
+
+  reg.register({
+    path: "docs suggestions",
+    summary: "a document's suggestions (--status pending|approved|rejected|stale)",
+    usage: "docs suggestions <file> [--status <status>]",
+    covers: ["officeDocs.suggestions"],
+    async run(ctx, args) {
+      const file = args.positional[0];
+      if (!file) throw new Error("usage: docs suggestions <file> [--status <status>]");
+      ctx.printJson(await ctx.client.officeDocs.suggestions(file, flagStr(args, "status")));
+    },
+  });
+
+  reg.register({
+    path: "docs suggest",
+    summary: "propose an edit (review-and-approve): replace --before with --after",
+    usage: "docs suggest <file> --after <text> [--before <text>] [--section <name>] [--note <why>]",
+    covers: ["officeDocs.suggest"],
+    async run(ctx, args) {
+      const file = args.positional[0];
+      const after = flagStr(args, "after");
+      if (!file || !after) throw new Error("usage: docs suggest <file> --after <text> [--before <text>] …");
+      ctx.printJson(await ctx.client.officeDocs.suggest(file, {
+        afterMd: after,
+        beforeMd: flagStr(args, "before") ?? "",
+        section: flagStr(args, "section") ?? "",
+        note: flagStr(args, "note") ?? "",
+        authorKind: "user",
+      }));
+    },
+  });
+
+  reg.register({
+    path: "docs resolve",
+    summary: "approve (applies) or reject a pending suggestion",
+    usage: "docs resolve <id> <approve|reject>",
+    covers: ["officeDocs.resolveSuggestion"],
+    async run(ctx, args) {
+      const [id, verdict] = args.positional;
+      if (!id || !["approve", "reject"].includes(verdict ?? "")) throw new Error("usage: docs resolve <id> <approve|reject>");
+      ctx.printJson(await ctx.client.officeDocs.resolveSuggestion(id, verdict === "approve"));
+    },
+  });
+
+  reg.register({
+    path: "docs templates",
+    summary: "the code-defined document template catalog",
+    usage: "docs templates",
+    covers: ["officeDocs.templates"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.officeDocs.templates());
+    },
+  });
+
+  // ── DRIVE ───────────────────────────────────────────────────────────────────
+
+  reg.register({
+    path: "drive list",
+    summary: "folders + every Office file pointer (--q searches)",
+    usage: "drive list [--q <query>]",
+    covers: ["officeDrive.list"],
+    async run(ctx, args) {
+      ctx.printJson(await ctx.client.officeDrive.list(flagStr(args, "q")));
+    },
+  });
+
+  reg.register({
+    path: "drive mkdir",
+    summary: "create a folder",
+    usage: "drive mkdir <name> [--parent <folderId>]",
+    covers: ["officeDrive.createFolder"],
+    async run(ctx, args) {
+      const name = args.positional[0];
+      if (!name) throw new Error("usage: drive mkdir <name> [--parent <folderId>]");
+      ctx.printJson(await ctx.client.officeDrive.createFolder(name, flagStr(args, "parent") ?? null));
+    },
+  });
+
+  reg.register({
+    path: "drive folder",
+    summary: "rename and/or re-parent a folder (--root moves it to the root)",
+    usage: "drive folder <id> [--name <name>] [--parent <folderId>] [--root]",
+    covers: ["officeDrive.updateFolder"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: drive folder <id> [--name …] [--parent …] [--root]");
+      const fields: { name?: string; parentId?: string | null } = {};
+      const name = flagStr(args, "name");
+      if (name) fields.name = name;
+      const parent = flagStr(args, "parent");
+      if (parent) fields.parentId = parent;
+      else if (flagStr(args, "root") !== undefined) fields.parentId = null;
+      ctx.printJson(await ctx.client.officeDrive.updateFolder(id, fields));
+    },
+  });
+
+  reg.register({
+    path: "drive rmdir",
+    summary: "delete a folder (its contents re-parent, nothing is lost)",
+    usage: "drive rmdir <id>",
+    covers: ["officeDrive.deleteFolder"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: drive rmdir <id>");
+      await ctx.client.officeDrive.deleteFolder(id);
+      ctx.printJson({ deleted: id });
+    },
+  });
+
+  reg.register({
+    path: "drive mv",
+    summary: "move an Office file into a folder (--root files it at the root)",
+    usage: "drive mv <slides|docs> <file> [--folder <folderId>] [--root]",
+    covers: ["officeDrive.move"],
+    async run(ctx, args) {
+      const [kind, file] = args.positional;
+      if ((kind !== "slides" && kind !== "docs") || !file) throw new Error("usage: drive mv <slides|docs> <file> [--folder <id>] [--root]");
+      const folder = flagStr(args, "folder");
+      ctx.printJson(await ctx.client.officeDrive.move(kind, file, folder ?? null));
+    },
+  });
 }
