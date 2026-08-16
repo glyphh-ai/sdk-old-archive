@@ -33,6 +33,7 @@ import { UsageClient } from "./resources/usage.js";
 import { ApiKeysClient } from "./resources/api-keys.js";
 import { SessionsClient } from "./resources/sessions.js";
 import { FilesClient } from "./resources/files.js";
+import { OfficeSlidesClient } from "./resources/office.js";
 import { GitClient } from "./resources/git.js";
 import { AppsClient } from "./resources/apps.js";
 import { HostingClient } from "./resources/hosting.js";
@@ -188,6 +189,8 @@ export interface Client {
   sessions: SessionsClient;
   /** Saved FILE ARTIFACTS — the explicit deliverables an agent saves for the user (list/get/create/delete). */
   files: FilesClient;
+  /** Glyphh Office · Slides — the org's shared, agent-authored slide decks (list/get/put/delete). */
+  officeSlides: OfficeSlidesClient;
   /** GitHub connection — link, list repos; sessions with a repo get a scoped clone token. */
   git: GitClient;
   /** The apps marketplace — browse, publish, install. */
@@ -298,6 +301,7 @@ export function createClient(opts: ClientOptions): Client {
     apiKeys: new ApiKeysClient(authed),
     sessions: new SessionsClient(authed),
     files: new FilesClient(authed),
+    officeSlides: new OfficeSlidesClient(authed),
     git: new GitClient(authed),
     apps: new AppsClient(authed),
     hosting: new HostingClient(authed),
