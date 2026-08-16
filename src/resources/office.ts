@@ -37,6 +37,12 @@ export class OfficeSlidesClient {
   delete(file: string): Promise<void> {
     return this.http.del<void>(`/api/office/slides/${encodeURIComponent(file)}`);
   }
+
+  /** The deck's READABLE TEXT (per-slide, hidden slides labeled) — what a
+   *  session should read; the raw document is mostly font bytes. */
+  text(file: string): Promise<OfficeSlideMeta & { text: string }> {
+    return this.http.get<OfficeSlideMeta & { text: string }>(`/api/office/slides/${encodeURIComponent(file)}/text`);
+  }
 }
 
 // ── DOCS — markdown documents with the review-and-approve edit flow ──────────

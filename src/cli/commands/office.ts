@@ -43,6 +43,18 @@ export function registerOffice(reg: CommandRegistry): void {
   });
 
   reg.register({
+    path: "slides text",
+    summary: "a deck's readable text (per-slide) — skip the font bytes",
+    usage: "slides text <file>",
+    covers: ["officeSlides.text"],
+    async run(ctx, args) {
+      const file = args.positional[0];
+      if (!file) throw new Error("usage: slides text <file>");
+      ctx.printJson(await ctx.client.officeSlides.text(file));
+    },
+  });
+
+  reg.register({
     path: "slides save",
     summary: "create/overwrite a deck from a local HTML file",
     usage: "slides save <path> [--name <file>]",
