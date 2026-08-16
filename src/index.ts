@@ -71,6 +71,12 @@ export type {
   RuntimeImage, RuntimeImageType, OrgRuntimeImage,
   AdminRuntimeImageCreate, AdminRuntimeImageUpdate,
 } from "./contract/runtime-images.js";
+export { AppServersClient } from "./resources/app-servers.js";
+export type {
+  AppServerImage, AdminAppServerImageCreate, AdminAppServerImageUpdate,
+  ServerDeployment, ServerDeployStatus, DeployToServerInput, QueuedServerDeployment,
+  CustomDomain, CustomDomainStatus, AddCustomDomainInput, DnsInstructions, DnsRecord,
+} from "./contract/app-servers.js";
 export { CatalogClient } from "./resources/catalog.js";
 export { ProvidersClient } from "./resources/providers.js";
 export { AdminClient } from "./resources/admin.js";

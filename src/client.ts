@@ -92,6 +92,7 @@ import { ProfileClient } from "./resources/profile.js";
 import { SupportClient } from "./resources/support.js";
 import { OAuthClient } from "./resources/oauth.js";
 import { RuntimeImagesClient } from "./resources/runtime-images.js";
+import { AppServersClient } from "./resources/app-servers.js";
 import type { Identity, StoredSession } from "./contract/auth.js";
 
 export interface ClientOptions {
@@ -165,6 +166,8 @@ export interface Client {
   billing: BillingClient;
   /** Runtime image SKUs (§7b) — the org's picker, current image, and change requests. */
   runtimeImages: RuntimeImagesClient;
+  /** App-server image SKUs — the size picker for deploying an app to its own server. */
+  appServers: AppServersClient;
   /** The provider/model catalog (read). */
   catalog: CatalogClient;
   /** Org provider enablement + BYOK (org_admin). */
@@ -284,6 +287,7 @@ export function createClient(opts: ClientOptions): Client {
     workspaces: new WorkspacesClient(authed),
     billing: new BillingClient(authed),
     runtimeImages: new RuntimeImagesClient(authed),
+    appServers: new AppServersClient(authed),
     catalog: new CatalogClient(authed),
     providers: new ProvidersClient(authed),
     admin: new AdminClient(authed),

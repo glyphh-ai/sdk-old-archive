@@ -41,6 +41,7 @@ import { registerSkills } from "./commands/skills.js";
 import { registerAgents } from "./commands/agents.js";
 import { registerGuest } from "./commands/guest.js";
 import { registerRuntimeImages } from "./commands/runtime-images.js";
+import { registerAppServers } from "./commands/app-servers.js";
 import { registerIcons } from "./commands/icons.js";
 
 export function buildRegistry(): CommandRegistry {
@@ -80,6 +81,7 @@ export function buildRegistry(): CommandRegistry {
   registerOAuth(reg);
   registerGuest(reg);
   registerRuntimeImages(reg);
+  registerAppServers(reg);
   return reg;
 }
 

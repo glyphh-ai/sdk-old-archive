@@ -19,6 +19,7 @@ import type {
 } from "../contract/admin.js";
 import type { EffectiveContext } from "../contract/membership.js";
 import type { RuntimeImage, AdminRuntimeImageCreate, AdminRuntimeImageUpdate } from "../contract/runtime-images.js";
+import type { AppServerImage, AdminAppServerImageCreate, AdminAppServerImageUpdate } from "../contract/app-servers.js";
 import type {
   AdminSupportPage, AdminSupportThread, AdminSupportTicket, AdminSupportQuery, SupportUnread,
 } from "../contract/support.js";
@@ -199,6 +200,28 @@ export class AdminClient {
   deleteRuntimeImage(region: string, key: string): Promise<{ ok: boolean }> {
     return this.http.del<{ ok: boolean }>(
       `/api/admin/runtime-images/${encodeURIComponent(region)}/${encodeURIComponent(key)}`,
+    );
+  }
+
+  // ── app-server image catalog (the runtime-image treatment) ────────────────────
+  /** Every app-server SKU, every region, active + inactive. */
+  appServerImages(): Promise<{ images: AppServerImage[] }> {
+    return this.http.get<{ images: AppServerImage[] }>("/api/admin/app-servers");
+  }
+  /** Add an app-server SKU to a region's catalog (`monthlyCredits` in WHOLE credits/month). */
+  createAppServerImage(input: AdminAppServerImageCreate): Promise<{ image: AppServerImage }> {
+    return this.http.post<{ image: AppServerImage }>("/api/admin/app-servers", input);
+  }
+  /** Re-price / re-size / retire a region's app-server SKU (audited). */
+  updateAppServerImage(region: string, key: string, patch: AdminAppServerImageUpdate): Promise<{ image: AppServerImage }> {
+    return this.http.put<{ image: AppServerImage }>(
+      `/api/admin/app-servers/${encodeURIComponent(region)}/${encodeURIComponent(key)}`, patch,
+    );
+  }
+  /** Remove an app-server SKU from a region's catalog (audited). */
+  deleteAppServerImage(region: string, key: string): Promise<{ ok: boolean }> {
+    return this.http.del<{ ok: boolean }>(
+      `/api/admin/app-servers/${encodeURIComponent(region)}/${encodeURIComponent(key)}`,
     );
   }
 
