@@ -25,9 +25,10 @@ export interface Provider {
 }
 
 /** What a model produces. Drives picker/loop-slot filtering + how it's metered. */
-export type Modality = "chat" | "image" | "video" | "speech" | "transcription";
-/** The unit the credit rates are quoted in. 'mtok'/'mchar' bill per million. */
-export type RateUnit = "mtok" | "image" | "second" | "mchar" | "minute";
+export type Modality = "chat" | "image" | "video" | "speech" | "transcription" | "music" | "audio" | "dubbing";
+/** The unit the credit rates are quoted in. 'mtok'/'mchar' bill per million,
+ *  'kchar' per thousand, the rest per single unit. */
+export type RateUnit = "mtok" | "image" | "second" | "mchar" | "minute" | "kchar" | "hour" | "generation";
 
 export interface Model {
   id: string; // "anthropic::claude-opus-4-8"
