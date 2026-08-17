@@ -21,6 +21,8 @@ export interface OrgModel {
   name: string;
   providerSlug: string;
   kind: string; // "proxied" | "open_weight"
+  /** chat | image | video | speech | transcription. */
+  modality: string;
   inputCreditsPerMTok: number;
   outputCreditsPerMTok: number;
   /**
@@ -51,6 +53,8 @@ export interface AvailableModel {
   name: string;
   providerSlug: string;
   kind: string;
+  /** chat | image | video | speech | transcription — for picker/slot filtering. */
+  modality: string;
   inputCreditsPerMTok: number;
   outputCreditsPerMTok: number;
   /**

@@ -23,6 +23,7 @@ const choice = (id: string) => ({
   id,
   name: id,
   providerSlug: id.split("::")[0] ?? "",
+  modality: "chat",
   contextWindow: null,
   maxOutputTokens: null,
   inputCreditsPerMTok: 1,
@@ -34,11 +35,11 @@ const choice = (id: string) => ({
 function roles(): ResolvedLoopRole[] {
   return [
     {
-      name: "default", label: "Model", description: "", modelId: "anthropic::claude-sonnet-5",
+      name: "default", label: "Model", description: "", modality: "chat", modelId: "anthropic::claude-sonnet-5",
       source: "platform", choices: [choice("anthropic::claude-sonnet-5")],
     },
     {
-      name: "coder", label: "Coder", description: "", modelId: "openai::gpt-5",
+      name: "coder", label: "Coder", description: "", modality: "chat", modelId: "openai::gpt-5",
       source: "loop", choices: [choice("openai::gpt-5")],
     },
   ];

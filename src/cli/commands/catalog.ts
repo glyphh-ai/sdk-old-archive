@@ -7,7 +7,7 @@
 
 import type { CommandRegistry } from "../registry.js";
 import { flagStr } from "../args.js";
-import type { ProviderKind } from "../../contract/catalog.js";
+import type { ProviderKind, Modality, RateUnit } from "../../contract/catalog.js";
 
 function kind(v: string | undefined): ProviderKind {
   return v === "open_weight" ? "open_weight" : "proxied";
@@ -108,7 +108,7 @@ export function registerCatalog(reg: CommandRegistry): void {
   reg.register({
     path: "admin model",
     summary: "release a model + pricing (super_admin)",
-    usage: "admin model <id> --provider <slug> --name <name> --in <credits/MTok> --out <credits/MTok> [--kind ...]",
+    usage: "admin model <id> --provider <slug> --name <name> --in <credits/unit> --out <credits/unit> [--kind ...] [--modality chat|image|video|speech|transcription] [--rate-unit mtok|image|second|mchar|minute]",
     covers: ["admin.createModel"],
     async run(ctx, args) {
       const id = args.positional[0];
@@ -119,8 +119,14 @@ export function registerCatalog(reg: CommandRegistry): void {
       if (!id || !providerSlug || !name || Number.isNaN(input) || Number.isNaN(output)) {
         throw new Error("usage: admin model <id> --provider <slug> --name <name> --in <n> --out <n>");
       }
+      const modality = flagStr(args, "modality") as Modality | undefined;
+      const rateUnit = flagStr(args, "rate-unit") as RateUnit | undefined;
       ctx.printJson(
-        await ctx.client.admin.createModel({ id, providerSlug, name, kind: kind(flagStr(args, "kind")), inputCreditsPerMTok: input, outputCreditsPerMTok: output }),
+        await ctx.client.admin.createModel({
+          id, providerSlug, name, kind: kind(flagStr(args, "kind")),
+          ...(modality ? { modality } : {}), ...(rateUnit ? { rateUnit } : {}),
+          inputCreditsPerMTok: input, outputCreditsPerMTok: output,
+        }),
       );
     },
   });
@@ -133,11 +139,15 @@ export function registerCatalog(reg: CommandRegistry): void {
     async run(ctx, args) {
       const id = args.positional[0];
       if (!id) throw new Error("usage: admin pricing <modelId> [--in n] [--out n] [--active true|false]");
-      const pricing: { inputCreditsPerMTok?: number; outputCreditsPerMTok?: number; active?: boolean } = {};
+      const pricing: { inputCreditsPerMTok?: number; outputCreditsPerMTok?: number; active?: boolean; modality?: Modality; rateUnit?: RateUnit } = {};
       const inFlag = flagStr(args, "in");
       const outFlag = flagStr(args, "out");
       if (inFlag !== undefined) pricing.inputCreditsPerMTok = Number(inFlag);
       if (outFlag !== undefined) pricing.outputCreditsPerMTok = Number(outFlag);
+      const mod = flagStr(args, "modality");
+      const ru = flagStr(args, "rate-unit");
+      if (mod !== undefined) pricing.modality = mod as Modality;
+      if (ru !== undefined) pricing.rateUnit = ru as RateUnit;
       if ("active" in args.flags) pricing.active = String(args.flags.active) === "true";
       ctx.printJson(await ctx.client.admin.setModelPricing(id, pricing));
     },

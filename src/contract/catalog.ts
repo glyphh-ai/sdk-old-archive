@@ -24,6 +24,11 @@ export interface Provider {
   hasByokKey: boolean;
 }
 
+/** What a model produces. Drives picker/loop-slot filtering + how it's metered. */
+export type Modality = "chat" | "image" | "video" | "speech" | "transcription";
+/** The unit the credit rates are quoted in. 'mtok'/'mchar' bill per million. */
+export type RateUnit = "mtok" | "image" | "second" | "mchar" | "minute";
+
 export interface Model {
   id: string; // "anthropic::claude-opus-4-8"
   providerSlug: string;
@@ -31,7 +36,13 @@ export interface Model {
   /** Short @-mention name; unique per provider. Null = not mentionable. */
   alias: string | null;
   kind: ProviderKind;
+  modality: Modality;
+  /** Unit the rates below are quoted in (mtok/image/second/mchar/minute). */
+  rateUnit: RateUnit;
+  /** Credits per input unit (per rateUnit). Chat: per 1M input tokens. */
   inputCreditsPerMTok: number;
+  /** Credits per output unit. Chat: per 1M output tokens. Image: per image.
+   *  Video: per second. */
   outputCreditsPerMTok: number;
   /** Total tokens the model accepts. Null = unrecorded, not enforced. */
   contextWindow: number | null;
@@ -67,6 +78,9 @@ export interface ModelCreate {
   providerSlug: string;
   name: string;
   kind: ProviderKind;
+  /** Defaults to 'chat' / 'mtok' when omitted. */
+  modality?: Modality;
+  rateUnit?: RateUnit;
   inputCreditsPerMTok: number;
   outputCreditsPerMTok: number;
 }
@@ -79,6 +93,8 @@ export interface ModelPricing {
   alias?: string | null;
   inputCreditsPerMTok?: number;
   outputCreditsPerMTok?: number;
+  modality?: Modality;
+  rateUnit?: RateUnit;
   active?: boolean;
 }
 

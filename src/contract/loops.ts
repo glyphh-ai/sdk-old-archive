@@ -31,6 +31,9 @@ export interface LoopRole {
   label?: string;
   /** What this slot is FOR — shown beside the dropdown. */
   description?: string;
+  /** The modality this slot must be filled by: chat | image | video | speech |
+   *  transcription. The picker only offers models of this modality. Default 'chat'. */
+  modality?: string;
   /** Catalog model id to prefer. Falls back to the platform default. */
   default?: string | null;
 }
@@ -102,6 +105,8 @@ export interface ResolvedLoopRole {
   name: string;
   label: string;
   description: string;
+  /** The modality this slot is typed to — the picker filters choices to it. */
+  modality: string;
   /** The model this role will run on. Null when the caller may use none. */
   modelId: string | null;
   /**
@@ -117,6 +122,7 @@ export interface ResolvedLoopRole {
     id: string;
     name: string;
     providerSlug: string;
+    modality: string;
     contextWindow: number | null;
     maxOutputTokens: number | null;
     inputCreditsPerMTok: number;

@@ -152,6 +152,10 @@ export interface AdminModel {
   display_name: string;
   /** Short @-mention name; null = not mentionable. */
   alias: string | null;
+  /** chat | image | video | speech | transcription. */
+  modality: string;
+  /** Unit the rates are quoted in: mtok | image | second | mchar | minute. */
+  rate_unit: string;
   input_credits_per_mtok: number | null; // micro-credits/MTok; null = not per-token priced
   output_credits_per_mtok: number | null;
   /** Total tokens the model holds; what the gateway fits requests to. Null = unrecorded. */
@@ -165,6 +169,8 @@ export interface AdminModelUpdate {
   /** Short @-mention name; null clears it, omit keeps it. */
   alias?: string | null;
   active?: boolean;
+  modality?: string;
+  rate_unit?: string;
   input_credits_per_mtok?: number | null;
   output_credits_per_mtok?: number | null;
   context_window?: number | null;
