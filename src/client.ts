@@ -36,6 +36,7 @@ import { FilesClient } from "./resources/files.js";
 import { OfficeSlidesClient, OfficeDocsClient, OfficeDriveClient, OfficeSheetsClient } from "./resources/office.js";
 import { DesignsClient } from "./resources/design.js";
 import { StatorClient } from "./resources/stator.js";
+import { MediaClient } from "./resources/media.js";
 import { GitClient } from "./resources/git.js";
 import { AppsClient } from "./resources/apps.js";
 import { HostingClient } from "./resources/hosting.js";
@@ -203,6 +204,8 @@ export interface Client {
   designs: DesignsClient;
   /** The org MEMORY PLANE — recall/write for runtimes; browse/graph/forget/amend for curation (the Memory panel). */
   stator: StatorClient;
+  /** Glyphh Image/Video/Sounds — the media library + enforced, credit-debited generation jobs. */
+  media: MediaClient;
   /** GitHub connection — link, list repos; sessions with a repo get a scoped clone token. */
   git: GitClient;
   /** The apps marketplace — browse, publish, install. */
@@ -319,6 +322,7 @@ export function createClient(opts: ClientOptions): Client {
     officeDrive: new OfficeDriveClient(authed),
     designs: new DesignsClient(authed),
     stator: new StatorClient(authed),
+    media: new MediaClient(authed),
     git: new GitClient(authed),
     apps: new AppsClient(authed),
     hosting: new HostingClient(authed),

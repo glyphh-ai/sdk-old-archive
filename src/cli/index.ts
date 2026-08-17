@@ -28,6 +28,7 @@ import { registerFiles } from "./commands/files.js";
 import { registerOffice } from "./commands/office.js";
 import { registerDesign } from "./commands/design.js";
 import { registerStator } from "./commands/stator.js";
+import { registerMedia } from "./commands/media.js";
 import { registerGit } from "./commands/git.js";
 import { registerApps } from "./commands/apps.js";
 import { registerLibrary } from "./commands/library.js";
@@ -74,6 +75,7 @@ export function buildRegistry(): CommandRegistry {
   registerOffice(reg);
   registerDesign(reg);
   registerStator(reg);
+  registerMedia(reg);
   registerIcons(reg);
   registerGit(reg);
   registerApps(reg);

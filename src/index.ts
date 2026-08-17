@@ -179,6 +179,7 @@ export type { FileArtifact, FileKind, ListFilesQuery, CreateFileInput } from "./
 export { OfficeSlidesClient, OfficeDocsClient, OfficeDriveClient, OfficeSheetsClient } from "./resources/office.js";
 export { DesignsClient } from "./resources/design.js";
 export { StatorClient } from "./resources/stator.js";
+export { MediaClient } from "./resources/media.js";
 export type {
   OfficeSlide, OfficeSlideMeta,
   OfficeDoc, OfficeDocMeta, OfficeSuggestion, CreateSuggestionInput,
@@ -192,6 +193,9 @@ export type {
   StatorFact, MemoryTier, StatorRecallInput, StatorRecallResult, StatorWriteInput,
   StatorBrowseResult, StatorGraphInput, StatorGraphNode, StatorGraphResult, StatorForgetInput, StatorAmendInput,
 } from "./contract/stator.js";
+export type {
+  MediaAsset, MediaKind, MediaUploadTicket, MediaUploadInput, MediaFinalizeInput, MediaGenerateInput, MediaJob,
+} from "./contract/media.js";
 export { GitClient } from "./resources/git.js";
 export type { GitConnection, GitConnectLink, Repo } from "./contract/git.js";
 export { AppsClient } from "./resources/apps.js";
