@@ -101,9 +101,13 @@ export class GatewayClient {
       } else if (type === "content_block_start") {
         const idx = Number(ev.index) || 0;
         const cb = (ev.content_block ?? {}) as Block;
-        blocks[idx] = cb.type === "tool_use"
-          ? { type: "tool_use", id: cb.id ?? "", name: cb.name ?? "", input: {} }
-          : { type: "text", text: "" };
+        // Only text and tool_use are assembled. Anything else (thinking,
+        // redacted_thinking, …) is left unslotted, NOT coerced to text: a
+        // coerced block came back as `{type:"text", text:""}` in `content`,
+        // and replaying that transcript is an Anthropic 400 ("text content
+        // blocks must be non-empty").
+        if (cb.type === "tool_use") blocks[idx] = { type: "tool_use", id: cb.id ?? "", name: cb.name ?? "", input: {} };
+        else if (cb.type === "text") blocks[idx] = { type: "text", text: "" };
       } else if (type === "content_block_delta") {
         const idx = Number(ev.index) || 0;
         const delta = ev.delta as { type?: string; text?: string; partial_json?: string } | undefined;
@@ -150,7 +154,11 @@ export class GatewayClient {
       try { block.input = JSON.parse(raw) as Record<string, unknown>; } catch { block.input = {}; }
     }
 
-    const present = blocks.filter((b): b is Block => !!b);
+    // Empty text blocks are dropped, not returned: Claude opens (and closes)
+    // a text block with zero deltas ahead of a tool_use, and a loop replays
+    // `content` verbatim as the next assistant message — Anthropic rejects an
+    // empty text block on the way back in.
+    const present = blocks.filter((b): b is Block => !!b && !(b.type === "text" && !b.text));
     const toolUses: ToolUse[] = present
       .filter((b) => b.type === "tool_use")
       .map((b) => ({ id: b.id ?? "", name: b.name ?? "", input: b.input ?? {} }));
