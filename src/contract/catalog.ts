@@ -99,6 +99,36 @@ export interface ModelPricing {
   active?: boolean;
 }
 
+/** A TTS provider's voice — a synthesis call is model + voice. */
+export interface Voice {
+  id: string;
+  name: string;
+  providerSlug: string;
+  /** A short sample the UI can play, when the provider gives one. */
+  previewUrl?: string;
+  /** premade | cloned | generated, or absent. */
+  category?: string;
+}
+
+/** The caller's persisted voice preferences (stored in prefs under the `voice` key). */
+export interface VoiceSettings {
+  /** STT model id for voice INPUT (e.g. openai::whisper-1). Null = no voice input. */
+  inputModel: string | null;
+  /** TTS model id for voice OUTPUT (e.g. elevenlabs::eleven_flash_v2_5). Null = off. */
+  outputModel: string | null;
+  /** The output model's voice id (provider-specific). Null = provider default. */
+  voiceId: string | null;
+  /** Capture mode for talk-to-agent. */
+  mode: "off" | "push-to-talk" | "continuous";
+  /** Auto-play the agent's spoken reply. */
+  autoplay: boolean;
+}
+
+/** The defaults a fresh account starts from. */
+export const DEFAULT_VOICE_SETTINGS: VoiceSettings = {
+  inputModel: null, outputModel: null, voiceId: null, mode: "off", autoplay: true,
+};
+
 // ── Hugging Face open-weight search (proxied server-side) ─────────────────────
 /** A GGUF repo hit from HF search. */
 export interface HfRepo {

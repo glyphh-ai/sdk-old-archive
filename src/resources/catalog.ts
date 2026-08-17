@@ -6,7 +6,7 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
-import type { Provider, Model, HfSearchResult, HfQuant } from "../contract/catalog.js";
+import type { Provider, Model, Voice, HfSearchResult, HfQuant } from "../contract/catalog.js";
 
 export class CatalogClient {
   constructor(private readonly http: AuthedHttp) {}
@@ -17,6 +17,11 @@ export class CatalogClient {
 
   models(): Promise<Model[]> {
     return this.http.get<Model[]>("/api/catalog/models");
+  }
+
+  /** A TTS provider's available voices (for the Voice-settings picker). */
+  voices(providerSlug: string): Promise<Voice[]> {
+    return this.http.get<Voice[]>(`/api/catalog/voices?provider=${encodeURIComponent(providerSlug)}`);
   }
 
   /** Search Hugging Face for GGUF open-weight repos (proxied server-side). */
