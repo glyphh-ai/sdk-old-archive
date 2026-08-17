@@ -34,6 +34,7 @@ import { ApiKeysClient } from "./resources/api-keys.js";
 import { SessionsClient } from "./resources/sessions.js";
 import { FilesClient } from "./resources/files.js";
 import { OfficeSlidesClient, OfficeDocsClient, OfficeDriveClient, OfficeSheetsClient } from "./resources/office.js";
+import { DesignsClient } from "./resources/design.js";
 import { GitClient } from "./resources/git.js";
 import { AppsClient } from "./resources/apps.js";
 import { HostingClient } from "./resources/hosting.js";
@@ -197,6 +198,8 @@ export interface Client {
   officeSheets: OfficeSheetsClient;
   /** Glyphh Drive — folders and the pointer view over every Office file. */
   officeDrive: OfficeDriveClient;
+  /** Glyphh Design — org design systems: the brand kit Apps and Slides consume (list/get/put/css/assets). */
+  designs: DesignsClient;
   /** GitHub connection — link, list repos; sessions with a repo get a scoped clone token. */
   git: GitClient;
   /** The apps marketplace — browse, publish, install. */
@@ -311,6 +314,7 @@ export function createClient(opts: ClientOptions): Client {
     officeDocs: new OfficeDocsClient(authed),
     officeSheets: new OfficeSheetsClient(authed),
     officeDrive: new OfficeDriveClient(authed),
+    designs: new DesignsClient(authed),
     git: new GitClient(authed),
     apps: new AppsClient(authed),
     hosting: new HostingClient(authed),
