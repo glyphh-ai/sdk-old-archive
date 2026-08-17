@@ -62,6 +62,22 @@ export class HttpClient {
     if (!res.ok) throw new Error(`GET ${path} failed: ${res.status}`);
     return res.arrayBuffer();
   }
+  /** POST raw bytes with an explicit content-type (e.g. audio/webm) → JSON. */
+  async postBinary<T>(path: string, bytes: Uint8Array, contentType: string, opts: RequestOptions = {}): Promise<T> {
+    const headers: Record<string, string> = { "content-type": contentType, accept: "application/json" };
+    if (opts.bearer) headers["authorization"] = `Bearer ${opts.bearer}`;
+    const res = await this.fetchImpl(`${this.baseUrl}${path}`, { method: "POST", headers, body: bytes as Uint8Array<ArrayBuffer> });
+    if (!res.ok) throw new Error(`POST ${path} failed: ${res.status}`);
+    return res.json() as Promise<T>;
+  }
+  /** POST a JSON body and read the response as raw bytes (e.g. synthesized audio). */
+  async postForBytes(path: string, body: unknown, opts: RequestOptions = {}): Promise<ArrayBuffer> {
+    const headers: Record<string, string> = { "content-type": "application/json" };
+    if (opts.bearer) headers["authorization"] = `Bearer ${opts.bearer}`;
+    const res = await this.fetchImpl(`${this.baseUrl}${path}`, { method: "POST", headers, body: JSON.stringify(body) });
+    if (!res.ok) throw new Error(`POST ${path} failed: ${res.status}`);
+    return res.arrayBuffer();
+  }
   post<T>(path: string, body?: unknown, opts: RequestOptions = {}): Promise<T> {
     return this.request<T>("POST", path, body, opts);
   }

@@ -47,6 +47,14 @@ export class AuthedHttp {
   async post<T>(path: string, body?: unknown, opts: Omit<RequestOptions, "bearer"> = {}): Promise<T> {
     return this.#withAuth((bearer) => this.http.post<T>(path, body, { ...opts, bearer }));
   }
+  /** POST raw bytes with an explicit content-type → JSON (audio upload / transcribe). */
+  async postBinary<T>(path: string, bytes: Uint8Array, contentType: string): Promise<T> {
+    return this.#withAuth((bearer) => this.http.postBinary<T>(path, bytes, contentType, { bearer }));
+  }
+  /** POST JSON and read the response as raw bytes (synthesized audio). */
+  async postForBytes(path: string, body: unknown): Promise<ArrayBuffer> {
+    return this.#withAuth((bearer) => this.http.postForBytes(path, body, { bearer }));
+  }
   async patch<T>(path: string, body?: unknown): Promise<T> {
     return this.#withAuth((bearer) => this.http.patch<T>(path, body, { bearer }));
   }

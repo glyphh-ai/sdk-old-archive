@@ -24,6 +24,7 @@ import { InvitesClient } from "./resources/invites.js";
 import { WorkspacesClient } from "./resources/workspaces.js";
 import { BillingClient } from "./resources/billing.js";
 import { CatalogClient } from "./resources/catalog.js";
+import { VoiceClient } from "./resources/voice.js";
 import { ProvidersClient } from "./resources/providers.js";
 import { AdminClient } from "./resources/admin.js";
 import { MarketingClient } from "./resources/marketing.js";
@@ -174,6 +175,8 @@ export interface Client {
   appServers: AppServersClient;
   /** The provider/model catalog (read). */
   catalog: CatalogClient;
+  /** Voice runtime — transcribe (STT) + synthesize (TTS). */
+  voice: VoiceClient;
   /** Org provider enablement + BYOK (org_admin). */
   providers: ProvidersClient;
   /** Glyphh platform administration (super_admin). */
@@ -307,6 +310,7 @@ export function createClient(opts: ClientOptions): Client {
     runtimeImages: new RuntimeImagesClient(authed),
     appServers: new AppServersClient(authed),
     catalog: new CatalogClient(authed),
+    voice: new VoiceClient(authed),
     providers: new ProvidersClient(authed),
     admin: new AdminClient(authed),
     marketing: new MarketingClient(authed),
