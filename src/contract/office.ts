@@ -106,7 +106,14 @@ export interface SheetColumn {
   /** An AI column: the prompt the agent materializes values from. */
   aiPrompt?: string;
 }
-export interface Worksheet { name: string; columns: SheetColumn[]; rows: SheetCell[][] }
+export interface Worksheet {
+  name: string;
+  columns: SheetColumn[];
+  rows: SheetCell[][];
+  /** Panel-maintained layout: px widths per column / heights per row. */
+  colWidths?: Array<number | null>;
+  rowHeights?: Array<number | null>;
+}
 export interface Workbook { sheets: Worksheet[] }
 
 export interface OfficeSheetMeta {
