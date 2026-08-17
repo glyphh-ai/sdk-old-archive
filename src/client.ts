@@ -33,7 +33,7 @@ import { UsageClient } from "./resources/usage.js";
 import { ApiKeysClient } from "./resources/api-keys.js";
 import { SessionsClient } from "./resources/sessions.js";
 import { FilesClient } from "./resources/files.js";
-import { OfficeSlidesClient, OfficeDocsClient, OfficeDriveClient } from "./resources/office.js";
+import { OfficeSlidesClient, OfficeDocsClient, OfficeDriveClient, OfficeSheetsClient } from "./resources/office.js";
 import { GitClient } from "./resources/git.js";
 import { AppsClient } from "./resources/apps.js";
 import { HostingClient } from "./resources/hosting.js";
@@ -193,6 +193,8 @@ export interface Client {
   officeSlides: OfficeSlidesClient;
   /** Glyphh Office · Docs — markdown documents + the review-and-approve suggestion flow + templates. */
   officeDocs: OfficeDocsClient;
+  /** Glyphh Office · Sheets — JSON workbooks with materialized formula values. */
+  officeSheets: OfficeSheetsClient;
   /** Glyphh Drive — folders and the pointer view over every Office file. */
   officeDrive: OfficeDriveClient;
   /** GitHub connection — link, list repos; sessions with a repo get a scoped clone token. */
@@ -307,6 +309,7 @@ export function createClient(opts: ClientOptions): Client {
     files: new FilesClient(authed),
     officeSlides: new OfficeSlidesClient(authed),
     officeDocs: new OfficeDocsClient(authed),
+    officeSheets: new OfficeSheetsClient(authed),
     officeDrive: new OfficeDriveClient(authed),
     git: new GitClient(authed),
     apps: new AppsClient(authed),

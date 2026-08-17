@@ -12,6 +12,7 @@ import type {
   OfficeSlide, OfficeSlideMeta,
   OfficeDoc, OfficeDocMeta, OfficeSuggestion, CreateSuggestionInput,
   OfficeDocTemplate, OfficeFolder, OfficeDriveListing,
+  OfficeSheet, OfficeSheetMeta, Workbook,
 } from "../contract/office.js";
 
 export class OfficeSlidesClient {
@@ -124,7 +125,41 @@ export class OfficeDriveClient {
   }
 
   /** Point one Office file at a folder (null = root). */
-  move(kind: "slides" | "docs", file: string, folderId: string | null): Promise<{ ok: boolean }> {
+  move(kind: "slides" | "docs" | "sheets", file: string, folderId: string | null): Promise<{ ok: boolean }> {
     return this.http.post<{ ok: boolean }>("/api/office/drive/move", { kind, file, folderId });
+  }
+}
+
+// ── SHEETS — JSON workbooks; formula values arrive materialized ──────────────
+
+export class OfficeSheetsClient {
+  constructor(private readonly http: AuthedHttp) {}
+
+  /** The org's workbooks, most recently touched first. */
+  list(): Promise<OfficeSheetMeta[]> {
+    return this.http.get<OfficeSheetMeta[]>("/api/office/sheets");
+  }
+
+  /** One workbook by name — metadata plus the full JSON workbook. */
+  get(file: string): Promise<OfficeSheet> {
+    return this.http.get<OfficeSheet>(`/api/office/sheets/${encodeURIComponent(file)}`);
+  }
+
+  /** Create or overwrite by name. Formula cells must carry their materialized
+   *  values ({f, v}) — recompute before saving. */
+  put(file: string, title: string, workbook: Workbook, folderId?: string | null): Promise<OfficeSheetMeta> {
+    const body: { title: string; workbook: Workbook; folderId?: string | null } = { title, workbook };
+    if (folderId !== undefined) body.folderId = folderId;
+    return this.http.put<OfficeSheetMeta>(`/api/office/sheets/${encodeURIComponent(file)}`, body);
+  }
+
+  /** Delete a workbook for the whole org. */
+  delete(file: string): Promise<void> {
+    return this.http.del<void>(`/api/office/sheets/${encodeURIComponent(file)}`);
+  }
+
+  /** The workbook's READABLE TEXT — headers + sample rows per sheet. */
+  text(file: string): Promise<OfficeSheetMeta & { text: string }> {
+    return this.http.get<OfficeSheetMeta & { text: string }>(`/api/office/sheets/${encodeURIComponent(file)}/text`);
   }
 }

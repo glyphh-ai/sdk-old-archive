@@ -259,4 +259,76 @@ export function registerOffice(reg: CommandRegistry): void {
       ctx.printJson(await ctx.client.officeDrive.move(kind, file, folder ?? null));
     },
   });
+
+  // ── SHEETS ──────────────────────────────────────────────────────────────────
+
+  reg.register({
+    path: "sheets list",
+    summary: "the org's workbooks (newest first)",
+    usage: "sheets list",
+    covers: ["officeSheets.list"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.officeSheets.list());
+    },
+  });
+
+  reg.register({
+    path: "sheets get",
+    summary: "one workbook by name — metadata + the JSON workbook (--out writes it)",
+    usage: "sheets get <file> [--out <path>]",
+    covers: ["officeSheets.get"],
+    async run(ctx, args) {
+      const file = args.positional[0];
+      if (!file) throw new Error("usage: sheets get <file> [--out <path>]");
+      const sheet = await ctx.client.officeSheets.get(file);
+      const out = flagStr(args, "out");
+      if (out) {
+        writeFileSync(out, JSON.stringify(sheet.workbook, null, 2), "utf8");
+        const { workbook: _wb, ...meta } = sheet;
+        ctx.printJson({ ...meta, wrote: out });
+        return;
+      }
+      ctx.printJson(sheet);
+    },
+  });
+
+  reg.register({
+    path: "sheets save",
+    summary: "create/overwrite a workbook from a local JSON file",
+    usage: "sheets save <path> [--name <file>] [--title <title>]",
+    covers: ["officeSheets.put"],
+    async run(ctx, args) {
+      const path = args.positional[0];
+      if (!path) throw new Error("usage: sheets save <path> [--name <file>] [--title <title>]");
+      const name = flagStr(args, "name") ?? basename(path);
+      const title = flagStr(args, "title") ?? name.replace(/\.json$/i, "");
+      const workbook = JSON.parse(readFileSync(path, "utf8"));
+      ctx.printJson(await ctx.client.officeSheets.put(name, title, workbook));
+    },
+  });
+
+  reg.register({
+    path: "sheets delete",
+    summary: "delete a workbook for the whole org",
+    usage: "sheets delete <file>",
+    covers: ["officeSheets.delete"],
+    async run(ctx, args) {
+      const file = args.positional[0];
+      if (!file) throw new Error("usage: sheets delete <file>");
+      await ctx.client.officeSheets.delete(file);
+      ctx.printJson({ deleted: file });
+    },
+  });
+
+  reg.register({
+    path: "sheets text",
+    summary: "a workbook's readable text (headers + sample rows)",
+    usage: "sheets text <file>",
+    covers: ["officeSheets.text"],
+    async run(ctx, args) {
+      const file = args.positional[0];
+      if (!file) throw new Error("usage: sheets text <file>");
+      ctx.printJson(await ctx.client.officeSheets.text(file));
+    },
+  });
 }

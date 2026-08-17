@@ -82,7 +82,7 @@ export interface OfficeFolder {
 
 /** One Drive entry — a POINTER at an Office object, never a copy. */
 export interface OfficeDriveFile {
-  kind: "slides" | "docs";
+  kind: "slides" | "docs" | "sheets";
   file: string;
   title: string;
   sizeBytes: number;
@@ -93,4 +93,33 @@ export interface OfficeDriveFile {
 export interface OfficeDriveListing {
   folders: OfficeFolder[];
   files: OfficeDriveFile[];
+}
+
+// ── SHEETS ────────────────────────────────────────────────────────────────────
+
+/** A cell: a value, or a formula with its MATERIALIZED value ({f, v}) — the
+ *  engine runs client/agent-side; stored workbooks always carry values. */
+export type SheetCell = string | number | null | { f: string; v?: string | number | null };
+export interface SheetColumn {
+  name: string;
+  type?: "text" | "number" | "date" | "currency";
+  /** An AI column: the prompt the agent materializes values from. */
+  aiPrompt?: string;
+}
+export interface Worksheet { name: string; columns: SheetColumn[]; rows: SheetCell[][] }
+export interface Workbook { sheets: Worksheet[] }
+
+export interface OfficeSheetMeta {
+  /** "<slug>.json" — unique per org; the stable name workbooks are addressed by. */
+  file: string;
+  title: string;
+  sheets: number;
+  totalRows: number;
+  sizeBytes: number;
+  folderId: string | null;
+  updatedAt: string;
+}
+
+export interface OfficeSheet extends OfficeSheetMeta {
+  workbook: Workbook;
 }
