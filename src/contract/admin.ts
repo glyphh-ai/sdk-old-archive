@@ -37,7 +37,7 @@ export interface AdminOrgMember {
 export interface AdminOrgDetail extends AdminOrgListItem {
   max_seats: number;
   created_at: string;
-  credits: { balance: number }; // micro-credits
+  credits: { balance: number; used: number }; // micro-credits (balance + total consumed)
   members: AdminOrgMember[];
 }
 export interface AdminOrgPatch {

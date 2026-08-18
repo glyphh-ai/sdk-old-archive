@@ -65,6 +65,53 @@ export function registerMusic(reg: CommandRegistry): void {
     },
   });
   reg.register({
+    path: "music instruments",
+    summary: "the org instrument library",
+    usage: "music instruments",
+    covers: ["music.instruments"],
+    async run(ctx) { ctx.printJson(await ctx.client.music.instruments()); },
+  });
+  reg.register({
+    path: "music instrument-create",
+    summary: "add an instrument to the library",
+    usage: "music instrument-create <name> [--desc <sound line>]",
+    covers: ["music.createInstrument"],
+    async run(ctx, args) {
+      const name = args.positional.join(" ").trim();
+      if (!name) throw new Error("usage: music instrument-create <name>");
+      const description = flagStr(args, "desc");
+      ctx.printJson(await ctx.client.music.createInstrument({ name, ...(description ? { description } : {}) }));
+    },
+  });
+  reg.register({
+    path: "music instrument-update",
+    summary: "update a library instrument",
+    usage: "music instrument-update <id> [--name <n>] [--desc <d>]",
+    covers: ["music.updateInstrument"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: music instrument-update <id>");
+      const name = flagStr(args, "name"), description = flagStr(args, "desc");
+      ctx.printJson(await ctx.client.music.updateInstrument(id, {
+        ...(name ? { name } : {}),
+        ...(description ? { description } : {}),
+      }));
+    },
+  });
+  reg.register({
+    path: "music instrument-delete",
+    summary: "remove a library instrument",
+    usage: "music instrument-delete <id>",
+    covers: ["music.deleteInstrument"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: music instrument-delete <id>");
+      await ctx.client.music.deleteInstrument(id);
+      ctx.printJson({ deleted: id });
+    },
+  });
+
+  reg.register({
     path: "music songs",
     summary: "the org's songs (newest first) or one song in full",
     usage: "music songs [--id <songId>]",

@@ -60,6 +60,14 @@ export interface MusicSongInput {
   visuals?: string[];
 }
 
+export interface MusicLibInstrument {
+  id: string;
+  name: string;
+  description: string;
+  meta: Record<string, unknown>;
+  updatedAt: string;
+}
+
 export class MusicClient {
   constructor(private readonly http: AuthedHttp) {}
 
@@ -74,6 +82,19 @@ export class MusicClient {
   }
   deleteArtist(id: string): Promise<void> {
     return this.http.del<void>(`/api/music/artists/${encodeURIComponent(id)}`);
+  }
+
+  instruments(): Promise<MusicLibInstrument[]> {
+    return this.http.get<MusicLibInstrument[]>("/api/music/instruments");
+  }
+  createInstrument(input: { name: string; description?: string; meta?: Record<string, unknown> }): Promise<MusicLibInstrument> {
+    return this.http.post<MusicLibInstrument>("/api/music/instruments", input);
+  }
+  updateInstrument(id: string, patch: { name?: string; description?: string; meta?: Record<string, unknown> }): Promise<MusicLibInstrument> {
+    return this.http.patch<MusicLibInstrument>(`/api/music/instruments/${encodeURIComponent(id)}`, patch);
+  }
+  deleteInstrument(id: string): Promise<void> {
+    return this.http.del<void>(`/api/music/instruments/${encodeURIComponent(id)}`);
   }
 
   songs(): Promise<MusicSong[]> {
