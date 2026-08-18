@@ -12,6 +12,16 @@ import type {
   MediaGenerateInput, MediaJob,
 } from "../contract/media.js";
 
+export interface MediaProject {
+  id: string;
+  title: string;
+  /** {songId?, visuals?: assetIds[], prompt?, parentId?} — the assembly. */
+  scenes: Record<string, unknown>;
+  status: string;
+  renderAssetId: string | null;
+  updatedAt: string;
+}
+
 export class MediaClient {
   constructor(private readonly http: AuthedHttp) {}
 
@@ -68,6 +78,24 @@ export class MediaClient {
 
   jobs(): Promise<MediaJob[]> {
     return this.http.get<MediaJob[]>("/api/media/jobs");
+  }
+
+  projects(): Promise<MediaProject[]> {
+    return this.http.get<MediaProject[]>("/api/media/projects");
+  }
+  createProject(input: { title?: string; scenes?: Record<string, unknown> }): Promise<MediaProject> {
+    return this.http.post<MediaProject>("/api/media/projects", input);
+  }
+  updateProject(id: string, patch: { title?: string; scenes?: Record<string, unknown> }): Promise<MediaProject> {
+    return this.http.patch<MediaProject>(`/api/media/projects/${encodeURIComponent(id)}`, patch);
+  }
+  deleteProject(id: string): Promise<void> {
+    return this.http.del<void>(`/api/media/projects/${encodeURIComponent(id)}`);
+  }
+  /** Server-side project generation — child project now, render attaches on
+   *  success, a failed child cleans itself up. */
+  generateProject(id: string, input: { model?: string; seconds?: number; prompt?: string } = {}): Promise<{ project: MediaProject; job: MediaJob }> {
+    return this.http.post<{ project: MediaProject; job: MediaJob }>(`/api/media/projects/${encodeURIComponent(id)}/generate`, input);
   }
 
   /** Poll a job to its terminal state (2s cadence, capped). */

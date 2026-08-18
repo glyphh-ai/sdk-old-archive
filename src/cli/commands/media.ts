@@ -139,6 +139,84 @@ export function registerMedia(reg: CommandRegistry): void {
   });
 
   reg.register({
+    path: "media projects",
+    summary: "video projects (Music Video / studio documents)",
+    usage: "media projects [--id <projectId>]",
+    covers: ["media.projects"],
+    async run(ctx, args) {
+      const id = flagStr(args, "id");
+      const all = await ctx.client.media.projects();
+      ctx.printJson(id ? all.find((p) => p.id === id) ?? { error: "not found" } : all);
+    },
+  });
+
+  reg.register({
+    path: "media project-create",
+    summary: "create a video project document",
+    usage: "media project-create <title> [--song <songId>] [--prompt <p>]",
+    covers: ["media.createProject"],
+    async run(ctx, args) {
+      const title = args.positional.join(" ").trim() || "Untitled";
+      const song = flagStr(args, "song");
+      const prompt = flagStr(args, "prompt");
+      ctx.printJson(await ctx.client.media.createProject({
+        title,
+        scenes: { ...(song ? { songId: song } : {}), ...(prompt ? { prompt } : {}), visuals: [] },
+      }));
+    },
+  });
+
+  reg.register({
+    path: "media project-update",
+    summary: "update a project (title / scenes)",
+    usage: "media project-update <id> [--title <t>] [--prompt <p>]",
+    covers: ["media.updateProject"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: media project-update <id>");
+      const title = flagStr(args, "title");
+      const prompt = flagStr(args, "prompt");
+      const patch: { title?: string; scenes?: Record<string, unknown> } = {};
+      if (title) patch.title = title;
+      if (prompt) {
+        const cur = (await ctx.client.media.projects()).find((p) => p.id === id);
+        patch.scenes = { ...(cur?.scenes ?? {}), prompt };
+      }
+      ctx.printJson(await ctx.client.media.updateProject(id, patch));
+    },
+  });
+
+  reg.register({
+    path: "media project-generate",
+    summary: "server-side project generation (child now, render attaches; metered)",
+    usage: "media project-generate <id> [--model <m>] [--seconds <n>] [--prompt <p>]",
+    covers: ["media.generateProject"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: media project-generate <id>");
+      const model = flagStr(args, "model"), seconds = flagStr(args, "seconds"), prompt = flagStr(args, "prompt");
+      ctx.printJson(await ctx.client.media.generateProject(id, {
+        ...(model ? { model } : {}),
+        ...(seconds ? { seconds: Number(seconds) } : {}),
+        ...(prompt ? { prompt } : {}),
+      }));
+    },
+  });
+
+  reg.register({
+    path: "media project-delete",
+    summary: "delete a video project document",
+    usage: "media project-delete <id>",
+    covers: ["media.deleteProject"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: media project-delete <id>");
+      await ctx.client.media.deleteProject(id);
+      ctx.printJson({ deleted: id });
+    },
+  });
+
+  reg.register({
     path: "media delete",
     summary: "delete an asset (bytes + row)",
     usage: "media delete <id>",
