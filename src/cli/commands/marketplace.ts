@@ -8,7 +8,7 @@
 import { readFileSync } from "node:fs";
 import type { CommandRegistry } from "../registry.js";
 import { flagStr } from "../args.js";
-import type { CreateDeveloperInput, UpdateDeveloperInput } from "../../contract/marketplace.js";
+import type { CreateDeveloperInput, UpdateDeveloperInput, PayoutConfigInput } from "../../contract/marketplace.js";
 
 export function registerMarketplace(reg: CommandRegistry): void {
   reg.register({
@@ -87,6 +87,125 @@ export function registerMarketplace(reg: CommandRegistry): void {
       if (!handle || !file) throw new Error("usage: marketplace developer avatar <handle> --file <path>");
       const bytes = new Uint8Array(readFileSync(file));
       ctx.printJson(await ctx.client.marketplace.uploadDeveloperAvatar(handle, bytes));
+    },
+  });
+
+  // ── the developer program (M7): consent, payout config, earnings, payouts ──
+
+  reg.register({
+    path: "marketplace program enroll",
+    summary: "enroll in the developer program by accepting the current agreement",
+    usage: "marketplace program enroll <handle> --agreement-version <version>",
+    covers: ["marketplace.enrollProgram"],
+    async run(ctx, args) {
+      const handle = args.positional[0];
+      const version = flagStr(args, "agreement-version");
+      if (!handle || !version) {
+        throw new Error("usage: marketplace program enroll <handle> --agreement-version <version>");
+      }
+      ctx.printJson(await ctx.client.marketplace.enrollProgram(handle, version));
+    },
+  });
+
+  reg.register({
+    path: "marketplace program get",
+    summary: "your profile's program state (enrollment, consent, payout config)",
+    usage: "marketplace program get <handle>",
+    covers: ["marketplace.program"],
+    async run(ctx, args) {
+      const handle = args.positional[0];
+      if (!handle) throw new Error("usage: marketplace program get <handle>");
+      ctx.printJson(await ctx.client.marketplace.program(handle));
+    },
+  });
+
+  reg.register({
+    path: "marketplace program payout-config",
+    summary: "set your payout config (Stripe Connect account + threshold)",
+    usage: "marketplace program payout-config <handle> [--account acct_…|none] [--threshold <credits>]",
+    covers: ["marketplace.setPayoutConfig"],
+    async run(ctx, args) {
+      const handle = args.positional[0];
+      if (!handle) throw new Error("usage: marketplace program payout-config <handle> [--account …] [--threshold …]");
+      const patch: PayoutConfigInput = {};
+      const account = flagStr(args, "account");
+      const threshold = flagStr(args, "threshold");
+      if (account !== undefined) patch.stripeConnectAccountId = account === "none" ? null : account;
+      if (threshold !== undefined) patch.payoutThresholdCredits = Number(threshold);
+      ctx.printJson(await ctx.client.marketplace.setPayoutConfig(handle, patch));
+    },
+  });
+
+  reg.register({
+    path: "marketplace program earnings",
+    summary: "your revenue-share ledger + lifetime totals",
+    usage: "marketplace program earnings <handle> [--limit <n>] [--offset <n>]",
+    covers: ["marketplace.developerEarnings"],
+    async run(ctx, args) {
+      const handle = args.positional[0];
+      if (!handle) throw new Error("usage: marketplace program earnings <handle>");
+      const limit = flagStr(args, "limit");
+      const offset = flagStr(args, "offset");
+      ctx.printJson(await ctx.client.marketplace.developerEarnings(handle, {
+        ...(limit ? { limit: Number(limit) } : {}),
+        ...(offset ? { offset: Number(offset) } : {}),
+      }));
+    },
+  });
+
+  reg.register({
+    path: "marketplace program payouts",
+    summary: "your payouts, newest first",
+    usage: "marketplace program payouts <handle>",
+    covers: ["marketplace.developerPayouts"],
+    async run(ctx, args) {
+      const handle = args.positional[0];
+      if (!handle) throw new Error("usage: marketplace program payouts <handle>");
+      ctx.printJson(await ctx.client.marketplace.developerPayouts(handle));
+    },
+  });
+
+  reg.register({
+    path: "marketplace program suspend",
+    summary: "suspend a developer's program participation (platform admin)",
+    usage: "marketplace program suspend <handle>",
+    covers: ["marketplace.suspendDeveloperProgram"],
+    async run(ctx, args) {
+      const handle = args.positional[0];
+      if (!handle) throw new Error("usage: marketplace program suspend <handle>");
+      ctx.printJson(await ctx.client.marketplace.suspendDeveloperProgram(handle));
+    },
+  });
+
+  reg.register({
+    path: "marketplace program reinstate",
+    summary: "reinstate a suspended developer (platform admin)",
+    usage: "marketplace program reinstate <handle>",
+    covers: ["marketplace.reinstateDeveloperProgram"],
+    async run(ctx, args) {
+      const handle = args.positional[0];
+      if (!handle) throw new Error("usage: marketplace program reinstate <handle>");
+      ctx.printJson(await ctx.client.marketplace.reinstateDeveloperProgram(handle));
+    },
+  });
+
+  reg.register({
+    path: "marketplace payouts-queue",
+    summary: "the payout queue across every developer (platform admin)",
+    usage: "marketplace payouts-queue [--status pending|paid|failed]",
+    covers: ["marketplace.adminPayouts"],
+    async run(ctx, args) {
+      const status = flagStr(args, "status") as "pending" | "paid" | "failed" | undefined;
+      ctx.printJson(await ctx.client.marketplace.adminPayouts(status));
+    },
+  });
+
+  reg.register({
+    path: "marketplace earnings-admin",
+    summary: "earnings per developer, biggest unpaid first (platform admin)",
+    covers: ["marketplace.adminDeveloperEarnings"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.marketplace.adminDeveloperEarnings());
     },
   });
 

@@ -11,6 +11,8 @@ import type { AuthedHttp } from "../core/authed-http.js";
 import type {
   MarketplaceDeveloper, CreateDeveloperInput, UpdateDeveloperInput,
   DeveloperReview, FlaggedDeveloperReview,
+  DeveloperProgram, PayoutConfigInput, DeveloperEarning, DeveloperEarningsTotals,
+  DeveloperPayout, AdminDeveloperEarningsSummary,
 } from "../contract/marketplace.js";
 
 export class MarketplaceClient {
@@ -86,6 +88,86 @@ export class MarketplaceClient {
       `/api/marketplace/developers/${encodeURIComponent(handle)}/reviews/${encodeURIComponent(reviewId)}/report`,
       { reason },
     );
+  }
+
+  // ── the developer program (M7): consent, enrollment, payout config ─────────
+
+  /** Enroll a profile you own in the developer program by ACCEPTING the current
+   *  developer agreement (its version, from `program(...).agreement.currentVersion`).
+   *  Re-running after a version bump is the re-consent path. */
+  enrollProgram(handle: string, agreementVersion: string): Promise<DeveloperProgram> {
+    return this.http.post<DeveloperProgram>(
+      `/api/marketplace/developers/${encodeURIComponent(handle)}/program/enroll`, { agreementVersion },
+    );
+  }
+
+  /** Your profile's program state (owner-only): enrollment, consent, payout config. */
+  program(handle: string): Promise<DeveloperProgram> {
+    return this.http.get<DeveloperProgram>(`/api/marketplace/developers/${encodeURIComponent(handle)}/program`);
+  }
+
+  /** Update your payout config: Stripe Connect account (acct_…, null disconnects)
+   *  and/or the payout threshold in whole credits. */
+  setPayoutConfig(handle: string, patch: PayoutConfigInput): Promise<DeveloperProgram> {
+    return this.http.patch<DeveloperProgram>(
+      `/api/marketplace/developers/${encodeURIComponent(handle)}/program/payout`, patch,
+    );
+  }
+
+  // ── earnings + payouts (own) ───────────────────────────────────────────────
+
+  /** Your revenue-share ledger (newest first) + lifetime totals. */
+  developerEarnings(
+    handle: string,
+    query: { limit?: number; offset?: number } = {},
+  ): Promise<{ earnings: DeveloperEarning[]; total: number; totals: DeveloperEarningsTotals }> {
+    const qs = new URLSearchParams();
+    if (query.limit) qs.set("limit", String(query.limit));
+    if (query.offset) qs.set("offset", String(query.offset));
+    const q = qs.toString();
+    return this.http.get<{ earnings: DeveloperEarning[]; total: number; totals: DeveloperEarningsTotals }>(
+      `/api/marketplace/developers/${encodeURIComponent(handle)}/earnings${q ? `?${q}` : ""}`,
+    );
+  }
+
+  /** Your payouts, newest first. */
+  async developerPayouts(handle: string): Promise<DeveloperPayout[]> {
+    const { payouts } = await this.http.get<{ payouts: DeveloperPayout[] }>(
+      `/api/marketplace/developers/${encodeURIComponent(handle)}/payouts`,
+    );
+    return payouts;
+  }
+
+  // ── the developer program + payout queue (platform admin) ──────────────────
+
+  /** Suspend a developer's program participation (blocks listing + payouts). */
+  suspendDeveloperProgram(handle: string): Promise<DeveloperProgram> {
+    return this.http.post<DeveloperProgram>(
+      `/api/admin/marketplace/program/${encodeURIComponent(handle)}/suspend`, {},
+    );
+  }
+
+  /** Reinstate a suspended developer (back to enrolled if they had consented). */
+  reinstateDeveloperProgram(handle: string): Promise<DeveloperProgram> {
+    return this.http.post<DeveloperProgram>(
+      `/api/admin/marketplace/program/${encodeURIComponent(handle)}/reinstate`, {},
+    );
+  }
+
+  /** The payout queue across every developer, optionally one status. */
+  async adminPayouts(status?: "pending" | "paid" | "failed"): Promise<DeveloperPayout[]> {
+    const { payouts } = await this.http.get<{ payouts: DeveloperPayout[] }>(
+      `/api/admin/marketplace/payouts${status ? `?status=${status}` : ""}`,
+    );
+    return payouts;
+  }
+
+  /** Earnings per developer — the platform-admin roll, biggest unpaid first. */
+  async adminDeveloperEarnings(): Promise<AdminDeveloperEarningsSummary[]> {
+    const { developers } = await this.http.get<{ developers: AdminDeveloperEarningsSummary[] }>(
+      "/api/admin/marketplace/earnings",
+    );
+    return developers;
   }
 
   // ── moderation (platform admin) ────────────────────────────────────────────

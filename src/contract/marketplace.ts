@@ -66,3 +66,78 @@ export interface FlaggedDeveloperReview extends DeveloperReview {
   reportReason: string | null;
   reportedAt: string | null;
 }
+
+// ── the developer program + payout ledger (marketplace M7) ────────────────────
+
+export type DeveloperProgramStatus = "none" | "enrolled" | "suspended";
+
+/** A profile's program state: enrollment, the agreement CONSENT RECORD (with
+ *  the server's current version, so a client can tell "accepted" from
+ *  "accepted, but the agreement moved on"), and payout config. */
+export interface DeveloperProgram {
+  handle: string;
+  status: DeveloperProgramStatus;
+  agreement: {
+    currentVersion: string;
+    acceptedVersion: string | null;
+    acceptedAt: string | null;
+    /** True when the accepted version IS the current one — the listing gate. */
+    current: boolean;
+  };
+  payout: {
+    stripeConnectAccountId: string | null;
+    thresholdCredits: number;
+    status: "configured" | "unconfigured";
+  };
+}
+
+export interface PayoutConfigInput {
+  /** A Stripe Connect account id (acct_…). null disconnects it. */
+  stripeConnectAccountId?: string | null;
+  /** Minimum unpaid NET credits before the monthly sweep pays out. */
+  payoutThresholdCredits?: number;
+}
+
+/** One revenue-share ledger row (amounts in micro-credits). */
+export interface DeveloperEarning {
+  id: string;
+  appSlug: string;
+  kind: "install" | "renewal";
+  grossCreditsMicro: number;
+  storeCutCreditsMicro: number;
+  netCreditsMicro: number;
+  payoutId: string | null;
+  createdAt: string;
+}
+
+export interface DeveloperEarningsTotals {
+  grossCreditsMicro: number;
+  storeCutCreditsMicro: number;
+  netCreditsMicro: number;
+  unpaidNetCreditsMicro: number;
+}
+
+export interface DeveloperPayout {
+  id: string;
+  amountCreditsMicro: number;
+  status: "pending" | "paid" | "failed";
+  stripeTransferId: string | null;
+  error: string | null;
+  createdAt: string;
+  paidAt: string | null;
+  /** Present on the admin queue only. */
+  developerHandle?: string;
+}
+
+/** The admin earnings roll: one row per developer with money or a program. */
+export interface AdminDeveloperEarningsSummary {
+  handle: string;
+  displayName: string;
+  programStatus: string;
+  payoutThresholdCredits: number;
+  payoutConfigured: boolean;
+  grossCreditsMicro: number;
+  storeCutCreditsMicro: number;
+  netCreditsMicro: number;
+  unpaidNetCreditsMicro: number;
+}
