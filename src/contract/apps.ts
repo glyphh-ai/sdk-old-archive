@@ -14,8 +14,9 @@
 /** App visibility in the marketplace. */
 export type AppVisibility = "public" | "org" | "unlisted";
 
-/** What an app IS: a URL you open, a program on your machine, or one you built. */
-export type AppKind = "web" | "native" | "glyphh";
+/** What an app IS: a URL you open, a program on your machine, one you built, or a
+ *  desktop WORK PANEL (installs locally on the user's machine — never hosted). */
+export type AppKind = "web" | "native" | "glyphh" | "workpanel";
 
 /** Kind-shaped launcher config — HOW the desktop opens the app, mirroring its form:
  *  web {browser, openAs} · native {archetype, windowMode, shell, profile, cwd,
@@ -46,6 +47,108 @@ export interface AppManifest {
   domains?: string[];
   /** Optional second process from the same image (background work / agents). */
   processes?: { worker?: string };
+  /** The DECLARATIVE app schema (marketplace M8): tables/columns/indexes as
+   *  data. The developer never writes SQL — the platform diffs releases and
+   *  generates every DDL statement, per org, lazily. */
+  schema?: AppSchemaDoc;
+  /** Pinned per release; MUST increase whenever `schema` changes. */
+  schemaVersion?: number;
+}
+
+// ── the declarative app schema (marketplace M8) ──────────────────────────────
+
+/** The closed set of column types an app schema may declare. */
+export type AppColumnType =
+  | "text" | "integer" | "bigint" | "boolean" | "numeric" | "timestamptz" | "jsonb" | "uuid";
+
+export interface AppSchemaColumn {
+  /** lowercase snake_case, letter-first, ≤ 40 chars; reserved prefixes
+   *  (pg_, gy_, glyphh_, grave_) refused. */
+  name: string;
+  type: AppColumnType;
+  /** Defaults to true. Primary-key columns must declare false. */
+  nullable?: boolean;
+  /** Literals only — plus `now()` on timestamptz and `gen_random_uuid()` on uuid. */
+  default?: string | number | boolean;
+  primaryKey?: boolean;
+}
+
+export interface AppSchemaIndex {
+  name: string;
+  columns: string[];
+  unique?: boolean;
+}
+
+/** FKs may only reference tables in the SAME document (the app's own schema),
+ *  and must reference the target table's primary key. */
+export interface AppSchemaForeignKey {
+  columns: string[];
+  references: { table: string; columns: string[] };
+}
+
+export interface AppSchemaTable {
+  name: string;
+  columns: AppSchemaColumn[];
+  /** btree only. */
+  indexes?: AppSchemaIndex[];
+  foreignKeys?: AppSchemaForeignKey[];
+}
+
+/** The whole declared schema — ≤ 30 tables, ≤ 60 columns/table, ≤ 20 indexes/table. */
+export interface AppSchemaDoc {
+  tables: AppSchemaTable[];
+}
+
+/** One structured, parameterized query against the app's OWN schema — the seam
+ *  panels/app tools use. No raw SQL: declared tables/columns only, bounded. */
+export interface AppDataQuery {
+  op: "select" | "insert" | "update" | "delete";
+  table: string;
+  /** Projection (select) / RETURNING list (mutations). Declared columns only. */
+  columns?: string[];
+  /** insert/update payload, keyed by declared column. */
+  values?: Record<string, unknown>;
+  /** Equality (`{col: v}`) or `{col: {op, value}}` with eq/neq/lt/lte/gt/gte/
+   *  like/in. update/delete REQUIRE a where. */
+  where?: Record<string, unknown>;
+  orderBy?: { column: string; dir?: "asc" | "desc" };
+  /** Select cap: 200 (default 50). */
+  limit?: number;
+  offset?: number;
+}
+
+export interface AppDataQueryResult {
+  rows: unknown[];
+  rowCount: number;
+}
+
+/** The org's app-data health — the exposed install status (marketplace M8). */
+export interface AppDataStatus {
+  /** The live release's pinned schema version; null when no live schema. */
+  schemaVersion: number | null;
+  /** What this org has actually been migrated to (0 = never provisioned). */
+  appliedVersion: number;
+  /** `disabled` = the last migration failed for THIS org (disable-never-delete). */
+  status: "ready" | "disabled" | "unprovisioned";
+  error: string | null;
+  schemaName: string;
+  updatedAt: string | null;
+}
+
+/** The pre-deletion JSON dump (data-API row shapes) an uninstall returns. */
+export interface AppDataExport {
+  slug: string;
+  schemaVersion: number;
+  exportedAt: string;
+  tables: Record<string, unknown[]>;
+}
+
+/** What `uninstall(slug, { deleteData: true })` returns: export-first, then the
+ *  whole app schema is graveyarded (reaped ~30 days later — never immediate). */
+export interface UninstallAppResult {
+  ok: boolean;
+  dataDeleted: boolean;
+  export: AppDataExport | null;
 }
 
 /** An extra slug → url address on one app (`crm-dev` → http://localhost:3001). */
@@ -97,9 +200,10 @@ export interface AppSecretKey {
   updatedAt: string;
 }
 
-/** Create a web or native entry (hosted apps arrive via publish, not here). */
+/** Create a web, native, or workpanel entry (hosted apps arrive via publish, not
+ *  here). A workpanel requires `config.workbench` (its view) and forbids `url`. */
 export interface CreateAppEntryInput {
-  kind: "web" | "native" | "glyphh";
+  kind: AppKind;
   slug: string;
   name: string;
   url?: string;
@@ -125,6 +229,10 @@ export interface UpdateAppEntryInput {
   access?: AppAccess;
 }
 
+/** The marketplace review pipeline — every release starts `draft`; the owner
+ *  submits; only a platform admin rules, and approval is what goes live. */
+export type AppReleaseReviewStatus = "draft" | "submitted" | "in_review" | "approved" | "rejected";
+
 /** One immutable build of a hosted app. */
 export interface AppRelease {
   id: string;
@@ -139,6 +247,40 @@ export interface AppRelease {
   /** `dev` until promoted; `live` is what installers get. */
   channel: "dev" | "live";
   promotedAt: string | null;
+  reviewStatus: AppReleaseReviewStatus;
+  /** The reviewer's ruling — why a rejection happened. */
+  reviewNotes: string | null;
+  submittedAt: string | null;
+  reviewedAt: string | null;
+  /** The declarative schema version this release pins (marketplace M8); null
+   *  when the app declares no schema. */
+  schemaVersion: number | null;
+}
+
+/** One release waiting in the platform-admin review queue. */
+/** One static-scan finding attached to a release (marketplace M5). */
+export interface ReleaseScanFinding {
+  id: string;
+  scanner: string;
+  severity: "info" | "warn" | "critical";
+  title: string;
+  detail: string | null;
+  createdAt: string;
+}
+
+/** Finding counts by severity — what the review queue shows per release.
+ *  A critical blocks approve unless the admin forces. */
+export interface ScanFindingCounts {
+  info: number;
+  warn: number;
+  critical: number;
+}
+
+export interface AppReviewQueueRelease extends AppRelease {
+  appSlug: string;
+  appName: string;
+  publisherOrgId: string;
+  findings: ScanFindingCounts;
 }
 
 /** One row of the org-scoped app audit feed. */
@@ -156,6 +298,25 @@ export interface AppUsageDay {
   creditsMicro: number;
 }
 
+/** Credits-only pricing on a listing: a monthly price + an optional discount window. */
+export interface AppPricing {
+  /** Whole credits per month; 0 = free. */
+  monthlyCredits: number;
+  discountPercent: number | null;
+  discountStartsAt: string | null;
+  discountEndsAt: string | null;
+  /** What an installer pays TODAY — the discount applied when its window is open. */
+  effectiveMonthlyCredits: number;
+}
+
+/** Set an owned app's pricing. `discountPercent: null` clears the whole discount. */
+export interface UpdateAppPricingInput {
+  monthlyCredits?: number;
+  discountPercent?: number | null;
+  discountStartsAt?: string | null;
+  discountEndsAt?: string | null;
+}
+
 /** A marketplace listing (the latest published version of an app). */
 export interface AppListing {
   slug: string;
@@ -165,6 +326,12 @@ export interface AppListing {
   publisherOrgId: string;
   visibility: AppVisibility;
   installs: number;
+  kind: AppKind;
+  /** A house row (builtin work panels): untouchable by any non-platform-admin path. */
+  builtin: boolean;
+  /** The platform kill switch: hidden from browse, uninstallable. */
+  suspended: boolean;
+  pricing: AppPricing;
   createdAt: string;
   updatedAt: string;
 }
@@ -175,12 +342,22 @@ export interface PublishAppInput {
 }
 
 /** An app installed into the caller's org. */
+/** The subscription's health on an installed priced app (marketplace M4).
+ *  Null for a free app (nothing to renew); `lapsed` means the org's access is
+ *  gone until re-paid — clients gate on exactly this. */
+export type AppEntitlementStatus = "active" | "canceled" | "lapsed";
+
 export interface InstalledApp {
   id: string;
   slug: string;
   name: string;
   version: string;
   installedAt: string;
+  entitlementStatus: AppEntitlementStatus | null;
+  /** The org's app-data health (marketplace M8): null = no schema / never
+   *  provisioned; `disabled` = this org's schema migration failed and the data
+   *  surface refuses until a fixed release ships. */
+  dataStatus: "ready" | "disabled" | null;
 }
 
 /**
@@ -257,6 +434,41 @@ export interface FlaggedAppReview extends AppReview {
   reportedAt: string | null;
 }
 
+/** One comment on a listing (threaded feedback, M3). A removed comment's body
+ *  is withheld — it survives only as a thread anchor ("[removed]"). */
+export interface AppComment {
+  id: string;
+  parentId: string | null;
+  body: string | null;
+  status: "published" | "flagged" | "removed";
+  authorName: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** A top-level comment with its (one level of) replies, oldest reply first. */
+export interface AppCommentThread extends AppComment {
+  replies: AppComment[];
+}
+
+/** A flagged comment as the moderation queue sees it. */
+export interface FlaggedAppComment extends AppComment {
+  appSlug: string;
+  reportReason: string | null;
+  reportedAt: string | null;
+}
+
+/** The publisher's developer card, joined onto the marketplace detail
+ *  ("Support by <developer>" — support falls to the developer, never Glyphh). */
+export interface AppDeveloperCard {
+  handle: string;
+  displayName: string;
+  avatarUrl: string | null;
+  supportEmail: string | null;
+  ratingAvg: number;
+  ratingCount: number;
+}
+
 /** The full marketplace detail for one app — listing media + markdown body +
  *  the connections it requires, with connected status for the caller's org. */
 export interface AppMarketplaceDetail {
@@ -266,6 +478,27 @@ export interface AppMarketplaceDetail {
   description: string | null;
   owned: boolean;
   installs: number;
+  kind: AppKind;
+  builtin: boolean;
+  suspended: boolean;
+  pricing: AppPricing;
+  /** The publisher's marketplace profile, when they have one. */
+  developer: AppDeveloperCard | null;
+  /** PLATFORM ADMINS ONLY: true when the app has an open malicious report.
+   *  Absent for everyone else. */
+  reported?: boolean;
   listing: AppListingRecord;
   requiredConnections: { slug: string; actAs: string; connected: boolean }[];
+}
+
+/** One app-level malicious report as the triage queue renders it. */
+export interface AppReport {
+  id: string;
+  appSlug: string | null;
+  appName: string | null;
+  reason: string;
+  detail: string | null;
+  status: "open" | "reviewing" | "resolved" | "dismissed";
+  createdAt: string;
+  resolvedAt: string | null;
 }

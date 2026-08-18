@@ -9,8 +9,10 @@
 import type { AuthedHttp } from "../core/authed-http.js";
 import type { AppListing, InstalledApp, PublishAppInput, PanelApp,
   OrgApp, CreateAppEntryInput, UpdateAppEntryInput, AppVariant, AppRelease, AppAuditEntry, AppUsageDay, AppSecretKey,
-  AppMarketplaceDetail,
+  AppMarketplaceDetail, AppReviewQueueRelease, AppReport, UpdateAppPricingInput,
   UpdateListingInput, AppMediaKind, StoredAppMedia, AppReview, FlaggedAppReview,
+  AppComment, AppCommentThread, FlaggedAppComment, ReleaseScanFinding,
+  AppDataQuery, AppDataQueryResult, AppDataStatus, AppDataExport, UninstallAppResult,
 } from "../contract/apps.js";
 
 export class AppsClient {
@@ -43,9 +45,31 @@ export class AppsClient {
     return this.http.get<InstalledApp[]>("/api/apps/installed");
   }
 
-  /** Uninstall an app from your org. */
-  uninstall(slug: string): Promise<void> {
-    return this.http.del<void>(`/api/apps/${encodeURIComponent(slug)}/install`);
+  /** Uninstall an app from your org. The org's app DATA is RETAINED by default
+   *  (reinstall picks it back up); `deleteData: true` returns the JSON export
+   *  FIRST and graveyards the whole app schema (reaped ~30 days later). */
+  uninstall(slug: string, opts: { deleteData?: boolean } = {}): Promise<UninstallAppResult | void> {
+    const qs = opts.deleteData === true ? "?deleteData=true" : "";
+    return this.http.del<UninstallAppResult | void>(`/api/apps/${encodeURIComponent(slug)}/install${qs}`);
+  }
+
+  // ── the scoped app-data surface (marketplace M8) ───────────────────────────
+
+  /** Run one structured query against the app's OWN declared schema. Entry
+   *  triggers the lazy per-org migration when the org trails the live release. */
+  dataQuery(slug: string, query: AppDataQuery): Promise<AppDataQueryResult> {
+    return this.http.post<AppDataQueryResult>(`/api/apps/${encodeURIComponent(slug)}/data/query`, query);
+  }
+
+  /** The full JSON dump of the app's data (data-API row shapes). */
+  dataExport(slug: string): Promise<AppDataExport> {
+    return this.http.get<AppDataExport>(`/api/apps/${encodeURIComponent(slug)}/data/export`);
+  }
+
+  /** The org's app-data health: live vs applied schema version, and the
+   *  disable-never-delete latch with its error. */
+  dataStatus(slug: string): Promise<AppDataStatus> {
+    return this.http.get<AppDataStatus>(`/api/apps/${encodeURIComponent(slug)}/data/status`);
   }
 
   /** The caller's deployed panel apps (backs the dashboard's "apps deployed" count). */
@@ -134,12 +158,105 @@ export class AppsClient {
     );
   }
 
-  /** Promote a built release to `live` — the version installers get. Rolling back is
-   *  promoting an older release again; nothing is ever rebuilt. */
+  /** Submit a READY release for marketplace review (draft/rejected → submitted).
+   *  Only a platform admin moves it from there; approval promotes it live. */
+  submitRelease(slug: string, releaseId: string): Promise<AppRelease> {
+    return this.http.post<AppRelease>(
+      `/api/apps/${encodeURIComponent(slug)}/releases/${encodeURIComponent(releaseId)}/submit`, {},
+    );
+  }
+
+  /** PLATFORM ADMIN: re-promote an already-APPROVED release to `live` — the
+   *  rollback pointer move. Owner self-promotion is gone; approval promotes. */
   promoteRelease(slug: string, releaseId: string): Promise<AppRelease> {
     return this.http.post<AppRelease>(
       `/api/apps/${encodeURIComponent(slug)}/releases/${encodeURIComponent(releaseId)}/promote`, {},
     );
+  }
+
+  /** ROLLBACK (owner self-serve, or platform admin): re-promote one of the
+   *  app's PRIOR-APPROVED releases — vetted code, no new review. The schema
+   *  never rolls back; graveyarded objects the older release needs are restored
+   *  inside the 30-day window, and past it a rollback crossing a destructive
+   *  boundary is refused with the reason. */
+  rollbackRelease(slug: string, releaseId: string): Promise<AppRelease> {
+    return this.http.post<AppRelease>(
+      `/api/apps/${encodeURIComponent(slug)}/releases/${encodeURIComponent(releaseId)}/rollback`, {},
+    );
+  }
+
+  /** PLATFORM ADMIN: the review queue — submitted + in-review releases, oldest first. */
+  async reviewQueue(): Promise<AppReviewQueueRelease[]> {
+    const { releases } = await this.http.get<{ releases: AppReviewQueueRelease[] }>("/api/admin/releases/queue");
+    return releases;
+  }
+
+  /** PLATFORM ADMIN: rule on a queued release — begin (claim), approve (promotes
+   *  live), or reject (with notes the author reads). A CRITICAL scan finding
+   *  blocks approve unless `force` is passed (audited as forced). */
+  reviewRelease(releaseId: string, action: "begin" | "approve" | "reject", notes?: string, force?: boolean): Promise<AppRelease> {
+    return this.http.post<AppRelease>(
+      `/api/admin/releases/${encodeURIComponent(releaseId)}/review`,
+      { action, ...(notes !== undefined ? { notes } : {}), ...(force === true ? { force: true } : {}) },
+    );
+  }
+
+  /** The scan agents' report on one of YOUR builds — what submission found,
+   *  criticals first, so a rejection is fixable rather than a mystery. */
+  async releaseFindings(slug: string, releaseId: string): Promise<ReleaseScanFinding[]> {
+    const { findings } = await this.http.get<{ findings: ReleaseScanFinding[] }>(
+      `/api/apps/${encodeURIComponent(slug)}/releases/${encodeURIComponent(releaseId)}/findings`,
+    );
+    return findings;
+  }
+
+  /** PLATFORM ADMIN: the scanners' full report on any queued release. */
+  async adminReleaseFindings(releaseId: string): Promise<ReleaseScanFinding[]> {
+    const { findings } = await this.http.get<{ findings: ReleaseScanFinding[] }>(
+      `/api/admin/releases/${encodeURIComponent(releaseId)}/findings`,
+    );
+    return findings;
+  }
+
+  // ── pricing: credits-only ──────────────────────────────────────────────────
+
+  /** Set an owned app's monthly credit price and discount window. */
+  setPricing(slug: string, patch: UpdateAppPricingInput): Promise<{ ok: boolean }> {
+    return this.http.patch<{ ok: boolean }>(`/api/apps/${encodeURIComponent(slug)}/pricing`, patch);
+  }
+
+  // ── malicious reports ──────────────────────────────────────────────────────
+
+  /** Report an app as malicious. Lands in the platform-admin triage queue. */
+  report(slug: string, reason: string, detail?: string): Promise<AppReport> {
+    return this.http.post<AppReport>(
+      `/api/apps/${encodeURIComponent(slug)}/report`,
+      { reason, ...(detail !== undefined ? { detail } : {}) },
+    );
+  }
+
+  /** PLATFORM ADMIN: the report triage queue (defaults to open + reviewing). */
+  async reports(status?: "open" | "reviewing" | "resolved" | "dismissed"): Promise<AppReport[]> {
+    const q = status ? `?status=${encodeURIComponent(status)}` : "";
+    const { reports } = await this.http.get<{ reports: AppReport[] }>(`/api/admin/app-reports${q}`);
+    return reports;
+  }
+
+  /** PLATFORM ADMIN: rule on a report — claim it, resolve it, or dismiss it. */
+  resolveReport(reportId: string, status: "reviewing" | "resolved" | "dismissed"): Promise<AppReport> {
+    return this.http.post<AppReport>(`/api/admin/app-reports/${encodeURIComponent(reportId)}/resolve`, { status });
+  }
+
+  // ── suspension (platform admin) ────────────────────────────────────────────
+
+  /** PLATFORM ADMIN: suspend a listing — hidden from browse, uninstallable. */
+  suspend(slug: string): Promise<{ ok: boolean; suspended: boolean }> {
+    return this.http.post<{ ok: boolean; suspended: boolean }>(`/api/admin/apps/${encodeURIComponent(slug)}/suspend`, {});
+  }
+
+  /** PLATFORM ADMIN: lift a suspension. */
+  unsuspend(slug: string): Promise<{ ok: boolean; suspended: boolean }> {
+    return this.http.del<{ ok: boolean; suspended: boolean }>(`/api/admin/apps/${encodeURIComponent(slug)}/suspend`);
   }
 
   // ── listing: the marketing record ──────────────────────────────────────────
@@ -220,6 +337,61 @@ export class AppsClient {
   /** Settle a flagged review: restore it, or remove it from readers. */
   moderateReview(reviewId: string, action: "restore" | "remove"): Promise<AppReview> {
     return this.http.post<AppReview>(`/api/admin/reviews/${encodeURIComponent(reviewId)}/moderate`, { action });
+  }
+
+  // ── comments: threaded feedback on a listing (M3) ──────────────────────────
+
+  /** An app's comment threads, newest thread first (replies ride along, oldest
+   *  first). Pagination is over top-level comments. */
+  comments(slug: string, query: { limit?: number; offset?: number } = {}): Promise<{ comments: AppCommentThread[]; total: number }> {
+    const qs = new URLSearchParams();
+    if (query.limit) qs.set("limit", String(query.limit));
+    if (query.offset) qs.set("offset", String(query.offset));
+    const q = qs.toString();
+    return this.http.get<{ comments: AppCommentThread[]; total: number }>(
+      `/api/apps/${encodeURIComponent(slug)}/comments${q ? `?${q}` : ""}`,
+    );
+  }
+
+  /** Post a comment — or a reply, by naming a TOP-LEVEL parent (one level only). */
+  comment(slug: string, body: string, parentId?: string): Promise<AppComment> {
+    return this.http.post<AppComment>(
+      `/api/apps/${encodeURIComponent(slug)}/comments`,
+      { body, ...(parentId !== undefined ? { parentId } : {}) },
+    );
+  }
+
+  /** Edit your own comment. */
+  editComment(slug: string, commentId: string, body: string): Promise<AppComment> {
+    return this.http.patch<AppComment>(
+      `/api/apps/${encodeURIComponent(slug)}/comments/${encodeURIComponent(commentId)}`, { body },
+    );
+  }
+
+  /** Delete your own comment. One with replies is tombstoned ("[removed]") so
+   *  the thread under it keeps its anchor; a leaf deletes outright. */
+  removeComment(slug: string, commentId: string): Promise<void> {
+    return this.http.del<void>(
+      `/api/apps/${encodeURIComponent(slug)}/comments/${encodeURIComponent(commentId)}`,
+    );
+  }
+
+  /** Flag a comment for platform moderation. It stays visible until a ruling. */
+  reportComment(slug: string, commentId: string, reason: string): Promise<AppComment> {
+    return this.http.post<AppComment>(
+      `/api/apps/${encodeURIComponent(slug)}/comments/${encodeURIComponent(commentId)}/report`, { reason },
+    );
+  }
+
+  /** PLATFORM ADMIN: the flagged-comment moderation queue, newest report first. */
+  async flaggedComments(): Promise<FlaggedAppComment[]> {
+    const { comments } = await this.http.get<{ comments: FlaggedAppComment[] }>("/api/admin/comments/flagged");
+    return comments;
+  }
+
+  /** PLATFORM ADMIN: settle a flagged comment — restore it, or remove it from readers. */
+  moderateComment(commentId: string, action: "restore" | "remove"): Promise<AppComment> {
+    return this.http.post<AppComment>(`/api/admin/comments/${encodeURIComponent(commentId)}/moderate`, { action });
   }
 
   // ── observability: the card's usage trend + the Audit tab ───────────────────

@@ -208,6 +208,7 @@ export type {
   AppVisibility,
   PublishAppInput,
   InstalledApp,
+  AppEntitlementStatus,
   AppKind,
   AppLauncherConfig,
   AppVariant,
@@ -227,7 +228,27 @@ export type {
   StoredAppMedia,
   AppReview,
   FlaggedAppReview,
+  AppComment,
+  AppCommentThread,
+  FlaggedAppComment,
+  AppPricing,
+  UpdateAppPricingInput,
+  AppReleaseReviewStatus,
+  AppReviewQueueRelease,
+  ReleaseScanFinding,
+  ScanFindingCounts,
+  AppDeveloperCard,
+  AppReport,
 } from "./contract/apps.js";
+export { MarketplaceClient } from "./resources/marketplace.js";
+export type {
+  DeveloperScope,
+  MarketplaceDeveloper,
+  CreateDeveloperInput,
+  UpdateDeveloperInput,
+  DeveloperReview,
+  FlaggedDeveloperReview,
+} from "./contract/marketplace.js";
 export { HostingClient } from "./resources/hosting.js";
 export type { Deployment, DeployStatus, DeployInput } from "./contract/hosting.js";
 export { LibraryClient } from "./resources/library.js";
