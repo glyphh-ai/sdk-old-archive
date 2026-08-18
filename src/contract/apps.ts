@@ -218,12 +218,18 @@ export interface PublishAppInput {
 }
 
 /** An app installed into the caller's org. */
+/** The subscription's health on an installed priced app (marketplace M4).
+ *  Null for a free app (nothing to renew); `lapsed` means the org's access is
+ *  gone until re-paid — clients gate on exactly this. */
+export type AppEntitlementStatus = "active" | "canceled" | "lapsed";
+
 export interface InstalledApp {
   id: string;
   slug: string;
   name: string;
   version: string;
   installedAt: string;
+  entitlementStatus: AppEntitlementStatus | null;
 }
 
 /**

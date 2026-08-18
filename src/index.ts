@@ -208,6 +208,7 @@ export type {
   AppVisibility,
   PublishAppInput,
   InstalledApp,
+  AppEntitlementStatus,
   AppKind,
   AppLauncherConfig,
   AppVariant,
