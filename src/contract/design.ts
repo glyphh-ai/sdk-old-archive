@@ -56,7 +56,17 @@ export interface DesignSystem {
     gradient?: { from: string; to: string; angle?: number };
   };
   assets?: DesignAsset[];
+  /** Media-library references adopted into the system (icons, site imagery,
+   *  brand motion) — pointers to media assets, never copies. */
+  imagery?: DesignImageryRef[];
   sources?: DesignSource[];
+}
+
+export interface DesignImageryRef {
+  assetId: string;
+  kind: "image" | "video";
+  title: string;
+  role?: string;
 }
 
 export interface DesignMeta {

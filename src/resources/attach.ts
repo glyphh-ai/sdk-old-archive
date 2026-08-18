@@ -101,7 +101,7 @@ export class AttachClient {
    * arrive here as Server-Sent Events.
    */
   run(
-    params: { runId?: string; threadId?: string; prompt?: string; messages?: Array<{ role: string; text?: string; content?: string }>; mode?: "cowork" | "code"; workdir?: string; permission?: "ask" | "plan" | "acceptEdits" | "auto" | "bypass" },
+    params: { runId?: string; threadId?: string; prompt?: string; messages?: Array<{ role: string; text?: string; content?: string }>; mode?: "cowork" | "code"; workdir?: string; model?: string; loop?: string; permission?: "ask" | "plan" | "acceptEdits" | "auto" | "bypass" },
     opts: { signal?: AbortSignal } = {},
   ): RelayRunHandle {
     const runId = params.runId ?? `rl-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;

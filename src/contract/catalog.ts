@@ -118,15 +118,21 @@ export interface VoiceSettings {
   outputModel: string | null;
   /** The output model's voice id (provider-specific). Null = provider default. */
   voiceId: string | null;
+  /** The chosen microphone (OS deviceId). Null = system default. */
+  deviceId: string | null;
   /** Capture mode for talk-to-agent. */
   mode: "off" | "push-to-talk" | "continuous";
   /** Auto-play the agent's spoken reply. */
   autoplay: boolean;
+  /** Speech mode: steer the agent to answer in a couple of short, spoken-style
+   *  sentences (no lists/code/headings) — affects both what's SAID and what's
+   *  rendered to the screen. */
+  brief: boolean;
 }
 
 /** The defaults a fresh account starts from. */
 export const DEFAULT_VOICE_SETTINGS: VoiceSettings = {
-  inputModel: null, outputModel: null, voiceId: null, mode: "off", autoplay: true,
+  inputModel: null, outputModel: null, voiceId: null, deviceId: null, mode: "off", autoplay: true, brief: false,
 };
 
 // ── Hugging Face open-weight search (proxied server-side) ─────────────────────

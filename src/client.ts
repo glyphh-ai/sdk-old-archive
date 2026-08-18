@@ -65,8 +65,14 @@ export interface RunTurnOptions {
   /** The session's GitHub repo (`owner/repo`) — a cloud workspace's source;
    *  the pod pre-clones it. Ignored on desktop-relay turns. */
   repo?: string;
-  /** Cloud-target extras (a desktop-relay turn uses the machine's own defaults). */
+  /** The model id to run this turn on. Honored on BOTH targets: the cloud pod
+   *  runs it directly; a desktop-relay turn overrides the machine's own loop
+   *  model with it (so the caller's picker wins). Absent → the executor's default. */
   model?: string;
+  /** The agent LOOP (rotor) id this turn runs. On a desktop-relay turn it overrides
+   *  the machine's own active loop, so the caller's loop pick (rover/memory/roles)
+   *  wins over the desktop's. Absent → the executor's active loop. */
+  loop?: string;
   permission?: string;
   images?: Array<{ mediaType: string; data: string }>;
   /** The loop's memory policy (rides to the runtime as HarnessMemoryPolicy). */
@@ -402,6 +408,8 @@ export function createClient(opts: ClientOptions): Client {
             ...(ropts.messages ? { messages: ropts.messages } : {}),
             mode: attachMode,
             ...(ropts.workdir ? { workdir: ropts.workdir } : {}),
+            ...(ropts.model ? { model: ropts.model } : {}),
+            ...(ropts.loop ? { loop: ropts.loop } : {}),
             ...(ropts.permission ? { permission: ropts.permission as "ask" | "plan" | "acceptEdits" | "auto" | "bypass" } : {}),
           },
           signal ? { signal } : {},
