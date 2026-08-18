@@ -42,6 +42,12 @@
       "types": "./dist/machine.d.ts",
       "import": "./dist/machine.js",
       "require": "./dist/machine.cjs"
+    },
+    "./slides": {
+      "types": "./dist/slides.d.ts",
+      "react-native": "./dist/slides.js",
+      "import": "./dist/slides.js",
+      "require": "./dist/slides.cjs"
     }
   },
   "main": "./dist/index.cjs",

@@ -8,6 +8,7 @@ export default defineConfig({
     runtime: "src/runtime/index.ts",
     models: "src/models/index.ts",
     machine: "src/machine/index.ts",
+    slides: "src/slides/index.ts",
     cli: "scripts/cli.ts",
   },
   format: ["esm", "cjs"],
