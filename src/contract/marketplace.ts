@@ -71,6 +71,11 @@ export interface FlaggedDeveloperReview extends DeveloperReview {
 
 export type DeveloperProgramStatus = "none" | "enrolled" | "suspended";
 
+/** Payout readiness, derived server-side from Stripe's account.updated webhook:
+ *  none (no account) → pending (attached, unconfirmed) → ready (payable) /
+ *  restricted (Stripe says it cannot be paid). Only 'ready' is swept. */
+export type DeveloperPayoutStatus = "none" | "pending" | "ready" | "restricted";
+
 /** A profile's program state: enrollment, the agreement CONSENT RECORD (with
  *  the server's current version, so a client can tell "accepted" from
  *  "accepted, but the agreement moved on"), and payout config. */
@@ -85,7 +90,12 @@ export interface DeveloperProgram {
     current: boolean;
   };
   payout: {
+    /** MASKED ("acct_…" + last 4) — the raw Connect id never leaves the server. */
     stripeConnectAccountId: string | null;
+    /** Whether a Connect account is attached at all (onboarded or manual). */
+    connected: boolean;
+    /** Webhook-derived readiness — 'ready' is the only payable state. */
+    payoutStatus: DeveloperPayoutStatus;
     thresholdCredits: number;
     status: "configured" | "unconfigured";
   };

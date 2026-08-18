@@ -107,10 +107,22 @@ export class MarketplaceClient {
   }
 
   /** Update your payout config: Stripe Connect account (acct_…, null disconnects)
-   *  and/or the payout threshold in whole credits. */
+   *  and/or the payout threshold in whole credits. Setting a manual id parks
+   *  payout status at 'pending' until the webhook confirms readiness. */
   setPayoutConfig(handle: string, patch: PayoutConfigInput): Promise<DeveloperProgram> {
     return this.http.patch<DeveloperProgram>(
       `/api/marketplace/developers/${encodeURIComponent(handle)}/program/payout`, patch,
+    );
+  }
+
+  /** Start (or resume) self-serve Stripe Connect onboarding for a profile you
+   *  own. The server mints the Express account ONCE and a FRESH Account Link on
+   *  every call (links are single-use — re-calling recovers a stuck
+   *  onboarding). Open the returned url in the in-app browser panel; payout
+   *  status flips to 'ready' via webhook once Stripe confirms the account. */
+  startStripeOnboarding(handle: string, input: { country?: string } = {}): Promise<{ url: string }> {
+    return this.http.post<{ url: string }>(
+      `/api/marketplace/developers/${encodeURIComponent(handle)}/stripe/onboard`, input,
     );
   }
 

@@ -137,6 +137,19 @@ export function registerMarketplace(reg: CommandRegistry): void {
   });
 
   reg.register({
+    path: "marketplace program stripe-onboard",
+    summary: "start (or resume) self-serve Stripe Connect onboarding — prints the hosted url",
+    usage: "marketplace program stripe-onboard <handle> [--country <ISO 3166-1 alpha-2, default US>]",
+    covers: ["marketplace.startStripeOnboarding"],
+    async run(ctx, args) {
+      const handle = args.positional[0];
+      if (!handle) throw new Error("usage: marketplace program stripe-onboard <handle> [--country US]");
+      const country = flagStr(args, "country");
+      ctx.printJson(await ctx.client.marketplace.startStripeOnboarding(handle, country ? { country } : {}));
+    },
+  });
+
+  reg.register({
     path: "marketplace program earnings",
     summary: "your revenue-share ledger + lifetime totals",
     usage: "marketplace program earnings <handle> [--limit <n>] [--offset <n>]",
