@@ -148,6 +148,40 @@ export function registerDesign(reg: CommandRegistry): void {
   });
 
   reg.register({
+    path: "design imagery-add",
+    summary: "atomically adopt media-library assets into a system's imagery (+canvas)",
+    usage: "design imagery-add <file> <assetId...> [--role <r>] [--title <t>] [--kind image|video]",
+    covers: ["designs.addImagery"],
+    async run(ctx, args) {
+      const [file, ...assetIds] = args.positional;
+      if (!file || !assetIds.length) throw new Error("usage: design imagery-add <file> <assetId...> [--role <r>] [--title <t>] [--kind image|video]");
+      const role = flagStr(args, "role");
+      const title = flagStr(args, "title");
+      const kindFlag = flagStr(args, "kind");
+      const kind = kindFlag === "image" || kindFlag === "video" ? kindFlag : undefined;
+      ctx.printJson(await ctx.client.designs.addImagery(file, assetIds.map((assetId) => ({
+        assetId,
+        ...(title ? { title } : {}),
+        ...(role ? { role } : {}),
+        ...(kind ? { kind } : {}),
+      }))));
+    },
+  });
+
+  reg.register({
+    path: "design imagery-remove",
+    summary: "remove an imagery ref (pointer + canvas card; the media asset stays)",
+    usage: "design imagery-remove <file> <assetId>",
+    covers: ["designs.removeImagery"],
+    async run(ctx, args) {
+      const [file, assetId] = args.positional;
+      if (!file || !assetId) throw new Error("usage: design imagery-remove <file> <assetId>");
+      await ctx.client.designs.removeImagery(file, assetId);
+      ctx.printJson({ removed: assetId });
+    },
+  });
+
+  reg.register({
     path: "design asset-delete",
     summary: "remove an asset (bytes + its entry in the document)",
     usage: "design asset-delete <file> <assetId>",

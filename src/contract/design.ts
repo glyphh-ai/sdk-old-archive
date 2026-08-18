@@ -90,6 +90,23 @@ export interface Design extends DesignMeta {
   document: DesignSystem;
 }
 
+/** One media-library asset to adopt into a system's imagery. */
+export interface AdoptImageryInput {
+  /** The media asset id (the Images library is the source of truth). */
+  assetId: string;
+  title?: string;
+  /** What it IS in the system: "icon", "hero", "background", "motion"… */
+  role?: string;
+  /** Defaults to "image" server-side. */
+  kind?: "image" | "video";
+}
+
+/** The adoption outcome: fresh meta + what actually landed vs was already there. */
+export interface AdoptImageryResult extends DesignMeta {
+  adopted: DesignImageryRef[];
+  alreadyPresent: string[];
+}
+
 export interface UploadDesignAssetInput {
   /** Slug id; defaults to a slug of the title. Re-uploading an id replaces it. */
   id?: string;

@@ -9,7 +9,10 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
-import type { Design, DesignMeta, DesignSystem, DesignAsset, UploadDesignAssetInput } from "../contract/design.js";
+import type {
+  Design, DesignMeta, DesignSystem, DesignAsset, UploadDesignAssetInput,
+  AdoptImageryInput, AdoptImageryResult,
+} from "../contract/design.js";
 
 export class DesignsClient {
   constructor(private readonly http: AuthedHttp) {}
@@ -62,5 +65,22 @@ export class DesignsClient {
   /** Remove an asset — bytes and its entry in the document. */
   deleteAsset(file: string, assetId: string): Promise<void> {
     return this.http.del<void>(`/api/design/${encodeURIComponent(file)}/assets/${encodeURIComponent(assetId)}`);
+  }
+
+  /** ATOMICALLY adopt media-library assets into a system's imagery and place
+   *  them on the studio canvas. The server serializes writers on the design's
+   *  row lock, so parallel adoptions (four mockups in one turn) never lose an
+   *  update; already-adopted assets are reported, not duplicated. */
+  addImagery(file: string, assets: AdoptImageryInput[], placement?: "auto"): Promise<AdoptImageryResult> {
+    return this.http.post<AdoptImageryResult>(
+      `/api/design/${encodeURIComponent(file)}/imagery`,
+      { assets, ...(placement ? { placement } : {}) },
+    );
+  }
+
+  /** Remove an imagery ref — the pointer and its canvas card, symmetric with
+   *  adoption. The media asset itself stays in the library. */
+  removeImagery(file: string, assetId: string): Promise<void> {
+    return this.http.del<void>(`/api/design/${encodeURIComponent(file)}/imagery/${encodeURIComponent(assetId)}`);
   }
 }
