@@ -300,6 +300,30 @@ export interface FlaggedAppReview extends AppReview {
   reportedAt: string | null;
 }
 
+/** One comment on a listing (threaded feedback, M3). A removed comment's body
+ *  is withheld — it survives only as a thread anchor ("[removed]"). */
+export interface AppComment {
+  id: string;
+  parentId: string | null;
+  body: string | null;
+  status: "published" | "flagged" | "removed";
+  authorName: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** A top-level comment with its (one level of) replies, oldest reply first. */
+export interface AppCommentThread extends AppComment {
+  replies: AppComment[];
+}
+
+/** A flagged comment as the moderation queue sees it. */
+export interface FlaggedAppComment extends AppComment {
+  appSlug: string;
+  reportReason: string | null;
+  reportedAt: string | null;
+}
+
 /** The publisher's developer card, joined onto the marketplace detail
  *  ("Support by <developer>" — support falls to the developer, never Glyphh). */
 export interface AppDeveloperCard {

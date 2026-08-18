@@ -11,6 +11,7 @@ import type { AppListing, InstalledApp, PublishAppInput, PanelApp,
   OrgApp, CreateAppEntryInput, UpdateAppEntryInput, AppVariant, AppRelease, AppAuditEntry, AppUsageDay, AppSecretKey,
   AppMarketplaceDetail, AppReviewQueueRelease, AppReport, UpdateAppPricingInput,
   UpdateListingInput, AppMediaKind, StoredAppMedia, AppReview, FlaggedAppReview,
+  AppComment, AppCommentThread, FlaggedAppComment,
 } from "../contract/apps.js";
 
 export class AppsClient {
@@ -284,6 +285,61 @@ export class AppsClient {
   /** Settle a flagged review: restore it, or remove it from readers. */
   moderateReview(reviewId: string, action: "restore" | "remove"): Promise<AppReview> {
     return this.http.post<AppReview>(`/api/admin/reviews/${encodeURIComponent(reviewId)}/moderate`, { action });
+  }
+
+  // ── comments: threaded feedback on a listing (M3) ──────────────────────────
+
+  /** An app's comment threads, newest thread first (replies ride along, oldest
+   *  first). Pagination is over top-level comments. */
+  comments(slug: string, query: { limit?: number; offset?: number } = {}): Promise<{ comments: AppCommentThread[]; total: number }> {
+    const qs = new URLSearchParams();
+    if (query.limit) qs.set("limit", String(query.limit));
+    if (query.offset) qs.set("offset", String(query.offset));
+    const q = qs.toString();
+    return this.http.get<{ comments: AppCommentThread[]; total: number }>(
+      `/api/apps/${encodeURIComponent(slug)}/comments${q ? `?${q}` : ""}`,
+    );
+  }
+
+  /** Post a comment — or a reply, by naming a TOP-LEVEL parent (one level only). */
+  comment(slug: string, body: string, parentId?: string): Promise<AppComment> {
+    return this.http.post<AppComment>(
+      `/api/apps/${encodeURIComponent(slug)}/comments`,
+      { body, ...(parentId !== undefined ? { parentId } : {}) },
+    );
+  }
+
+  /** Edit your own comment. */
+  editComment(slug: string, commentId: string, body: string): Promise<AppComment> {
+    return this.http.patch<AppComment>(
+      `/api/apps/${encodeURIComponent(slug)}/comments/${encodeURIComponent(commentId)}`, { body },
+    );
+  }
+
+  /** Delete your own comment. One with replies is tombstoned ("[removed]") so
+   *  the thread under it keeps its anchor; a leaf deletes outright. */
+  removeComment(slug: string, commentId: string): Promise<void> {
+    return this.http.del<void>(
+      `/api/apps/${encodeURIComponent(slug)}/comments/${encodeURIComponent(commentId)}`,
+    );
+  }
+
+  /** Flag a comment for platform moderation. It stays visible until a ruling. */
+  reportComment(slug: string, commentId: string, reason: string): Promise<AppComment> {
+    return this.http.post<AppComment>(
+      `/api/apps/${encodeURIComponent(slug)}/comments/${encodeURIComponent(commentId)}/report`, { reason },
+    );
+  }
+
+  /** PLATFORM ADMIN: the flagged-comment moderation queue, newest report first. */
+  async flaggedComments(): Promise<FlaggedAppComment[]> {
+    const { comments } = await this.http.get<{ comments: FlaggedAppComment[] }>("/api/admin/comments/flagged");
+    return comments;
+  }
+
+  /** PLATFORM ADMIN: settle a flagged comment — restore it, or remove it from readers. */
+  moderateComment(commentId: string, action: "restore" | "remove"): Promise<AppComment> {
+    return this.http.post<AppComment>(`/api/admin/comments/${encodeURIComponent(commentId)}/moderate`, { action });
   }
 
   // ── observability: the card's usage trend + the Audit tab ───────────────────

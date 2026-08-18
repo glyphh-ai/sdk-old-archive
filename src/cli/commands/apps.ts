@@ -519,6 +519,104 @@ export function registerApps(reg: CommandRegistry): void {
     },
   });
 
+  // ── comments: threaded feedback on a listing (M3) ───────────────────────────
+
+  reg.register({
+    path: "apps comments",
+    summary: "an app's comment threads, newest thread first",
+    usage: "apps comments --slug <s> [--limit <n>] [--offset <n>]",
+    covers: ["apps.comments"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      if (!slug) throw new Error("usage: apps comments --slug <s>");
+      const limit = Number(flagStr(args, "limit") || 0);
+      const offset = Number(flagStr(args, "offset") || 0);
+      ctx.printJson(await ctx.client.apps.comments(slug, {
+        ...(limit ? { limit } : {}), ...(offset ? { offset } : {}),
+      }));
+    },
+  });
+
+  reg.register({
+    path: "apps comment",
+    summary: "post a comment (or reply to a top-level comment; one level only)",
+    usage: "apps comment --slug <s> --body <text> [--parent <commentId>]",
+    covers: ["apps.comment"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      const body = flagStr(args, "body");
+      if (!slug || !body) throw new Error("usage: apps comment --slug <s> --body <text> [--parent <commentId>]");
+      const parent = flagStr(args, "parent");
+      ctx.printJson(await ctx.client.apps.comment(slug, body, parent || undefined));
+    },
+  });
+
+  reg.register({
+    path: "apps comment edit",
+    summary: "edit your own comment",
+    usage: "apps comment edit --slug <s> --comment <id> --body <text>",
+    covers: ["apps.editComment"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      const comment = flagStr(args, "comment");
+      const body = flagStr(args, "body");
+      if (!slug || !comment || !body) throw new Error("usage: apps comment edit --slug <s> --comment <id> --body <text>");
+      ctx.printJson(await ctx.client.apps.editComment(slug, comment, body));
+    },
+  });
+
+  reg.register({
+    path: "apps comment remove",
+    summary: "delete your own comment (an anchored one is tombstoned)",
+    usage: "apps comment remove --slug <s> --comment <id>",
+    covers: ["apps.removeComment"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      const comment = flagStr(args, "comment");
+      if (!slug || !comment) throw new Error("usage: apps comment remove --slug <s> --comment <id>");
+      await ctx.client.apps.removeComment(slug, comment);
+      ctx.printJson({ ok: true });
+    },
+  });
+
+  reg.register({
+    path: "apps comment report",
+    summary: "flag a comment for platform moderation (it stays visible until a ruling)",
+    usage: "apps comment report --slug <s> --comment <id> --reason <why>",
+    covers: ["apps.reportComment"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      const comment = flagStr(args, "comment");
+      const reason = flagStr(args, "reason");
+      if (!slug || !comment || !reason) throw new Error("usage: apps comment report --slug <s> --comment <id> --reason <why>");
+      ctx.printJson(await ctx.client.apps.reportComment(slug, comment, reason));
+    },
+  });
+
+  reg.register({
+    path: "apps comments flagged",
+    summary: "the flagged-comment moderation queue (platform admin)",
+    covers: ["apps.flaggedComments"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.apps.flaggedComments());
+    },
+  });
+
+  reg.register({
+    path: "apps comment moderate",
+    summary: "restore or remove a flagged comment (platform admin)",
+    usage: "apps comment moderate --comment <id> --action restore|remove",
+    covers: ["apps.moderateComment"],
+    async run(ctx, args) {
+      const comment = flagStr(args, "comment");
+      const action = flagStr(args, "action") as "restore" | "remove";
+      if (!comment || (action !== "restore" && action !== "remove")) {
+        throw new Error("usage: apps comment moderate --comment <id> --action restore|remove");
+      }
+      ctx.printJson(await ctx.client.apps.moderateComment(comment, action));
+    },
+  });
+
   reg.register({
     path: "apps usage",
     summary: "an app's daily credit burn (default 30 days)",
