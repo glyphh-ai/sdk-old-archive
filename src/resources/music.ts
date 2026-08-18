@@ -19,7 +19,7 @@ export interface MusicArtist {
   updatedAt: string;
 }
 
-export interface MusicInstrument { instrument: string; tweak: string }
+export interface MusicInstrument { instrument: string; tweak: string; lookAssetId?: string | null }
 
 export interface MusicSong {
   id: string;
