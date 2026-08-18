@@ -180,6 +180,8 @@ export { OfficeSlidesClient, OfficeDocsClient, OfficeDriveClient, OfficeSheetsCl
 export { DesignsClient } from "./resources/design.js";
 export { StatorClient } from "./resources/stator.js";
 export { MediaClient } from "./resources/media.js";
+export { MusicClient } from "./resources/music.js";
+export type { MusicArtist, MusicSong, MusicInstrument, MusicArtistInput, MusicSongInput } from "./resources/music.js";
 export type {
   OfficeSlide, OfficeSlideMeta,
   OfficeDoc, OfficeDocMeta, OfficeSuggestion, CreateSuggestionInput,

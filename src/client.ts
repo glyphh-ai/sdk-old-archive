@@ -38,6 +38,7 @@ import { OfficeSlidesClient, OfficeDocsClient, OfficeDriveClient, OfficeSheetsCl
 import { DesignsClient } from "./resources/design.js";
 import { StatorClient } from "./resources/stator.js";
 import { MediaClient } from "./resources/media.js";
+import { MusicClient } from "./resources/music.js";
 import { GitClient } from "./resources/git.js";
 import { AppsClient } from "./resources/apps.js";
 import { HostingClient } from "./resources/hosting.js";
@@ -215,6 +216,8 @@ export interface Client {
   stator: StatorClient;
   /** Glyphh Image/Video/Sounds — the media library + enforced, credit-debited generation jobs. */
   media: MediaClient;
+  /** The Music Studio documents — artists (look + voice + style) and songs (lyrics + prompt + band + lineage). */
+  music: MusicClient;
   /** GitHub connection — link, list repos; sessions with a repo get a scoped clone token. */
   git: GitClient;
   /** The apps marketplace — browse, publish, install. */
@@ -333,6 +336,7 @@ export function createClient(opts: ClientOptions): Client {
     designs: new DesignsClient(authed),
     stator: new StatorClient(authed),
     media: new MediaClient(authed),
+    music: new MusicClient(authed),
     git: new GitClient(authed),
     apps: new AppsClient(authed),
     hosting: new HostingClient(authed),
