@@ -106,6 +106,61 @@ export interface SheetColumn {
   /** An AI column: the prompt the agent materializes values from. */
   aiPrompt?: string;
 }
+/** A chart saved on a sheet, rendered as self-contained SVG (panel + export). */
+export interface ChartSpec {
+  id: string;
+  type: "bar" | "line" | "area" | "pie" | "scatter" | "combo";
+  title?: string;
+  sheet?: string;
+  categoriesRef?: string;
+  series: Array<{ name?: string; valuesRef: string; type?: ChartSpec["type"]; color?: string }>;
+  legend?: boolean;
+  stacked?: boolean;
+  colors?: string[];
+  size?: { w: number; h: number };
+}
+
+/** Sparse per-cell styling, keyed by A1 address. */
+export interface CellStyle {
+  bold?: boolean; italic?: boolean; underline?: boolean;
+  color?: string; fill?: string;
+  align?: "left" | "center" | "right";
+  border?: { top?: boolean; right?: boolean; bottom?: boolean; left?: boolean; color?: string };
+  numberFormat?: string;
+}
+
+/** A conditional-formatting rule painted over a range. */
+export interface CondFormat {
+  id: string;
+  range: string;
+  kind: "colorScale" | "dataBar" | "cellRule" | "textRule" | "iconSet";
+  scale?: { min: string; mid?: string; max: string };
+  bar?: { color: string; negativeColor?: string };
+  op?: "gt" | "lt" | "gte" | "lte" | "eq" | "neq" | "between" | "contains" | "startsWith" | "endsWith" | "isEmpty" | "notEmpty";
+  value?: string | number;
+  value2?: string | number;
+  style?: CellStyle;
+  iconSet?: "arrows" | "traffic" | "flags";
+  thresholds?: number[];
+}
+
+/** A workbook-scoped named range usable in formulas. */
+export interface NamedRange { name: string; sheet: string; range: string }
+
+/** A data-validation rule for a range. */
+export interface DataValidation {
+  id: string;
+  range: string;
+  rule:
+    | { kind: "list"; source: string[] }
+    | { kind: "listRange"; ref: string }
+    | { kind: "number"; op: CondFormat["op"]; value?: number; value2?: number }
+    | { kind: "date"; op: CondFormat["op"]; value?: string; value2?: string }
+    | { kind: "textLen"; op: CondFormat["op"]; value?: number }
+    | { kind: "custom"; formula: string };
+  strict?: boolean;
+}
+
 export interface Worksheet {
   name: string;
   columns: SheetColumn[];
@@ -113,8 +168,13 @@ export interface Worksheet {
   /** Panel-maintained layout: px widths per column / heights per row. */
   colWidths?: Array<number | null>;
   rowHeights?: Array<number | null>;
+  charts?: ChartSpec[];
+  condFormats?: CondFormat[];
+  validations?: DataValidation[];
+  styles?: Record<string, CellStyle>;
+  frozen?: { rows?: number; cols?: number };
 }
-export interface Workbook { sheets: Worksheet[] }
+export interface Workbook { sheets: Worksheet[]; namedRanges?: NamedRange[] }
 
 export interface OfficeSheetMeta {
   /** "<slug>.json" — unique per org; the stable name workbooks are addressed by. */
