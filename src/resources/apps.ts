@@ -11,7 +11,7 @@ import type { AppListing, InstalledApp, PublishAppInput, PanelApp,
   OrgApp, CreateAppEntryInput, UpdateAppEntryInput, AppVariant, AppRelease, AppAuditEntry, AppUsageDay, AppSecretKey,
   AppMarketplaceDetail, AppReviewQueueRelease, AppReport, UpdateAppPricingInput,
   UpdateListingInput, AppMediaKind, StoredAppMedia, AppReview, FlaggedAppReview,
-  AppComment, AppCommentThread, FlaggedAppComment,
+  AppComment, AppCommentThread, FlaggedAppComment, ReleaseScanFinding,
 } from "../contract/apps.js";
 
 export class AppsClient {
@@ -158,12 +158,30 @@ export class AppsClient {
   }
 
   /** PLATFORM ADMIN: rule on a queued release — begin (claim), approve (promotes
-   *  live), or reject (with notes the author reads). */
-  reviewRelease(releaseId: string, action: "begin" | "approve" | "reject", notes?: string): Promise<AppRelease> {
+   *  live), or reject (with notes the author reads). A CRITICAL scan finding
+   *  blocks approve unless `force` is passed (audited as forced). */
+  reviewRelease(releaseId: string, action: "begin" | "approve" | "reject", notes?: string, force?: boolean): Promise<AppRelease> {
     return this.http.post<AppRelease>(
       `/api/admin/releases/${encodeURIComponent(releaseId)}/review`,
-      { action, ...(notes !== undefined ? { notes } : {}) },
+      { action, ...(notes !== undefined ? { notes } : {}), ...(force === true ? { force: true } : {}) },
     );
+  }
+
+  /** The scan agents' report on one of YOUR builds — what submission found,
+   *  criticals first, so a rejection is fixable rather than a mystery. */
+  async releaseFindings(slug: string, releaseId: string): Promise<ReleaseScanFinding[]> {
+    const { findings } = await this.http.get<{ findings: ReleaseScanFinding[] }>(
+      `/api/apps/${encodeURIComponent(slug)}/releases/${encodeURIComponent(releaseId)}/findings`,
+    );
+    return findings;
+  }
+
+  /** PLATFORM ADMIN: the scanners' full report on any queued release. */
+  async adminReleaseFindings(releaseId: string): Promise<ReleaseScanFinding[]> {
+    const { findings } = await this.http.get<{ findings: ReleaseScanFinding[] }>(
+      `/api/admin/releases/${encodeURIComponent(releaseId)}/findings`,
+    );
+    return findings;
   }
 
   // ── pricing: credits-only ──────────────────────────────────────────────────

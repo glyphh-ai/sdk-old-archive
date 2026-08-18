@@ -235,6 +235,8 @@ export type {
   UpdateAppPricingInput,
   AppReleaseReviewStatus,
   AppReviewQueueRelease,
+  ReleaseScanFinding,
+  ScanFindingCounts,
   AppDeveloperCard,
   AppReport,
 } from "./contract/apps.js";

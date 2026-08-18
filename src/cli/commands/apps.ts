@@ -7,7 +7,7 @@
 
 import { readFileSync, writeFileSync } from "node:fs";
 import type { CommandRegistry } from "../registry.js";
-import { flagStr } from "../args.js";
+import { flagStr, flagBool } from "../args.js";
 import type { AppManifest, AppVisibility, PublishAppInput } from "../../contract/apps.js";
 
 export function registerApps(reg: CommandRegistry): void {
@@ -710,13 +710,32 @@ export function registerApps(reg: CommandRegistry): void {
   reg.register({
     path: "apps review-rule",
     summary: "rule on a queued release: begin | approve | reject (platform admin)",
-    usage: "apps review-rule --release <id> --action begin|approve|reject [--notes <text>]",
+    usage: "apps review-rule --release <id> --action begin|approve|reject [--notes <text>] [--force]",
     covers: ["apps.reviewRelease"],
     async run(ctx, args) {
       const release = flagStr(args, "release");
       const action = flagStr(args, "action") as "begin" | "approve" | "reject" | undefined;
-      if (!release || !action) throw new Error("usage: apps review-rule --release <id> --action begin|approve|reject [--notes <text>]");
-      ctx.printJson(await ctx.client.apps.reviewRelease(release, action, flagStr(args, "notes")));
+      if (!release || !action) throw new Error("usage: apps review-rule --release <id> --action begin|approve|reject [--notes <text>] [--force]");
+      // --force: approve DESPITE critical scan findings (audited server-side).
+      ctx.printJson(await ctx.client.apps.reviewRelease(release, action, flagStr(args, "notes"), flagBool(args, "force")));
+    },
+  });
+
+  reg.register({
+    path: "apps release findings",
+    summary: "the scan agents' report on a release (owner; --admin for any queued release)",
+    usage: "apps release findings --release <id> [--slug <s>] [--admin]",
+    covers: ["apps.releaseFindings", "apps.adminReleaseFindings"],
+    async run(ctx, args) {
+      const release = flagStr(args, "release");
+      if (!release) throw new Error("usage: apps release findings --release <id> [--slug <s>] [--admin]");
+      if (flagBool(args, "admin")) {
+        ctx.printJson(await ctx.client.apps.adminReleaseFindings(release));
+        return;
+      }
+      const slug = flagStr(args, "slug");
+      if (!slug) throw new Error("usage: apps release findings --release <id> --slug <s> (or --admin)");
+      ctx.printJson(await ctx.client.apps.releaseFindings(slug, release));
     },
   });
 

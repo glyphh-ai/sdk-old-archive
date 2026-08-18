@@ -153,10 +153,29 @@ export interface AppRelease {
 }
 
 /** One release waiting in the platform-admin review queue. */
+/** One static-scan finding attached to a release (marketplace M5). */
+export interface ReleaseScanFinding {
+  id: string;
+  scanner: string;
+  severity: "info" | "warn" | "critical";
+  title: string;
+  detail: string | null;
+  createdAt: string;
+}
+
+/** Finding counts by severity — what the review queue shows per release.
+ *  A critical blocks approve unless the admin forces. */
+export interface ScanFindingCounts {
+  info: number;
+  warn: number;
+  critical: number;
+}
+
 export interface AppReviewQueueRelease extends AppRelease {
   appSlug: string;
   appName: string;
   publisherOrgId: string;
+  findings: ScanFindingCounts;
 }
 
 /** One row of the org-scoped app audit feed. */
