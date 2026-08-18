@@ -32,6 +32,8 @@ export interface MusicSong {
   audioAssetId: string | null;
   parentId: string | null;
   model: string;
+  /** Music Video assembly — staged media asset ids the render consumes. */
+  visuals: string[];
   updatedAt: string;
 }
 
@@ -54,6 +56,7 @@ export interface MusicSongInput {
   audioAssetId?: string | null;
   parentId?: string | null;
   model?: string;
+  visuals?: string[];
 }
 
 export class MusicClient {
