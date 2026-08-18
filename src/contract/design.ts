@@ -59,7 +59,15 @@ export interface DesignSystem {
   /** Media-library references adopted into the system (icons, site imagery,
    *  brand motion) — pointers to media assets, never copies. */
   imagery?: DesignImageryRef[];
+  /** The studio canvas layout — artifact coords, view, rail width. */
+  canvas?: DesignCanvas;
   sources?: DesignSource[];
+}
+
+export interface DesignCanvas {
+  rail?: number;
+  view?: { x: number; y: number; scale: number };
+  items?: Record<string, { x: number; y: number; w?: number }>;
 }
 
 export interface DesignImageryRef {

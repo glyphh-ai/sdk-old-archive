@@ -190,7 +190,7 @@ export type {
   OfficeSheet, OfficeSheetMeta, Workbook, Worksheet, SheetColumn, SheetCell,
 } from "./contract/office.js";
 export type {
-  Design, DesignMeta, DesignSystem, DesignColor, DesignFont, DesignAsset, DesignSource, DesignImageryRef, UploadDesignAssetInput,
+  Design, DesignMeta, DesignSystem, DesignColor, DesignFont, DesignAsset, DesignSource, DesignImageryRef, DesignCanvas, UploadDesignAssetInput,
 } from "./contract/design.js";
 export type {
   StatorFact, MemoryTier, StatorRecallInput, StatorRecallResult, StatorWriteInput,
