@@ -41,6 +41,7 @@ import { MediaClient } from "./resources/media.js";
 import { MusicClient } from "./resources/music.js";
 import { GitClient } from "./resources/git.js";
 import { AppsClient } from "./resources/apps.js";
+import { MarketplaceClient } from "./resources/marketplace.js";
 import { HostingClient } from "./resources/hosting.js";
 import { LibraryClient } from "./resources/library.js";
 import { RelayClient } from "./resources/relay.js";
@@ -222,6 +223,8 @@ export interface Client {
   git: GitClient;
   /** The apps marketplace — browse, publish, install. */
   apps: AppsClient;
+  /** Marketplace developer profiles + developer reviews. */
+  marketplace: MarketplaceClient;
   /** App hosting — deploy a published app to `<slug>.glyphh.app`. */
   hosting: HostingClient;
   /** Rotor-loop library (personal + org). */
@@ -339,6 +342,7 @@ export function createClient(opts: ClientOptions): Client {
     music: new MusicClient(authed),
     git: new GitClient(authed),
     apps: new AppsClient(authed),
+    marketplace: new MarketplaceClient(authed),
     hosting: new HostingClient(authed),
     rotors: new LibraryClient(authed, "rotor"),
     skills: new SkillsClient(authed),

@@ -14,8 +14,9 @@
 /** App visibility in the marketplace. */
 export type AppVisibility = "public" | "org" | "unlisted";
 
-/** What an app IS: a URL you open, a program on your machine, or one you built. */
-export type AppKind = "web" | "native" | "glyphh";
+/** What an app IS: a URL you open, a program on your machine, one you built, or a
+ *  desktop WORK PANEL (installs locally on the user's machine — never hosted). */
+export type AppKind = "web" | "native" | "glyphh" | "workpanel";
 
 /** Kind-shaped launcher config — HOW the desktop opens the app, mirroring its form:
  *  web {browser, openAs} · native {archetype, windowMode, shell, profile, cwd,
@@ -97,9 +98,10 @@ export interface AppSecretKey {
   updatedAt: string;
 }
 
-/** Create a web or native entry (hosted apps arrive via publish, not here). */
+/** Create a web, native, or workpanel entry (hosted apps arrive via publish, not
+ *  here). A workpanel requires `config.workbench` (its view) and forbids `url`. */
 export interface CreateAppEntryInput {
-  kind: "web" | "native" | "glyphh";
+  kind: AppKind;
   slug: string;
   name: string;
   url?: string;
@@ -125,6 +127,10 @@ export interface UpdateAppEntryInput {
   access?: AppAccess;
 }
 
+/** The marketplace review pipeline — every release starts `draft`; the owner
+ *  submits; only a platform admin rules, and approval is what goes live. */
+export type AppReleaseReviewStatus = "draft" | "submitted" | "in_review" | "approved" | "rejected";
+
 /** One immutable build of a hosted app. */
 export interface AppRelease {
   id: string;
@@ -139,6 +145,18 @@ export interface AppRelease {
   /** `dev` until promoted; `live` is what installers get. */
   channel: "dev" | "live";
   promotedAt: string | null;
+  reviewStatus: AppReleaseReviewStatus;
+  /** The reviewer's ruling — why a rejection happened. */
+  reviewNotes: string | null;
+  submittedAt: string | null;
+  reviewedAt: string | null;
+}
+
+/** One release waiting in the platform-admin review queue. */
+export interface AppReviewQueueRelease extends AppRelease {
+  appSlug: string;
+  appName: string;
+  publisherOrgId: string;
 }
 
 /** One row of the org-scoped app audit feed. */
@@ -156,6 +174,25 @@ export interface AppUsageDay {
   creditsMicro: number;
 }
 
+/** Credits-only pricing on a listing: a monthly price + an optional discount window. */
+export interface AppPricing {
+  /** Whole credits per month; 0 = free. */
+  monthlyCredits: number;
+  discountPercent: number | null;
+  discountStartsAt: string | null;
+  discountEndsAt: string | null;
+  /** What an installer pays TODAY — the discount applied when its window is open. */
+  effectiveMonthlyCredits: number;
+}
+
+/** Set an owned app's pricing. `discountPercent: null` clears the whole discount. */
+export interface UpdateAppPricingInput {
+  monthlyCredits?: number;
+  discountPercent?: number | null;
+  discountStartsAt?: string | null;
+  discountEndsAt?: string | null;
+}
+
 /** A marketplace listing (the latest published version of an app). */
 export interface AppListing {
   slug: string;
@@ -165,6 +202,12 @@ export interface AppListing {
   publisherOrgId: string;
   visibility: AppVisibility;
   installs: number;
+  kind: AppKind;
+  /** A house row (builtin work panels): untouchable by any non-platform-admin path. */
+  builtin: boolean;
+  /** The platform kill switch: hidden from browse, uninstallable. */
+  suspended: boolean;
+  pricing: AppPricing;
   createdAt: string;
   updatedAt: string;
 }
@@ -257,6 +300,17 @@ export interface FlaggedAppReview extends AppReview {
   reportedAt: string | null;
 }
 
+/** The publisher's developer card, joined onto the marketplace detail
+ *  ("Support by <developer>" — support falls to the developer, never Glyphh). */
+export interface AppDeveloperCard {
+  handle: string;
+  displayName: string;
+  avatarUrl: string | null;
+  supportEmail: string | null;
+  ratingAvg: number;
+  ratingCount: number;
+}
+
 /** The full marketplace detail for one app — listing media + markdown body +
  *  the connections it requires, with connected status for the caller's org. */
 export interface AppMarketplaceDetail {
@@ -266,6 +320,27 @@ export interface AppMarketplaceDetail {
   description: string | null;
   owned: boolean;
   installs: number;
+  kind: AppKind;
+  builtin: boolean;
+  suspended: boolean;
+  pricing: AppPricing;
+  /** The publisher's marketplace profile, when they have one. */
+  developer: AppDeveloperCard | null;
+  /** PLATFORM ADMINS ONLY: true when the app has an open malicious report.
+   *  Absent for everyone else. */
+  reported?: boolean;
   listing: AppListingRecord;
   requiredConnections: { slug: string; actAs: string; connected: boolean }[];
+}
+
+/** One app-level malicious report as the triage queue renders it. */
+export interface AppReport {
+  id: string;
+  appSlug: string | null;
+  appName: string | null;
+  reason: string;
+  detail: string | null;
+  status: "open" | "reviewing" | "resolved" | "dismissed";
+  createdAt: string;
+  resolvedAt: string | null;
 }

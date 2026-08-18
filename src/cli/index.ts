@@ -32,6 +32,7 @@ import { registerMedia } from "./commands/media.js";
 import { registerMusic } from "./commands/music.js";
 import { registerGit } from "./commands/git.js";
 import { registerApps } from "./commands/apps.js";
+import { registerMarketplace } from "./commands/marketplace.js";
 import { registerLibrary } from "./commands/library.js";
 import { registerRelay } from "./commands/relay.js";
 import { registerAttach } from "./commands/attach.js";
@@ -81,6 +82,7 @@ export function buildRegistry(): CommandRegistry {
   registerIcons(reg);
   registerGit(reg);
   registerApps(reg);
+  registerMarketplace(reg);
   registerLibrary(reg);
   registerRelay(reg);
   registerAttach(reg);

@@ -584,4 +584,130 @@ export function registerApps(reg: CommandRegistry): void {
       ctx.printJson({ ok: true, key });
     },
   });
+
+  // ── the review pipeline (marketplace M1) ────────────────────────────────────
+
+  reg.register({
+    path: "apps release submit",
+    summary: "submit a ready release for marketplace review",
+    usage: "apps release submit --slug <s> --release <id>",
+    covers: ["apps.submitRelease"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      const release = flagStr(args, "release");
+      if (!slug || !release) throw new Error("usage: apps release submit --slug <s> --release <id>");
+      ctx.printJson(await ctx.client.apps.submitRelease(slug, release));
+    },
+  });
+
+  reg.register({
+    path: "apps review-queue",
+    summary: "the release review queue (platform admin)",
+    covers: ["apps.reviewQueue"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.apps.reviewQueue());
+    },
+  });
+
+  reg.register({
+    path: "apps review-rule",
+    summary: "rule on a queued release: begin | approve | reject (platform admin)",
+    usage: "apps review-rule --release <id> --action begin|approve|reject [--notes <text>]",
+    covers: ["apps.reviewRelease"],
+    async run(ctx, args) {
+      const release = flagStr(args, "release");
+      const action = flagStr(args, "action") as "begin" | "approve" | "reject" | undefined;
+      if (!release || !action) throw new Error("usage: apps review-rule --release <id> --action begin|approve|reject [--notes <text>]");
+      ctx.printJson(await ctx.client.apps.reviewRelease(release, action, flagStr(args, "notes")));
+    },
+  });
+
+  // ── pricing (credits-only) ──────────────────────────────────────────────────
+
+  reg.register({
+    path: "apps pricing set",
+    summary: "set an app's monthly credit price + discount window",
+    usage: "apps pricing set --slug <s> [--credits <n>] [--discount <pct>|clear] [--starts <iso>] [--ends <iso>]",
+    covers: ["apps.setPricing"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      if (!slug) throw new Error("usage: apps pricing set --slug <s> [--credits <n>] [--discount <pct>|clear]");
+      const credits = flagStr(args, "credits");
+      const discount = flagStr(args, "discount");
+      const starts = flagStr(args, "starts");
+      const ends = flagStr(args, "ends");
+      ctx.printJson(await ctx.client.apps.setPricing(slug, {
+        ...(credits !== undefined ? { monthlyCredits: Number(credits) } : {}),
+        ...(discount !== undefined ? { discountPercent: discount === "clear" ? null : Number(discount) } : {}),
+        ...(starts !== undefined ? { discountStartsAt: starts } : {}),
+        ...(ends !== undefined ? { discountEndsAt: ends } : {}),
+      }));
+    },
+  });
+
+  // ── malicious reports ───────────────────────────────────────────────────────
+
+  reg.register({
+    path: "apps report",
+    summary: "report an app as malicious (lands in the platform triage queue)",
+    usage: "apps report <slug> --reason <text> [--detail <text>]",
+    covers: ["apps.report"],
+    async run(ctx, args) {
+      const slug = args.positional[0];
+      const reason = flagStr(args, "reason");
+      if (!slug || !reason) throw new Error("usage: apps report <slug> --reason <text> [--detail <text>]");
+      ctx.printJson(await ctx.client.apps.report(slug, reason, flagStr(args, "detail")));
+    },
+  });
+
+  reg.register({
+    path: "apps reports",
+    summary: "the app-report triage queue (platform admin)",
+    usage: "apps reports [--status open|reviewing|resolved|dismissed]",
+    covers: ["apps.reports"],
+    async run(ctx, args) {
+      ctx.printJson(await ctx.client.apps.reports(
+        flagStr(args, "status") as "open" | "reviewing" | "resolved" | "dismissed" | undefined,
+      ));
+    },
+  });
+
+  reg.register({
+    path: "apps report-resolve",
+    summary: "rule on an app report (platform admin)",
+    usage: "apps report-resolve --id <reportId> --status reviewing|resolved|dismissed",
+    covers: ["apps.resolveReport"],
+    async run(ctx, args) {
+      const id = flagStr(args, "id");
+      const status = flagStr(args, "status") as "reviewing" | "resolved" | "dismissed" | undefined;
+      if (!id || !status) throw new Error("usage: apps report-resolve --id <reportId> --status reviewing|resolved|dismissed");
+      ctx.printJson(await ctx.client.apps.resolveReport(id, status));
+    },
+  });
+
+  // ── suspension (platform admin) ─────────────────────────────────────────────
+
+  reg.register({
+    path: "apps suspend",
+    summary: "suspend a listing — hidden from browse, uninstallable (platform admin)",
+    usage: "apps suspend <slug>",
+    covers: ["apps.suspend"],
+    async run(ctx, args) {
+      const slug = args.positional[0];
+      if (!slug) throw new Error("usage: apps suspend <slug>");
+      ctx.printJson(await ctx.client.apps.suspend(slug));
+    },
+  });
+
+  reg.register({
+    path: "apps unsuspend",
+    summary: "lift a listing suspension (platform admin)",
+    usage: "apps unsuspend <slug>",
+    covers: ["apps.unsuspend"],
+    async run(ctx, args) {
+      const slug = args.positional[0];
+      if (!slug) throw new Error("usage: apps unsuspend <slug>");
+      ctx.printJson(await ctx.client.apps.unsuspend(slug));
+    },
+  });
 }

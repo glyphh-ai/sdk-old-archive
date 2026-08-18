@@ -9,7 +9,7 @@
 import type { AuthedHttp } from "../core/authed-http.js";
 import type { AppListing, InstalledApp, PublishAppInput, PanelApp,
   OrgApp, CreateAppEntryInput, UpdateAppEntryInput, AppVariant, AppRelease, AppAuditEntry, AppUsageDay, AppSecretKey,
-  AppMarketplaceDetail,
+  AppMarketplaceDetail, AppReviewQueueRelease, AppReport, UpdateAppPricingInput,
   UpdateListingInput, AppMediaKind, StoredAppMedia, AppReview, FlaggedAppReview,
 } from "../contract/apps.js";
 
@@ -134,12 +134,76 @@ export class AppsClient {
     );
   }
 
-  /** Promote a built release to `live` — the version installers get. Rolling back is
-   *  promoting an older release again; nothing is ever rebuilt. */
+  /** Submit a READY release for marketplace review (draft/rejected → submitted).
+   *  Only a platform admin moves it from there; approval promotes it live. */
+  submitRelease(slug: string, releaseId: string): Promise<AppRelease> {
+    return this.http.post<AppRelease>(
+      `/api/apps/${encodeURIComponent(slug)}/releases/${encodeURIComponent(releaseId)}/submit`, {},
+    );
+  }
+
+  /** PLATFORM ADMIN: re-promote an already-APPROVED release to `live` — the
+   *  rollback pointer move. Owner self-promotion is gone; approval promotes. */
   promoteRelease(slug: string, releaseId: string): Promise<AppRelease> {
     return this.http.post<AppRelease>(
       `/api/apps/${encodeURIComponent(slug)}/releases/${encodeURIComponent(releaseId)}/promote`, {},
     );
+  }
+
+  /** PLATFORM ADMIN: the review queue — submitted + in-review releases, oldest first. */
+  async reviewQueue(): Promise<AppReviewQueueRelease[]> {
+    const { releases } = await this.http.get<{ releases: AppReviewQueueRelease[] }>("/api/admin/releases/queue");
+    return releases;
+  }
+
+  /** PLATFORM ADMIN: rule on a queued release — begin (claim), approve (promotes
+   *  live), or reject (with notes the author reads). */
+  reviewRelease(releaseId: string, action: "begin" | "approve" | "reject", notes?: string): Promise<AppRelease> {
+    return this.http.post<AppRelease>(
+      `/api/admin/releases/${encodeURIComponent(releaseId)}/review`,
+      { action, ...(notes !== undefined ? { notes } : {}) },
+    );
+  }
+
+  // ── pricing: credits-only ──────────────────────────────────────────────────
+
+  /** Set an owned app's monthly credit price and discount window. */
+  setPricing(slug: string, patch: UpdateAppPricingInput): Promise<{ ok: boolean }> {
+    return this.http.patch<{ ok: boolean }>(`/api/apps/${encodeURIComponent(slug)}/pricing`, patch);
+  }
+
+  // ── malicious reports ──────────────────────────────────────────────────────
+
+  /** Report an app as malicious. Lands in the platform-admin triage queue. */
+  report(slug: string, reason: string, detail?: string): Promise<AppReport> {
+    return this.http.post<AppReport>(
+      `/api/apps/${encodeURIComponent(slug)}/report`,
+      { reason, ...(detail !== undefined ? { detail } : {}) },
+    );
+  }
+
+  /** PLATFORM ADMIN: the report triage queue (defaults to open + reviewing). */
+  async reports(status?: "open" | "reviewing" | "resolved" | "dismissed"): Promise<AppReport[]> {
+    const q = status ? `?status=${encodeURIComponent(status)}` : "";
+    const { reports } = await this.http.get<{ reports: AppReport[] }>(`/api/admin/app-reports${q}`);
+    return reports;
+  }
+
+  /** PLATFORM ADMIN: rule on a report — claim it, resolve it, or dismiss it. */
+  resolveReport(reportId: string, status: "reviewing" | "resolved" | "dismissed"): Promise<AppReport> {
+    return this.http.post<AppReport>(`/api/admin/app-reports/${encodeURIComponent(reportId)}/resolve`, { status });
+  }
+
+  // ── suspension (platform admin) ────────────────────────────────────────────
+
+  /** PLATFORM ADMIN: suspend a listing — hidden from browse, uninstallable. */
+  suspend(slug: string): Promise<{ ok: boolean; suspended: boolean }> {
+    return this.http.post<{ ok: boolean; suspended: boolean }>(`/api/admin/apps/${encodeURIComponent(slug)}/suspend`, {});
+  }
+
+  /** PLATFORM ADMIN: lift a suspension. */
+  unsuspend(slug: string): Promise<{ ok: boolean; suspended: boolean }> {
+    return this.http.del<{ ok: boolean; suspended: boolean }>(`/api/admin/apps/${encodeURIComponent(slug)}/suspend`);
   }
 
   // ── listing: the marketing record ──────────────────────────────────────────
