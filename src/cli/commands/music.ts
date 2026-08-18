@@ -111,6 +111,23 @@ export function registerMusic(reg: CommandRegistry): void {
     },
   });
   reg.register({
+    path: "music regenerate",
+    summary: "server-side regenerate — child version now, take attaches on success (metered)",
+    usage: "music regenerate <songId> [--model <id>] [--seconds <n>]",
+    covers: ["music.regenerateSong"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: music regenerate <songId>");
+      const model = flagStr(args, "model");
+      const seconds = flagStr(args, "seconds");
+      ctx.printJson(await ctx.client.music.regenerateSong(id, {
+        ...(model ? { model } : {}),
+        ...(seconds ? { seconds: Number(seconds) } : {}),
+      }));
+    },
+  });
+
+  reg.register({
     path: "music song-delete",
     summary: "delete a song document",
     usage: "music song-delete <id>",

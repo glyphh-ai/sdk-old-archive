@@ -7,6 +7,7 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
+import type { MediaJob } from "../contract/media.js";
 
 export interface MusicArtist {
   id: string;
@@ -89,5 +90,12 @@ export class MusicClient {
   }
   deleteSong(id: string): Promise<void> {
     return this.http.del<void>(`/api/music/songs/${encodeURIComponent(id)}`);
+  }
+
+  /** Server-side regeneration: the CHILD version returns immediately (audio
+   *  null) and the take attaches when the job succeeds — poll the job, or
+   *  just re-read the song. */
+  regenerateSong(id: string, input: { model?: string; seconds?: number } = {}): Promise<{ song: MusicSong; job: MediaJob }> {
+    return this.http.post<{ song: MusicSong; job: MediaJob }>(`/api/music/songs/${encodeURIComponent(id)}/regenerate`, input);
   }
 }
