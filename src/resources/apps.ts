@@ -12,6 +12,7 @@ import type { AppListing, InstalledApp, PublishAppInput, PanelApp,
   AppMarketplaceDetail, AppReviewQueueRelease, AppReport, UpdateAppPricingInput,
   UpdateListingInput, AppMediaKind, StoredAppMedia, AppReview, FlaggedAppReview,
   AppComment, AppCommentThread, FlaggedAppComment, ReleaseScanFinding,
+  AppDataQuery, AppDataQueryResult, AppDataStatus, AppDataExport, UninstallAppResult,
 } from "../contract/apps.js";
 
 export class AppsClient {
@@ -44,9 +45,31 @@ export class AppsClient {
     return this.http.get<InstalledApp[]>("/api/apps/installed");
   }
 
-  /** Uninstall an app from your org. */
-  uninstall(slug: string): Promise<void> {
-    return this.http.del<void>(`/api/apps/${encodeURIComponent(slug)}/install`);
+  /** Uninstall an app from your org. The org's app DATA is RETAINED by default
+   *  (reinstall picks it back up); `deleteData: true` returns the JSON export
+   *  FIRST and graveyards the whole app schema (reaped ~30 days later). */
+  uninstall(slug: string, opts: { deleteData?: boolean } = {}): Promise<UninstallAppResult | void> {
+    const qs = opts.deleteData === true ? "?deleteData=true" : "";
+    return this.http.del<UninstallAppResult | void>(`/api/apps/${encodeURIComponent(slug)}/install${qs}`);
+  }
+
+  // ── the scoped app-data surface (marketplace M8) ───────────────────────────
+
+  /** Run one structured query against the app's OWN declared schema. Entry
+   *  triggers the lazy per-org migration when the org trails the live release. */
+  dataQuery(slug: string, query: AppDataQuery): Promise<AppDataQueryResult> {
+    return this.http.post<AppDataQueryResult>(`/api/apps/${encodeURIComponent(slug)}/data/query`, query);
+  }
+
+  /** The full JSON dump of the app's data (data-API row shapes). */
+  dataExport(slug: string): Promise<AppDataExport> {
+    return this.http.get<AppDataExport>(`/api/apps/${encodeURIComponent(slug)}/data/export`);
+  }
+
+  /** The org's app-data health: live vs applied schema version, and the
+   *  disable-never-delete latch with its error. */
+  dataStatus(slug: string): Promise<AppDataStatus> {
+    return this.http.get<AppDataStatus>(`/api/apps/${encodeURIComponent(slug)}/data/status`);
   }
 
   /** The caller's deployed panel apps (backs the dashboard's "apps deployed" count). */
@@ -148,6 +171,17 @@ export class AppsClient {
   promoteRelease(slug: string, releaseId: string): Promise<AppRelease> {
     return this.http.post<AppRelease>(
       `/api/apps/${encodeURIComponent(slug)}/releases/${encodeURIComponent(releaseId)}/promote`, {},
+    );
+  }
+
+  /** ROLLBACK (owner self-serve, or platform admin): re-promote one of the
+   *  app's PRIOR-APPROVED releases — vetted code, no new review. The schema
+   *  never rolls back; graveyarded objects the older release needs are restored
+   *  inside the 30-day window, and past it a rollback crossing a destructive
+   *  boundary is refused with the reason. */
+  rollbackRelease(slug: string, releaseId: string): Promise<AppRelease> {
+    return this.http.post<AppRelease>(
+      `/api/apps/${encodeURIComponent(slug)}/releases/${encodeURIComponent(releaseId)}/rollback`, {},
     );
   }
 

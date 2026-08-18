@@ -81,14 +81,60 @@ export function registerApps(reg: CommandRegistry): void {
 
   reg.register({
     path: "apps uninstall",
-    summary: "uninstall an app from your org",
-    usage: "apps uninstall <slug>",
+    summary: "uninstall an app (data retained; --delete-data exports first, then graveyards)",
+    usage: "apps uninstall <slug> [--delete-data]",
     covers: ["apps.uninstall"],
     async run(ctx, args) {
       const slug = args.positional[0];
-      if (!slug) throw new Error("usage: apps uninstall <slug>");
-      await ctx.client.apps.uninstall(slug);
-      ctx.printJson({ uninstalled: slug });
+      if (!slug) throw new Error("usage: apps uninstall <slug> [--delete-data]");
+      const deleteData = flagBool(args, "delete-data");
+      const result = await ctx.client.apps.uninstall(slug, deleteData ? { deleteData: true } : {});
+      ctx.printJson(result ?? { uninstalled: slug });
+    },
+  });
+
+  // ── the scoped app-data surface (marketplace M8) ───────────────────────────
+  reg.register({
+    path: "apps data query",
+    summary: "run a structured query against an installed app's own schema",
+    usage: `apps data query <slug> --json '{"op":"select","table":"customers"}'`,
+    covers: ["apps.dataQuery"],
+    async run(ctx, args) {
+      const slug = args.positional[0];
+      const json = flagStr(args, "json");
+      if (!slug || !json) throw new Error(`usage: apps data query <slug> --json '{"op":"select","table":"…"}'`);
+      ctx.printJson(await ctx.client.apps.dataQuery(slug, JSON.parse(json)));
+    },
+  });
+
+  reg.register({
+    path: "apps data export",
+    summary: "the full JSON dump of an installed app's data",
+    usage: "apps data export <slug> [--out <file.json>]",
+    covers: ["apps.dataExport"],
+    async run(ctx, args) {
+      const slug = args.positional[0];
+      if (!slug) throw new Error("usage: apps data export <slug> [--out <file.json>]");
+      const dump = await ctx.client.apps.dataExport(slug);
+      const out = flagStr(args, "out");
+      if (out) {
+        writeFileSync(out, JSON.stringify(dump, null, 2));
+        ctx.printJson({ wrote: out, tables: Object.keys(dump.tables).length });
+      } else {
+        ctx.printJson(dump);
+      }
+    },
+  });
+
+  reg.register({
+    path: "apps data status",
+    summary: "the org's app-data health (applied vs live schema version, disabled latch)",
+    usage: "apps data status <slug>",
+    covers: ["apps.dataStatus"],
+    async run(ctx, args) {
+      const slug = args.positional[0];
+      if (!slug) throw new Error("usage: apps data status <slug>");
+      ctx.printJson(await ctx.client.apps.dataStatus(slug));
     },
   });
 
@@ -292,6 +338,19 @@ export function registerApps(reg: CommandRegistry): void {
       const out = flagStr(args, "out") || `${slug}-source.zip`;
       writeFileSync(out, Buffer.from(bytes));
       ctx.printJson({ slug, file: out, bytes: bytes.byteLength });
+    },
+  });
+
+  reg.register({
+    path: "apps release rollback",
+    summary: "re-promote one of YOUR prior-approved releases (restores graveyarded objects inside the 30-day window)",
+    usage: "apps release rollback --slug <s> --release <id>",
+    covers: ["apps.rollbackRelease"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      const release = flagStr(args, "release");
+      if (!slug || !release) throw new Error("usage: apps release rollback --slug <s> --release <id>");
+      ctx.printJson(await ctx.client.apps.rollbackRelease(slug, release));
     },
   });
 

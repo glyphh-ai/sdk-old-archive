@@ -47,6 +47,108 @@ export interface AppManifest {
   domains?: string[];
   /** Optional second process from the same image (background work / agents). */
   processes?: { worker?: string };
+  /** The DECLARATIVE app schema (marketplace M8): tables/columns/indexes as
+   *  data. The developer never writes SQL — the platform diffs releases and
+   *  generates every DDL statement, per org, lazily. */
+  schema?: AppSchemaDoc;
+  /** Pinned per release; MUST increase whenever `schema` changes. */
+  schemaVersion?: number;
+}
+
+// ── the declarative app schema (marketplace M8) ──────────────────────────────
+
+/** The closed set of column types an app schema may declare. */
+export type AppColumnType =
+  | "text" | "integer" | "bigint" | "boolean" | "numeric" | "timestamptz" | "jsonb" | "uuid";
+
+export interface AppSchemaColumn {
+  /** lowercase snake_case, letter-first, ≤ 40 chars; reserved prefixes
+   *  (pg_, gy_, glyphh_, grave_) refused. */
+  name: string;
+  type: AppColumnType;
+  /** Defaults to true. Primary-key columns must declare false. */
+  nullable?: boolean;
+  /** Literals only — plus `now()` on timestamptz and `gen_random_uuid()` on uuid. */
+  default?: string | number | boolean;
+  primaryKey?: boolean;
+}
+
+export interface AppSchemaIndex {
+  name: string;
+  columns: string[];
+  unique?: boolean;
+}
+
+/** FKs may only reference tables in the SAME document (the app's own schema),
+ *  and must reference the target table's primary key. */
+export interface AppSchemaForeignKey {
+  columns: string[];
+  references: { table: string; columns: string[] };
+}
+
+export interface AppSchemaTable {
+  name: string;
+  columns: AppSchemaColumn[];
+  /** btree only. */
+  indexes?: AppSchemaIndex[];
+  foreignKeys?: AppSchemaForeignKey[];
+}
+
+/** The whole declared schema — ≤ 30 tables, ≤ 60 columns/table, ≤ 20 indexes/table. */
+export interface AppSchemaDoc {
+  tables: AppSchemaTable[];
+}
+
+/** One structured, parameterized query against the app's OWN schema — the seam
+ *  panels/app tools use. No raw SQL: declared tables/columns only, bounded. */
+export interface AppDataQuery {
+  op: "select" | "insert" | "update" | "delete";
+  table: string;
+  /** Projection (select) / RETURNING list (mutations). Declared columns only. */
+  columns?: string[];
+  /** insert/update payload, keyed by declared column. */
+  values?: Record<string, unknown>;
+  /** Equality (`{col: v}`) or `{col: {op, value}}` with eq/neq/lt/lte/gt/gte/
+   *  like/in. update/delete REQUIRE a where. */
+  where?: Record<string, unknown>;
+  orderBy?: { column: string; dir?: "asc" | "desc" };
+  /** Select cap: 200 (default 50). */
+  limit?: number;
+  offset?: number;
+}
+
+export interface AppDataQueryResult {
+  rows: unknown[];
+  rowCount: number;
+}
+
+/** The org's app-data health — the exposed install status (marketplace M8). */
+export interface AppDataStatus {
+  /** The live release's pinned schema version; null when no live schema. */
+  schemaVersion: number | null;
+  /** What this org has actually been migrated to (0 = never provisioned). */
+  appliedVersion: number;
+  /** `disabled` = the last migration failed for THIS org (disable-never-delete). */
+  status: "ready" | "disabled" | "unprovisioned";
+  error: string | null;
+  schemaName: string;
+  updatedAt: string | null;
+}
+
+/** The pre-deletion JSON dump (data-API row shapes) an uninstall returns. */
+export interface AppDataExport {
+  slug: string;
+  schemaVersion: number;
+  exportedAt: string;
+  tables: Record<string, unknown[]>;
+}
+
+/** What `uninstall(slug, { deleteData: true })` returns: export-first, then the
+ *  whole app schema is graveyarded (reaped ~30 days later — never immediate). */
+export interface UninstallAppResult {
+  ok: boolean;
+  dataDeleted: boolean;
+  export: AppDataExport | null;
 }
 
 /** An extra slug → url address on one app (`crm-dev` → http://localhost:3001). */
@@ -150,6 +252,9 @@ export interface AppRelease {
   reviewNotes: string | null;
   submittedAt: string | null;
   reviewedAt: string | null;
+  /** The declarative schema version this release pins (marketplace M8); null
+   *  when the app declares no schema. */
+  schemaVersion: number | null;
 }
 
 /** One release waiting in the platform-admin review queue. */
@@ -249,6 +354,10 @@ export interface InstalledApp {
   version: string;
   installedAt: string;
   entitlementStatus: AppEntitlementStatus | null;
+  /** The org's app-data health (marketplace M8): null = no schema / never
+   *  provisioned; `disabled` = this org's schema migration failed and the data
+   *  surface refuses until a fixed release ships. */
+  dataStatus: "ready" | "disabled" | null;
 }
 
 /**
