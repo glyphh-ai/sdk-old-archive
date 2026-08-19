@@ -9,7 +9,7 @@
 import type { AuthedHttp } from "../core/authed-http.js";
 import type {
   Plan, Subscription, Balance, HostedUrl,
-  CreditsBreakdown, AutotopupConfig, AutotopupInput, PlanChange, Invoice, TopupInput,
+  CreditsBreakdown, AutotopupConfig, AutotopupInput, PlanChange, Invoice, TopupInput, TopupCheckout, BillingConfig,
 } from "../contract/billing.js";
 
 export class BillingClient {
@@ -49,8 +49,13 @@ export class BillingClient {
   }
 
   /** Buy a credit top-up — returns the hosted Checkout URL to open. `credits` is micro-credits. */
-  topup(input: TopupInput): Promise<HostedUrl> {
-    return this.http.post<HostedUrl>("/api/billing/topup", input);
+  topup(input: TopupInput): Promise<TopupCheckout> {
+    return this.http.post<TopupCheckout>("/api/billing/topup", input);
+  }
+
+  /** The public Stripe key for Embedded Checkout (null → hosted fallback). */
+  config(): Promise<BillingConfig> {
+    return this.http.get<BillingConfig>("/api/billing/config");
   }
 
   /** Read the org's auto-top-up rule. */

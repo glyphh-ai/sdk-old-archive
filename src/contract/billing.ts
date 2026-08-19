@@ -95,7 +95,21 @@ export interface Invoice {
   periodEnd: number | null;
 }
 
-/** The input to buy a credit top-up (micro-credits). */
+/** The input to buy a credit top-up (micro-credits). `embedded` asks for an
+ *  Embedded Checkout client secret instead of a hosted url. */
 export interface TopupInput {
   credits: number;
+  embedded?: boolean;
+}
+
+/** A started top-up: hosted url OR embedded client secret, per the request. */
+export interface TopupCheckout {
+  url?: string;
+  clientSecret?: string;
+}
+
+/** Client-side billing config — the PUBLIC Stripe key (pk_*), or null when
+ *  the server has none (clients then fall back to hosted checkout). */
+export interface BillingConfig {
+  publishableKey: string | null;
 }
