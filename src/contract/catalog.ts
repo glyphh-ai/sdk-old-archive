@@ -50,6 +50,8 @@ export interface Model {
   /** Largest single completion. Null = unrecorded. */
   maxOutputTokens: number | null;
   active: boolean;
+  /** Live per-org default: orgs with no explicit org_models override follow this. */
+  defaultOn: boolean;
 }
 
 /** org_admin: enable a provider for the org, optionally with a BYOK key (write-only). */
@@ -84,6 +86,8 @@ export interface ModelCreate {
   rateUnit?: RateUnit;
   inputCreditsPerMTok: number;
   outputCreditsPerMTok: number;
+  /** Live per-org default: orgs with no explicit override follow this. Omit → false (opt-in). */
+  defaultOn?: boolean;
 }
 
 /** super_admin: update a model's pricing / availability. */
@@ -97,6 +101,8 @@ export interface ModelPricing {
   modality?: Modality;
   rateUnit?: RateUnit;
   active?: boolean;
+  /** Live per-org default: orgs with no explicit override follow this. */
+  defaultOn?: boolean;
 }
 
 /** A TTS provider's voice — a synthesis call is model + voice. */

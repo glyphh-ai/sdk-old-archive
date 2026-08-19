@@ -163,12 +163,16 @@ export interface AdminModel {
   /** Largest single completion. Null = unrecorded. */
   max_output_tokens: number | null;
   active: boolean;
+  /** Live per-org default: orgs with no explicit org_models override follow this. */
+  default_on: boolean;
 }
 export interface AdminModelUpdate {
   display_name?: string;
   /** Short @-mention name; null clears it, omit keeps it. */
   alias?: string | null;
   active?: boolean;
+  /** Live per-org default: orgs with no explicit org_models override follow this. */
+  default_on?: boolean;
   modality?: string;
   rate_unit?: string;
   input_credits_per_mtok?: number | null;
