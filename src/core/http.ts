@@ -68,7 +68,11 @@ export class HttpClient {
     if (opts.bearer) headers["authorization"] = `Bearer ${opts.bearer}`;
     const res = await this.fetchImpl(`${this.baseUrl}${path}`, { method: "POST", headers, body: bytes as Uint8Array<ArrayBuffer> });
     if (!res.ok) throw new Error(`POST ${path} failed: ${res.status}`);
-    return res.json() as Promise<T>;
+    // Unwrap the `{ data }` success envelope exactly like request() does —
+    // returning it raw made every postBinary payload arrive one level deeper
+    // than the declared type (the web mic transcribed to "" because of it).
+    const json = (await res.json()) as { data?: T };
+    return (json?.data !== undefined ? json.data : json) as T;
   }
   /** POST a JSON body and read the response as raw bytes (e.g. synthesized audio). */
   async postForBytes(path: string, body: unknown, opts: RequestOptions = {}): Promise<ArrayBuffer> {
