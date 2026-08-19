@@ -85,6 +85,13 @@ export class AppsClient {
     return apps;
   }
 
+  /** The HOUSE DEFAULTS — the glyphh launcher set every org can read. Feeds
+   *  the command center only; `mine()` stays the org's own apps. */
+  async defaults(): Promise<Array<{ id: string; slug: string; name: string; url: string | null }>> {
+    const { apps } = await this.http.get<{ apps: Array<{ id: string; slug: string; name: string; url: string | null }> }>("/api/apps/defaults");
+    return apps;
+  }
+
   /** Add a web (url) or native (path/bundle id) entry. Hosted apps use publish. */
   createEntry(input: CreateAppEntryInput): Promise<{ id: string; slug: string }> {
     return this.http.post<{ id: string; slug: string }>("/api/apps/entries", input);
