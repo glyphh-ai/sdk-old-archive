@@ -11,7 +11,7 @@ import type { AuthedHttp } from "../core/authed-http.js";
 import type {
   OfficeSlide, OfficeSlideMeta,
   OfficeDoc, OfficeDocMeta, OfficeSuggestion, CreateSuggestionInput,
-  OfficeDocTemplate, OfficeFolder, OfficeDriveListing,
+  OfficeDocTemplate, OfficeFolder, OfficeDriveListing, DriveKind,
   OfficeSheet, OfficeSheetMeta, Workbook,
 } from "../contract/office.js";
 
@@ -125,8 +125,10 @@ export class OfficeDriveClient {
   }
 
   /** Point one Office file at a folder (null = root). */
-  move(kind: "slides" | "docs" | "sheets", file: string, folderId: string | null): Promise<{ ok: boolean }> {
-    return this.http.post<{ ok: boolean }>("/api/office/drive/move", { kind, file, folderId });
+  /** Move any Drive object into a folder (null = root). Office/design pass
+   *  the file name; media/music/file pass the row id — both ride `file`. */
+  move(kind: DriveKind, ref: string, folderId: string | null): Promise<{ ok: boolean }> {
+    return this.http.post<{ ok: boolean }>("/api/office/drive/move", { kind, file: ref, folderId });
   }
 }
 

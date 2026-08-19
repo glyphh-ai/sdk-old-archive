@@ -80,13 +80,21 @@ export interface OfficeFolder {
   updatedAt: string;
 }
 
-/** One Drive entry — a POINTER at an Office object, never a copy. */
+/** One Drive entry — a POINTER at an object, never a copy. Every kind rides
+ *  the same listing: office by FILE name, the rest by row id (`ref`). */
+export type DriveKind = "slides" | "docs" | "sheets" | "design" | "media" | "music" | "file";
 export interface OfficeDriveFile {
-  kind: "slides" | "docs" | "sheets";
-  file: string;
+  kind: DriveKind;
+  /** The stable reference: office/design = the file name; media/music/file = the uuid. */
+  ref: string;
+  /** Office/design keep their file name for the editors' open-by-name APIs. */
+  file?: string;
   title: string;
   sizeBytes: number;
   folderId: string | null;
+  /** media: image|video|audio|voice|…; file: the files.kind bucket. */
+  subkind?: string;
+  mime?: string;
   updatedAt: string;
 }
 
