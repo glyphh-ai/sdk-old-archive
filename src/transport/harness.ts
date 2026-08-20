@@ -477,6 +477,11 @@ export class HarnessClient {
     return this.get(`/fs/events${q ? `?${q}` : ""}`) as Promise<HarnessFsEventsPage>;
   }
 
+  /** The caller's existing pod workspaces (spaces) — newest first. */
+  fsSpaces(): Promise<{ spaces: Array<{ id: string; updatedAt: number; top: string[] }> }> {
+    return this.get("/fs/spaces") as Promise<{ spaces: Array<{ id: string; updatedAt: number; top: string[] }> }>;
+  }
+
   // ── HTTP ───────────────────────────────────────────────────────────────────
 
   private async post(path: string, body: unknown, signal?: AbortSignal): Promise<unknown> {
