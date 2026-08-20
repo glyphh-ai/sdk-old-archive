@@ -64,6 +64,51 @@ export function registerOrg(reg: CommandRegistry): void {
   });
 
   reg.register({
+    path: "org image",
+    summary: "set the organization's image (org_admin only)",
+    usage: "org image <file>",
+    covers: ["org.uploadImage"],
+    async run(ctx, args) {
+      const file = args.positional[0];
+      if (!file) throw new Error("usage: org image <file>");
+      const { readFileSync } = await import("node:fs");
+      ctx.printJson(await ctx.client.org.uploadImage(new Uint8Array(readFileSync(file))));
+    },
+  });
+  // Marketplace app blocklist (org_admin): which listed apps this org bars.
+  reg.register({
+    path: "org app-blocks",
+    summary: "the marketplace apps blocked for this org",
+    covers: ["org.appBlocks"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.org.appBlocks());
+    },
+  });
+  reg.register({
+    path: "org block-app",
+    summary: "bar a marketplace app for this org (org_admin only)",
+    usage: "org block-app <slug-or-id>",
+    covers: ["org.blockApp"],
+    async run(ctx, args) {
+      const ref = args.positional[0];
+      if (!ref) throw new Error("usage: org block-app <slug-or-id>");
+      ctx.printJson(await ctx.client.org.blockApp(ref));
+    },
+  });
+  reg.register({
+    path: "org unblock-app",
+    summary: "lift an org's marketplace app block (org_admin only)",
+    usage: "org unblock-app <slug-or-id>",
+    covers: ["org.unblockApp"],
+    async run(ctx, args) {
+      const ref = args.positional[0];
+      if (!ref) throw new Error("usage: org unblock-app <slug-or-id>");
+      await ctx.client.org.unblockApp(ref);
+      ctx.print("unblocked");
+    },
+  });
+
+  reg.register({
     path: "org update",
     summary: "update the org (name; org_admin only)",
     usage: "org update --name <name>",

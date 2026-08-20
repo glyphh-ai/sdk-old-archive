@@ -15,6 +15,23 @@ export class OrgClient {
     return this.http.get<Org>("/api/org");
   }
 
+  /** Upload the org's image (PNG/JPEG/GIF/WebP, ≤0.5MB; sniffed server-side).
+   *  org_admin only. The refreshed org (with imageUrl) comes from get(). */
+  uploadImage(bytes: Uint8Array): Promise<{ key: string; contentType: string; bytes: number }> {
+    return this.http.post<{ key: string; contentType: string; bytes: number }>("/api/org/image", bytes);
+  }
+
+  /** ORG ADMIN: marketplace apps blocked for this org (installs refuse). */
+  appBlocks(): Promise<{ blocks: Array<{ appId: string; slug: string; name: string; createdAt: string }> }> {
+    return this.http.get("/api/org/app-blocks") as Promise<{ blocks: Array<{ appId: string; slug: string; name: string; createdAt: string }> }>;
+  }
+  blockApp(ref: string): Promise<{ ok: boolean; blocked: boolean; slug: string }> {
+    return this.http.put<{ ok: boolean; blocked: boolean; slug: string }>(`/api/org/app-blocks/${encodeURIComponent(ref)}`, {});
+  }
+  unblockApp(ref: string): Promise<{ ok: boolean; blocked: boolean; slug: string }> {
+    return this.http.del<{ ok: boolean; blocked: boolean; slug: string }>(`/api/org/app-blocks/${encodeURIComponent(ref)}`);
+  }
+
   update(patch: OrgUpdate): Promise<Org> {
     return this.http.patch<Org>("/api/org", patch);
   }

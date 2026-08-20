@@ -13,6 +13,7 @@ import type { AppListing, InstalledApp, PublishAppInput, PanelApp,
   UpdateListingInput, AppMediaKind, StoredAppMedia, AppReview, FlaggedAppReview,
   AppComment, AppCommentThread, FlaggedAppComment, ReleaseScanFinding,
   AppDataQuery, AppDataQueryResult, AppDataStatus, AppDataExport, UninstallAppResult,
+  AppEmbedItem, AppEmbedHit, AppGraphNode, AppGraphEdge, AppGraphNeighbor,
 } from "../contract/apps.js";
 
 export class AppsClient {
@@ -59,6 +60,37 @@ export class AppsClient {
    *  triggers the lazy per-org migration when the org trails the live release. */
   dataQuery(slug: string, query: AppDataQuery): Promise<AppDataQueryResult> {
     return this.http.post<AppDataQueryResult>(`/api/apps/${encodeURIComponent(slug)}/data/query`, query);
+  }
+
+  // ── embeddings + graph planes (app-runtime spec, 2026-08-20) ──────────────
+  // The app sends values only; the platform computes vectors, scores
+  // similarity, and walks the graph inside hard server-side caps.
+  dataEmbed(slug: string, items: AppEmbedItem[]): Promise<{ upserted: number }> {
+    return this.http.post(`/api/apps/${encodeURIComponent(slug)}/data/embeddings`, { items });
+  }
+
+  dataEmbedRemove(slug: string, kind: string, refs: string[]): Promise<{ removed: number }> {
+    return this.http.post(`/api/apps/${encodeURIComponent(slug)}/data/embeddings/remove`, { kind, refs });
+  }
+
+  dataEmbedSearch(slug: string, q: { text: string; kind?: string; limit?: number }): Promise<{ hits: AppEmbedHit[] }> {
+    return this.http.post(`/api/apps/${encodeURIComponent(slug)}/data/embeddings/search`, q);
+  }
+
+  dataGraphNodes(slug: string, nodes: AppGraphNode[]): Promise<{ upserted: number }> {
+    return this.http.post(`/api/apps/${encodeURIComponent(slug)}/data/graph/nodes`, { nodes });
+  }
+
+  dataGraphEdges(slug: string, edges: AppGraphEdge[]): Promise<{ upserted: number }> {
+    return this.http.post(`/api/apps/${encodeURIComponent(slug)}/data/graph/edges`, { edges });
+  }
+
+  dataGraphRemove(slug: string, q: { nodes?: string[]; edges?: { src: string; dst: string; kind?: string }[] }): Promise<{ nodes: number; edges: number }> {
+    return this.http.post(`/api/apps/${encodeURIComponent(slug)}/data/graph/remove`, q);
+  }
+
+  dataGraphNeighbors(slug: string, q: { id: string; depth?: number; kind?: string; limit?: number }): Promise<{ nodes: AppGraphNeighbor[]; edges: AppGraphEdge[] }> {
+    return this.http.post(`/api/apps/${encodeURIComponent(slug)}/data/graph/neighbors`, q);
   }
 
   /** The full JSON dump of the app's data (data-API row shapes). */
@@ -167,9 +199,9 @@ export class AppsClient {
 
   /** Submit a READY release for marketplace review (draft/rejected → submitted).
    *  Only a platform admin moves it from there; approval promotes it live. */
-  submitRelease(slug: string, releaseId: string): Promise<AppRelease> {
+  submitRelease(slug: string, releaseId: string, note?: string): Promise<AppRelease> {
     return this.http.post<AppRelease>(
-      `/api/apps/${encodeURIComponent(slug)}/releases/${encodeURIComponent(releaseId)}/submit`, {},
+      `/api/apps/${encodeURIComponent(slug)}/releases/${encodeURIComponent(releaseId)}/submit`, note ? { note } : {},
     );
   }
 
@@ -201,11 +233,26 @@ export class AppsClient {
   /** PLATFORM ADMIN: rule on a queued release — begin (claim), approve (promotes
    *  live), or reject (with notes the author reads). A CRITICAL scan finding
    *  blocks approve unless `force` is passed (audited as forced). */
-  reviewRelease(releaseId: string, action: "begin" | "approve" | "reject", notes?: string, force?: boolean): Promise<AppRelease> {
+  reviewRelease(releaseId: string, action: "begin" | "approve" | "reject", notes?: string, force?: boolean, shareRecommendations?: boolean): Promise<AppRelease> {
     return this.http.post<AppRelease>(
       `/api/admin/releases/${encodeURIComponent(releaseId)}/review`,
-      { action, ...(notes !== undefined ? { notes } : {}), ...(force === true ? { force: true } : {}) },
+      { action, ...(notes !== undefined ? { notes } : {}), ...(force === true ? { force: true } : {}), ...(shareRecommendations === true ? { shareRecommendations: true } : {}) },
     );
+  }
+
+  /** PLATFORM ADMIN: store the review agent's recommendations on a queued
+   *  release (shared with the author only via the admin's send-back). */
+  submitReviewRecommendations(releaseId: string, input: { summary: string; items: Array<{ severity: "critical" | "warning" | "suggestion"; area: string; note: string }> }): Promise<{ ok: boolean; items: number }> {
+    return this.http.post<{ ok: boolean; items: number }>(`/api/admin/releases/${encodeURIComponent(releaseId)}/recommendations`, input);
+  }
+
+  /** PLATFORM ADMIN: the file tree of a queued release's submitted source. */
+  releaseSourceTree(releaseId: string): Promise<{ files: Array<{ path: string; size: number }> }> {
+    return this.http.get(`/api/admin/releases/${encodeURIComponent(releaseId)}/source`) as Promise<{ files: Array<{ path: string; size: number }> }>;
+  }
+  /** PLATFORM ADMIN: one text file from the submitted archive (512KB cap). */
+  releaseSourceFile(releaseId: string, path: string): Promise<{ path: string; size: number; content: string }> {
+    return this.http.get(`/api/admin/releases/${encodeURIComponent(releaseId)}/source/file?path=${encodeURIComponent(path)}`) as Promise<{ path: string; size: number; content: string }>;
   }
 
   /** The scan agents' report on one of YOUR builds — what submission found,
@@ -257,8 +304,13 @@ export class AppsClient {
   // ── suspension (platform admin) ────────────────────────────────────────────
 
   /** PLATFORM ADMIN: suspend a listing — hidden from browse, uninstallable. */
-  suspend(slug: string): Promise<{ ok: boolean; suspended: boolean }> {
-    return this.http.post<{ ok: boolean; suspended: boolean }>(`/api/admin/apps/${encodeURIComponent(slug)}/suspend`, {});
+  suspend(slug: string, reason?: string): Promise<{ ok: boolean; suspended: boolean }> {
+    return this.http.post<{ ok: boolean; suspended: boolean }>(`/api/admin/apps/${encodeURIComponent(slug)}/suspend`, reason ? { reason } : {});
+  }
+
+  /** PLATFORM ADMIN: find ANY app (slug/name/org match), whoever publishes it. */
+  adminSearch(q: string): Promise<{ apps: Array<{ id: string; slug: string; name: string; kind: string; suspended: boolean; suspendReason: string | null; listed: boolean; publisherOrg: string | null; installs: number }> }> {
+    return this.http.get(`/api/admin/apps/search?q=${encodeURIComponent(q)}`) as Promise<{ apps: Array<{ id: string; slug: string; name: string; kind: string; suspended: boolean; suspendReason: string | null; listed: boolean; publisherOrg: string | null; installs: number }> }>;
   }
 
   /** PLATFORM ADMIN: lift a suspension. */

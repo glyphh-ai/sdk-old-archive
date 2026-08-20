@@ -107,6 +107,139 @@ export function registerApps(reg: CommandRegistry): void {
     },
   });
 
+  // ── embeddings + graph planes (app-runtime spec, 2026-08-20) ──────────────
+  reg.register({
+    path: "apps data embed",
+    summary: "upsert embedding items into an app's embeddings plane",
+    usage: `apps data embed <slug> --json '[{"ref":"doc-1","content":"…"}]'`,
+    covers: ["apps.dataEmbed"],
+    async run(ctx, args) {
+      const slug = args.positional[0];
+      const json = flagStr(args, "json");
+      if (!slug || !json) throw new Error(`usage: apps data embed <slug> --json '[{"ref":"…","content":"…"}]'`);
+      ctx.printJson(await ctx.client.apps.dataEmbed(slug, JSON.parse(json)));
+    },
+  });
+  reg.register({
+    path: "apps data embed-search",
+    summary: "similarity-search an app's embeddings plane",
+    usage: "apps data embed-search <slug> <text> [--kind <k>] [--limit <n>]",
+    covers: ["apps.dataEmbedSearch"],
+    async run(ctx, args) {
+      const [slug, ...rest] = args.positional;
+      const text = rest.join(" ");
+      if (!slug || !text) throw new Error("usage: apps data embed-search <slug> <text>");
+      const kind = flagStr(args, "kind");
+      const limit = flagStr(args, "limit");
+      ctx.printJson(await ctx.client.apps.dataEmbedSearch(slug, { text, ...(kind ? { kind } : {}), ...(limit ? { limit: Number(limit) } : {}) }));
+    },
+  });
+  reg.register({
+    path: "apps data embed-remove",
+    summary: "remove embedding refs from an app's embeddings plane",
+    usage: "apps data embed-remove <slug> <kind> <ref…>",
+    covers: ["apps.dataEmbedRemove"],
+    async run(ctx, args) {
+      const [slug, kind, ...refs] = args.positional;
+      if (!slug || !kind || !refs.length) throw new Error("usage: apps data embed-remove <slug> <kind> <ref…>");
+      ctx.printJson(await ctx.client.apps.dataEmbedRemove(slug, kind, refs));
+    },
+  });
+  reg.register({
+    path: "apps graph nodes",
+    summary: "upsert nodes into an app's graph plane",
+    usage: `apps graph nodes <slug> --json '[{"id":"a","kind":"person"}]'`,
+    covers: ["apps.dataGraphNodes"],
+    async run(ctx, args) {
+      const slug = args.positional[0];
+      const json = flagStr(args, "json");
+      if (!slug || !json) throw new Error(`usage: apps graph nodes <slug> --json '[{"id":"…"}]'`);
+      ctx.printJson(await ctx.client.apps.dataGraphNodes(slug, JSON.parse(json)));
+    },
+  });
+  reg.register({
+    path: "apps graph edges",
+    summary: "upsert edges into an app's graph plane",
+    usage: `apps graph edges <slug> --json '[{"src":"a","dst":"b"}]'`,
+    covers: ["apps.dataGraphEdges"],
+    async run(ctx, args) {
+      const slug = args.positional[0];
+      const json = flagStr(args, "json");
+      if (!slug || !json) throw new Error(`usage: apps graph edges <slug> --json '[{"src":"…","dst":"…"}]'`);
+      ctx.printJson(await ctx.client.apps.dataGraphEdges(slug, JSON.parse(json)));
+    },
+  });
+  reg.register({
+    path: "apps graph neighbors",
+    summary: "breadth-limited neighborhood of a node in an app's graph",
+    usage: "apps graph neighbors <slug> <id> [--depth <1-3>] [--kind <k>] [--limit <n>]",
+    covers: ["apps.dataGraphNeighbors"],
+    async run(ctx, args) {
+      const [slug, id] = args.positional;
+      if (!slug || !id) throw new Error("usage: apps graph neighbors <slug> <id>");
+      const depth = flagStr(args, "depth"); const kind = flagStr(args, "kind"); const limit = flagStr(args, "limit");
+      ctx.printJson(await ctx.client.apps.dataGraphNeighbors(slug, { id, ...(depth ? { depth: Number(depth) } : {}), ...(kind ? { kind } : {}), ...(limit ? { limit: Number(limit) } : {}) }));
+    },
+  });
+  reg.register({
+    path: "apps graph remove",
+    summary: "remove nodes (edges follow) and/or edges from an app's graph",
+    usage: `apps graph remove <slug> --json '{"nodes":["a"]}'`,
+    covers: ["apps.dataGraphRemove"],
+    async run(ctx, args) {
+      const slug = args.positional[0];
+      const json = flagStr(args, "json");
+      if (!slug || !json) throw new Error(`usage: apps graph remove <slug> --json '{"nodes":["…"]}'`);
+      ctx.printJson(await ctx.client.apps.dataGraphRemove(slug, JSON.parse(json)));
+    },
+  });
+  // ── review desk (platform admin) ──────────────────────────────────────────
+  reg.register({
+    path: "apps admin search",
+    summary: "platform admin: search any app by slug/name/org",
+    usage: "apps admin search <query>",
+    covers: ["apps.adminSearch"],
+    async run(ctx, args) {
+      const q = args.positional.join(" ");
+      if (!q) throw new Error("usage: apps admin search <query>");
+      ctx.printJson(await ctx.client.apps.adminSearch(q));
+    },
+  });
+  reg.register({
+    path: "apps release source",
+    summary: "platform admin: a submitted release's file tree",
+    usage: "apps release source <releaseId>",
+    covers: ["apps.releaseSourceTree"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: apps release source <releaseId>");
+      ctx.printJson(await ctx.client.apps.releaseSourceTree(id));
+    },
+  });
+  reg.register({
+    path: "apps release file",
+    summary: "platform admin: one file from a submitted release",
+    usage: "apps release file <releaseId> <path>",
+    covers: ["apps.releaseSourceFile"],
+    async run(ctx, args) {
+      const [id, path] = args.positional;
+      if (!id || !path) throw new Error("usage: apps release file <releaseId> <path>");
+      ctx.printJson(await ctx.client.apps.releaseSourceFile(id, path));
+    },
+  });
+  reg.register({
+    path: "apps release recommend",
+    summary: "platform admin: store the review agent's recommendations on a release",
+    usage: `apps release recommend <releaseId> --json '{"summary":"…","items":[…]}'`,
+    covers: ["apps.submitReviewRecommendations"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      const json = flagStr(args, "json");
+      if (!id || !json) throw new Error(`usage: apps release recommend <releaseId> --json '{"summary":"…"}'`);
+      ctx.printJson(await ctx.client.apps.submitReviewRecommendations(id, JSON.parse(json)));
+    },
+  });
+
   reg.register({
     path: "apps data export",
     summary: "the full JSON dump of an installed app's data",

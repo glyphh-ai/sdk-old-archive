@@ -162,6 +162,8 @@ export interface HarnessRunBody {
    * litters the user's folder.
    */
   workdir?: string;
+  /** Relative folder inside the cloud workspace to run in. */
+  subdir?: string;
   maxTurns?: number;
   /** The LOOP's memory policy for this turn: whether the turn rotates around the
    *  stator and how. Absent ⇒ the runtime default (recall + write on). This is how

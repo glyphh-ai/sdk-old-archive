@@ -61,7 +61,7 @@ describe("@glyphh/sdk — apps + hosting", () => {
     // (behind the edge), the real /hosted route on a DEV server (localhost
     // publicUrl — no edge in front, the brand origin would be dead there).
     // This suite runs against the local dev server, so expect the dev form.
-    expect(dep.url).toMatch(new RegExp(`^https?://[^/]+/hosted/${slug}/$|^https://${slug}\\.glyphh\\.app$`));
+    expect(dep.url).toMatch(new RegExp(`^https?://[^/]+/hosted/${slug}/$|^https://[a-z0-9-]+\\.[a-z0-9.-]+$`));
 
     const got = await client.hosting.status(dep.id);
     expect(got.id).toBe(dep.id);

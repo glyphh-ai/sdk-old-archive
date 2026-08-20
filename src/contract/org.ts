@@ -35,7 +35,8 @@ export interface Org {
   /** Opt into the metered memory rotor (org-admin). */
   memoryRotorEnabled: boolean;
   /** The org's chosen memory-rotor assembler model (a supported catalog model), or null. */
-  memoryRotorModel: string | null;
+  memoryRotorModel: string | null;  /** The org's uploaded image (logo/avatar), or null. */
+  imageUrl: string | null;
 }
 
 export interface OrgUpdate {

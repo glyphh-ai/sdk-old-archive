@@ -101,6 +101,13 @@ export interface AppSchemaDoc {
 
 /** One structured, parameterized query against the app's OWN schema — the seam
  *  panels/app tools use. No raw SQL: declared tables/columns only, bounded. */
+// ── embeddings + graph planes (app-runtime spec, 2026-08-20) ────────────────
+export interface AppEmbedItem { ref: string; content: string; kind?: string; meta?: Record<string, unknown> }
+export interface AppEmbedHit { kind: string; ref: string; content: string; meta: Record<string, unknown>; score: number }
+export interface AppGraphNode { id: string; kind?: string; props?: Record<string, unknown> }
+export interface AppGraphEdge { src: string; dst: string; kind?: string; props?: Record<string, unknown> }
+export interface AppGraphNeighbor { id: string; kind: string; props: Record<string, unknown>; depth: number }
+
 export interface AppDataQuery {
   op: "select" | "insert" | "update" | "delete";
   table: string;
@@ -254,7 +261,9 @@ export interface AppRelease {
   reviewedAt: string | null;
   /** The declarative schema version this release pins (marketplace M8); null
    *  when the app declares no schema. */
-  schemaVersion: number | null;
+  schemaVersion: number | null;  /** The review agent's recommendations — present only after a platform admin
+   *  sent them back with a rejection (the marketplace review policy). */
+  reviewRecommendations?: { summary: string; items: Array<{ severity: string; area: string; note: string }>; author: string; createdAt: string } | null;
 }
 
 /** One release waiting in the platform-admin review queue. */

@@ -255,6 +255,14 @@ export class HarnessClient {
     this.opts = opts.run ?? {};
   }
 
+  /** Abort a run BY ID — the cross-surface stop. A thread observed through the
+   *  run-stream broker (a refreshed page, another device) holds no run handle;
+   *  the stop button must still reach the executing pod. Best-effort: a run
+   *  that already settled answers 4xx and that is fine. */
+  async stopRun(runId: string): Promise<void> {
+    await this.post(`/runs/${encodeURIComponent(runId)}/stop`, {});
+  }
+
   /** Start a run and drive its frame stream (with durable reconnect) into the
    *  returned handle. Never throws — a start failure rejects the handle's
    *  `whenStarted` and `done`. */

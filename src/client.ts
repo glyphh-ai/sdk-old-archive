@@ -64,6 +64,9 @@ export interface RunTurnOptions {
   messages?: Array<{ role: string; text?: string; content?: string }>;
   mode?: "chat" | "cowork" | "code";
   workdir?: string;
+  /** A RELATIVE folder inside the CLOUD workspace to run the turn in — the
+   *  source chip's cloud folder pick. Ignored on desktop-relay turns. */
+  subdir?: string;
   /** The session's GitHub repo (`owner/repo`) — a cloud workspace's source;
    *  the pod pre-clones it. Ignored on desktop-relay turns. */
   repo?: string;
@@ -436,6 +439,7 @@ export function createClient(opts: ClientOptions): Client {
         ...(ropts.messages ? { messages: ropts.messages } : {}),
         ...(ropts.mode ? { mode: ropts.mode } : {}),
         ...(ropts.workdir ? { workdir: ropts.workdir } : {}),
+        ...(ropts.subdir ? { subdir: ropts.subdir } : {}),
         ...(ropts.repo ? { repo: ropts.repo } : {}),
         ...(ropts.model ? { model: ropts.model } : {}),
         ...(ropts.permission ? { permission: ropts.permission } : {}),
