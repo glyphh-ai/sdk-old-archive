@@ -14,6 +14,7 @@ import type { AppListing, InstalledApp, PublishAppInput, PanelApp,
   AppComment, AppCommentThread, FlaggedAppComment, ReleaseScanFinding,
   AppDataQuery, AppDataQueryResult, AppDataStatus, AppDataExport, UninstallAppResult,
   AppEmbedItem, AppEmbedHit, AppGraphNode, AppGraphEdge, AppGraphNeighbor,
+  AppBundleUploadTicket, AppBundleDownload,
 } from "../contract/apps.js";
 
 export class AppsClient {
@@ -172,9 +173,46 @@ export class AppsClient {
   }
 
   /** The app's built source archive as a zip (the files the newest release was
-   *  built from). Powers the desktop .glyphh export and "keep a copy" flows. */
+   *  built from). Powers the desktop .glyphh export and "keep a copy" flows.
+   *  @deprecated As a transport (app-runtime-spec, "Distribution and execution
+   *  home"): bundle bytes move by presigned URL — prefer `bundleDownloadUrl()`
+   *  and fetch the object directly. Kept as the local/dev fallback (when the
+   *  platform cannot presign, `bundleDownloadUrl` returns `url: null`). */
   async source(slug: string): Promise<ArrayBuffer> {
     return this.http.getBytes(`/api/apps/${encodeURIComponent(slug)}/source`);
+  }
+
+  // ── bundle distribution rails (app-runtime-spec, "Distribution and execution
+  //    home"): bundle bytes move by presigned R2 URL — the control-plane API
+  //    never carries archives. ─────────────────────────────────────────────────
+
+  /** Mint a presigned PUT for a release's `.glyphh` bundle (owner only). The
+   *  250MB cap rejects here on the declared size — bundles are code, never
+   *  data. PUT the bytes to `url` with exactly `contentType`, then call
+   *  `finalizeBundle`. A null `url` means the platform cannot presign
+   *  (local/dev) — fall back to `uploadSource`. */
+  mintBundleUpload(slug: string, releaseId: string, input: { sizeBytes: number }): Promise<AppBundleUploadTicket> {
+    return this.http.post<AppBundleUploadTicket>(
+      `/api/apps/${encodeURIComponent(slug)}/releases/${encodeURIComponent(releaseId)}/bundle/upload-url`, input,
+    );
+  }
+
+  /** Finalize a presign-uploaded bundle: the server verifies the bytes landed,
+   *  re-enforces the cap on the ACTUAL size, checks `sha256` against the stored
+   *  object, records the digest on the release, and builds it. Returns the
+   *  release `ready` (or `failed` with the reason). */
+  finalizeBundle(slug: string, releaseId: string, input: { sha256: string }): Promise<AppRelease> {
+    return this.http.post<AppRelease>(
+      `/api/apps/${encodeURIComponent(slug)}/releases/${encodeURIComponent(releaseId)}/bundle/finalize`, input,
+    );
+  }
+
+  /** Mint a presigned GET for an installed app's bundle (install-gated, like
+   *  every app surface). Defaults to the LIVE release; the publisher's own org
+   *  may name a dev release. Verify the fetched bytes against `sha256`. */
+  bundleDownloadUrl(slug: string, opts: { releaseId?: string } = {}): Promise<AppBundleDownload> {
+    const qs = opts.releaseId ? `?releaseId=${encodeURIComponent(opts.releaseId)}` : "";
+    return this.http.get<AppBundleDownload>(`/api/apps/${encodeURIComponent(slug)}/bundle/download-url${qs}`);
   }
 
   /** Open a release. It stays `pending` until source arrives — see uploadSource. */
@@ -183,7 +221,11 @@ export class AppsClient {
   }
 
   /** Upload the source archive for a release; the build runs and the returned release
-   *  is `ready` (with an image) or `failed` (with the compiler message). */
+   *  is `ready` (with an image) or `failed` (with the compiler message).
+   *  @deprecated As a transport (app-runtime-spec, "Distribution and execution
+   *  home"): bundle bytes move by presigned URL — prefer `mintBundleUpload` +
+   *  a direct PUT + `finalizeBundle`. Kept as the local/dev fallback (when
+   *  `mintBundleUpload` returns `url: null`). */
   uploadSource(slug: string, releaseId: string, archive: Uint8Array): Promise<AppRelease> {
     return this.http.put<AppRelease>(
       `/api/apps/${encodeURIComponent(slug)}/releases/${encodeURIComponent(releaseId)}/source`, archive,

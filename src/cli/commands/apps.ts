@@ -6,6 +6,7 @@
  */
 
 import { readFileSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import type { CommandRegistry } from "../registry.js";
 import { flagStr, flagBool } from "../args.js";
 import type { AppManifest, AppVisibility, PublishAppInput } from "../../contract/apps.js";
@@ -502,7 +503,7 @@ export function registerApps(reg: CommandRegistry): void {
 
   reg.register({
     path: "apps upload-source",
-    summary: "upload a release's source archive and build it",
+    summary: "upload a release's source archive and build it (deprecated transport — prefer `apps bundle upload`)",
     usage: "apps upload-source --slug <s> --release <id> --file <archive.tar.gz>",
     covers: ["apps.uploadSource"],
     async run(ctx, args) {
@@ -512,6 +513,49 @@ export function registerApps(reg: CommandRegistry): void {
       if (!slug || !release || !file) throw new Error("usage: apps upload-source --slug <s> --release <id> --file <path>");
       const archive = new Uint8Array(readFileSync(file));
       ctx.printJson(await ctx.client.apps.uploadSource(slug, release, archive));
+    },
+  });
+
+  // ── bundle distribution rails (app-runtime-spec, "Distribution and execution
+  //    home"): bundle bytes move by presigned URL, content-hashed per release. ──
+  reg.register({
+    path: "apps bundle upload",
+    summary: "upload a release's .glyphh bundle by presigned URL (mint → PUT → finalize; 250MB cap)",
+    usage: "apps bundle upload --slug <s> --release <id> --file <bundle.glyphh>",
+    covers: ["apps.mintBundleUpload", "apps.finalizeBundle"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      const release = flagStr(args, "release");
+      const file = flagStr(args, "file");
+      if (!slug || !release || !file) throw new Error("usage: apps bundle upload --slug <s> --release <id> --file <path>");
+      const bundle = readFileSync(file);
+      const sha256 = createHash("sha256").update(bundle).digest("hex");
+      const ticket = await ctx.client.apps.mintBundleUpload(slug, release, { sizeBytes: bundle.byteLength });
+      if (ticket.url) {
+        const put = await fetch(ticket.url, {
+          method: "PUT",
+          headers: { "content-type": ticket.contentType },
+          body: new Uint8Array(bundle),
+        });
+        if (!put.ok) throw new Error(`bundle PUT failed: ${put.status} ${await put.text().catch(() => "")}`);
+        ctx.printJson(await ctx.client.apps.finalizeBundle(slug, release, { sha256 }));
+        return;
+      }
+      // No object storage to presign against (local/dev) — the buffered fallback.
+      ctx.printJson(await ctx.client.apps.uploadSource(slug, release, new Uint8Array(bundle)));
+    },
+  });
+
+  reg.register({
+    path: "apps bundle download-url",
+    summary: "mint a presigned GET for an installed app's bundle (live release; publishers may name a dev one)",
+    usage: "apps bundle download-url --slug <s> [--release <id>]",
+    covers: ["apps.bundleDownloadUrl"],
+    async run(ctx, args) {
+      const slug = flagStr(args, "slug");
+      if (!slug) throw new Error("usage: apps bundle download-url --slug <s> [--release <id>]");
+      const release = flagStr(args, "release");
+      ctx.printJson(await ctx.client.apps.bundleDownloadUrl(slug, release ? { releaseId: release } : {}));
     },
   });
 

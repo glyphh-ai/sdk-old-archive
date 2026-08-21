@@ -261,9 +261,40 @@ export interface AppRelease {
   reviewedAt: string | null;
   /** The declarative schema version this release pins (marketplace M8); null
    *  when the app declares no schema. */
-  schemaVersion: number | null;  /** The review agent's recommendations — present only after a platform admin
+  schemaVersion: number | null;
+  /** sha-256 (hex) of the release's stored `.glyphh` bundle — recorded when the
+   *  upload finalizes (app-runtime-spec, distribution); null until then. */
+  bundleSha256: string | null;
+  /** Actual stored bundle size in bytes; null until the bundle lands. */
+  bundleSizeBytes: number | null;  /** The review agent's recommendations — present only after a platform admin
    *  sent them back with a rejection (the marketplace review policy). */
   reviewRecommendations?: { summary: string; items: Array<{ severity: string; area: string; note: string }>; author: string; createdAt: string } | null;
+}
+
+/**
+ * A minted presigned bundle upload (app-runtime-spec, "Distribution and
+ * execution home"): PUT the `.glyphh` bytes to `url` with exactly
+ * `contentType`, then call finalize. `url` is null when the platform runs
+ * without object storage (local/dev) — fall back to `uploadSource`.
+ */
+export interface AppBundleUploadTicket {
+  url: string | null;
+  /** The content type the presigned PUT is signed for — send exactly this. */
+  contentType: string;
+  /** The hard bundle cap (250MB) — bundles are code, never data. */
+  maxBytes: number;
+  release: AppRelease;
+}
+
+/** A minted presigned bundle download. `url` is null when the platform runs
+ *  without object storage (local/dev) — fall back to `source()`. */
+export interface AppBundleDownload {
+  url: string | null;
+  releaseId: string;
+  version: string;
+  /** Verify the fetched bytes against this before executing them. */
+  sha256: string | null;
+  sizeBytes: number | null;
 }
 
 /** One release waiting in the platform-admin review queue. */
