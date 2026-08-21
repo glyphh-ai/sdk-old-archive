@@ -82,7 +82,7 @@ export function registerBilling(reg: CommandRegistry): void {
     async run(ctx, args) {
       const credits = Number(args.positional[0]);
       if (!Number.isFinite(credits) || credits <= 0) throw new Error("usage: billing topup <micro-credits>");
-      ctx.print((await ctx.client.billing.topup({ credits })).url);
+      ctx.print((await ctx.client.billing.topup({ credits })).url ?? "(no checkout url)");
     },
   });
 

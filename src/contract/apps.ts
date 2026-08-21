@@ -142,6 +142,22 @@ export interface AppDataStatus {
   updatedAt: string | null;
 }
 
+/** The minted `gy_wk_…` APP WORKER SERVICE TOKEN — the headless credential an
+ *  rrotor pod presents on ONE app's data planes + connector runs for ONE org.
+ *  `token` is returned exactly once (only its hash is stored); minting again
+ *  ROTATES, killing the previous handle immediately. */
+export interface AppWorkerToken {
+  /** The raw `gy_wk_…` handle — hold it like a secret; it is never shown again. */
+  token: string;
+  appSlug: string;
+  orgId: string;
+  /** Non-secret display prefix (`gy_wk_` + a few chars) for identifying the token. */
+  prefix: string;
+  createdAt: string;
+  /** Set when this mint ROTATED an existing token (null on first mint). */
+  rotatedAt: string | null;
+}
+
 /** The pre-deletion JSON dump (data-API row shapes) an uninstall returns. */
 export interface AppDataExport {
   slug: string;

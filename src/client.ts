@@ -124,6 +124,12 @@ export interface ClientOptions {
   onSignedOut?: () => void;
   /** A `gy_ak_` API key for headless use — bypasses the interactive session entirely. */
   apiKey?: string;
+  /** A `gy_wk_` APP WORKER SERVICE TOKEN (from `apps.mintWorkerToken`) — the
+   *  credential an rrotor pod's headless app worker sends as its bearer. Valid
+   *  ONLY on that one app's data planes (`apps.dataQuery`/`dataEmbed*`/
+   *  `dataGraph*`/`dataStatus`/`dataExport`) + `connections.run`; every other
+   *  surface will 401 by design. Ignored when `apiKey` is set. */
+  workerToken?: string;
   /** Request timeout in ms (default 30s). */
   timeoutMs?: number;
   /** Optional observability. No telemetry by default — silent unless you pass a sink. */
@@ -303,10 +309,13 @@ export function createClient(opts: ClientOptions): Client {
     ...(opts.refreshMarginMs !== undefined ? { refreshMarginMs: opts.refreshMarginMs } : {}),
     ...(opts.onSignedOut ? { onSignedOut: opts.onSignedOut } : {}),
   });
-  const token: TokenProvider = opts.apiKey ? staticTokenProvider(opts.apiKey) : sessionTokenProvider(refresh);
+  // Static credentials (an API key, or an app worker token) have no session to
+  // refresh; anything else rides the interactive session.
+  const staticCred = opts.apiKey ?? opts.workerToken;
+  const token: TokenProvider = staticCred ? staticTokenProvider(staticCred) : sessionTokenProvider(refresh);
   // Session clients recover a mid-call 401 with one forced refresh (a dead
-  // refresh signs out); a static API key has nothing to refresh.
-  const authed = new AuthedHttp(http, token, opts.apiKey ? undefined : () => refresh.onUnauthorized());
+  // refresh signs out); a static credential has nothing to refresh.
+  const authed = new AuthedHttp(http, token, staticCred ? undefined : () => refresh.onUnauthorized());
   // `authed` is built first: the device grant's APPROVE leg is performed BY the
   // signed-in user, so AuthClient needs an authenticated transport for it.
   const auth = new AuthClient(http, refresh, authed);

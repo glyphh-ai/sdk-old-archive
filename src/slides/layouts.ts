@@ -10,7 +10,7 @@
  * shell's `.frag` mechanism (elements marked `frag` appear on advance).
  */
 
-import type { FieldSchema, LayoutFn, LayoutSpec, RenderCtx, SlideSpec } from "./types.js";
+import type { FieldSchema, LayoutFn, LayoutSpec, RenderCtx } from "./types.js";
 import { esc, s, list, rows, hasMedia } from "./util.js";
 import { renderSlideChart, type SlideChartType } from "./chart-svg.js";
 

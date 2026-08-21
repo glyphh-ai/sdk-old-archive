@@ -12,7 +12,7 @@ import type { AppListing, InstalledApp, PublishAppInput, PanelApp,
   AppMarketplaceDetail, AppReviewQueueRelease, AppReport, UpdateAppPricingInput,
   UpdateListingInput, AppMediaKind, StoredAppMedia, AppReview, FlaggedAppReview,
   AppComment, AppCommentThread, FlaggedAppComment, ReleaseScanFinding,
-  AppDataQuery, AppDataQueryResult, AppDataStatus, AppDataExport, UninstallAppResult,
+  AppDataQuery, AppDataQueryResult, AppDataStatus, AppDataExport, UninstallAppResult, AppWorkerToken,
   AppEmbedItem, AppEmbedHit, AppGraphNode, AppGraphEdge, AppGraphNeighbor,
   AppBundleUploadTicket, AppBundleDownload,
 } from "../contract/apps.js";
@@ -92,6 +92,24 @@ export class AppsClient {
 
   dataGraphNeighbors(slug: string, q: { id: string; depth?: number; kind?: string; limit?: number }): Promise<{ nodes: AppGraphNeighbor[]; edges: AppGraphEdge[] }> {
     return this.http.post(`/api/apps/${encodeURIComponent(slug)}/data/graph/neighbors`, q);
+  }
+
+  // ── the app WORKER SERVICE TOKEN (app-runtime-spec, "The data planes") ─────
+
+  /** Obtain (or ROTATE — same call, one live handle per org+app) the `gy_wk_…`
+   *  worker token the app's headless rrotor worker presents on this app's data
+   *  planes and connector runs. Install-gated; the raw token is returned once.
+   *  A pod calls this with the control-plane credential it already holds (its
+   *  `gy_rk_` runtime token, an API key, or a session). To USE the minted token,
+   *  construct a client with `createClient({ url, workerToken })`. */
+  mintWorkerToken(slug: string): Promise<AppWorkerToken> {
+    return this.http.post<AppWorkerToken>(`/api/apps/${encodeURIComponent(slug)}/worker-token`, {});
+  }
+
+  /** Revoke the org's worker token for this app. Idempotent — and note that
+   *  uninstall/suspension already dead-end the token without this call. */
+  revokeWorkerToken(slug: string): Promise<void> {
+    return this.http.del<void>(`/api/apps/${encodeURIComponent(slug)}/worker-token`);
   }
 
   /** The full JSON dump of the app's data (data-API row shapes). */
