@@ -84,4 +84,29 @@ describe("@glyphh/sdk — apps + hosting", () => {
       }),
     ).rejects.toMatchObject({ code: "E_VALIDATION" });
   });
+
+  it("execution home: defaults local, patch round-trips, junk refused", async () => {
+    // The one-execution-home rule (app-runtime-spec): the app's worker +
+    // schedules run in exactly one place — the desktop reads this field to
+    // decide whether to arm at all.
+    const client = await signIn();
+    const slug = `home-${randomUUID().slice(0, 8)}`;
+    await client.apps.createEntry({
+      kind: "glyphh", slug, name: "Homed",
+      config: { worker: "worker.js", tools: [] },
+    });
+
+    const row = async () => (await client.apps.mine()).find((a) => a.slug === slug)!;
+    expect((await row()).executionHome).toBe("local");
+
+    await client.apps.updateEntry(slug, { executionHome: "regional" });
+    expect((await row()).executionHome).toBe("regional");
+    await client.apps.updateEntry(slug, { executionHome: "local" });
+    expect((await row()).executionHome).toBe("local");
+
+    // Anything but local/regional fails validation server-side.
+    await expect(
+      client.apps.updateEntry(slug, { executionHome: "cloud" as unknown as "local" }),
+    ).rejects.toMatchObject({ code: "E_VALIDATION" });
+  });
 });

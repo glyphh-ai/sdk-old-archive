@@ -26,6 +26,12 @@ export type AppLauncherConfig = Record<string, unknown>;
 export type AppSize = "small" | "medium" | "large";
 export type AppAccess = "public" | "members";
 
+/** WHERE an app's worker + schedules run (app-runtime-spec, "Distribution and
+ *  execution home"): exactly ONE execution home per (org, app) — `local` is a
+ *  desktop rrotor, `regional` the org's regional rrotor pod. Panels render
+ *  anywhere; only the headless side has a home. Defaults to `local` today. */
+export type AppExecutionHome = "local" | "regional";
+
 /** The v3 manifest a HOSTED app is published with. Zero infrastructure choices:
  *  Postgres + pgvector are provisioned for every app, so nothing declares them. */
 export interface AppManifest {
@@ -209,6 +215,9 @@ export interface OrgApp {
   /** The newest live release's version, or null. The desktop compares it to the
    *  installed version to offer an auto-update. */
   latestVersion: string | null;
+  /** The ONE place this app's worker + schedules run. A desktop must NOT arm
+   *  the app's cron or start its worker when this reads `regional`. */
+  executionHome: AppExecutionHome;
   /** Credits if the app ran 24/7 for 30 days at its size — the ceiling, not a bill. */
   worstCaseMonthlyCredits: number;
   /** The marketplace listing record (media, rating, listed state). */
@@ -250,6 +259,9 @@ export interface UpdateAppEntryInput {
   kind?: "web" | "native";
   /** Who may reach it once deployed — enforced at the edge on every request. */
   access?: AppAccess;
+  /** Move the app's ONE execution home (worker + schedules) between the desktop
+   *  (`local`) and the org's regional pod (`regional`). Panels are unaffected. */
+  executionHome?: AppExecutionHome;
 }
 
 /** The marketplace review pipeline — every release starts `draft`; the owner

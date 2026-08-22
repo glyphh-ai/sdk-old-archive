@@ -211,6 +211,7 @@ export type {
   AppEntitlementStatus,
   AppKind,
   AppLauncherConfig,
+  AppExecutionHome,
   AppVariant,
   OrgApp,
   PanelApp,
