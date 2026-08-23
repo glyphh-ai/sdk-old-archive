@@ -24,7 +24,7 @@ export type AppKind = "web" | "native" | "glyphh" | "workpanel";
  *  mcpApproved + guardrails}. */
 export type AppLauncherConfig = Record<string, unknown>;
 export type AppSize = "small" | "medium" | "large";
-export type AppAccess = "public" | "members";
+export type AppAccess = "public" | "members" | "org-idp";
 
 /** WHERE an app's worker + schedules run (app-runtime-spec, "Distribution and
  *  execution home"): exactly ONE execution home per (org, app) — `local` is a
@@ -45,6 +45,8 @@ export interface AppManifest {
   size?: AppSize;
   /** Who may reach the running app; defaults to members. */
   access?: AppAccess;
+  /** org-idp binding: the WorkOS Organization the app authenticates against (null clears). */
+  workosOrgId?: string | null;
   /** Connections the app calls, each with the identity it acts as. */
   connections?: { slug: string; actAs?: "org" | "invoker" }[];
   /** Secret NAMES only — values are set out of band, injected as env at deploy. */
