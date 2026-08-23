@@ -261,6 +261,8 @@ export interface UpdateAppEntryInput {
   kind?: "web" | "native";
   /** Who may reach it once deployed — enforced at the edge on every request. */
   access?: AppAccess;
+  /** org-idp binding: the WorkOS Organization (null clears). */
+  workosOrgId?: string | null;
   /** Move the app's ONE execution home (worker + schedules) between the desktop
    *  (`local`) and the org's regional pod (`regional`). Panels are unaffected. */
   executionHome?: AppExecutionHome;
