@@ -199,6 +199,8 @@ export interface OrgApp {
   version: string;
   description: string | null;
   access: string;
+  /** org-idp binding: the WorkOS Organization the app authenticates against, or null. */
+  workosOrgId: string | null;
   size: string;
   /** web → its url; a BUILT app with a live deployment → its brand origin
    *  (https://&lt;slug&gt;.glyphh.app); native, or not deployed → null. */
