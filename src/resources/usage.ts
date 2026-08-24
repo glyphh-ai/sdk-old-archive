@@ -1,15 +1,14 @@
 /**
  * @license Proprietary — © Glyphh. All rights reserved.
  *
- * resources/usage.ts — usage rollups (read). One ledger of turns + tokens, so
- * mine ⊆ org by construction. (Ingest is the runtime's service-gated endpoint,
- * not a client call.)
+ * resources/usage.ts — usage rollups (read). One ledger, so mine ⊆ workspace ⊆ org
+ * by construction. (Ingest is the runtime's service-gated endpoint, not a client call.)
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
 import type {
   UsageDailyQuery, UsageDay, UsageSummary, UsageByModelRow, UsageByModelQuery,
-  TurnAllocation, UsageSummaryQuery, UsageSeriesQuery, UsageSeriesPoint,
+  CreditAllocation, UsageSummaryQuery, UsageSeriesQuery, UsageSeriesPoint,
 } from "../contract/usage.js";
 
 export class UsageClient {
@@ -21,17 +20,18 @@ export class UsageClient {
   }
 
   /**
-   * The caller's TURN ALLOWANCE — the plan's monthly quota, what's used this
-   * window, and what remains. This is what a member's dashboard shows.
+   * The caller's SPEND ALLOWANCE — the workspace credit cap their org admin set, what
+   * they've spent this window, and the interval it resets on. This is what a non-admin
+   * member's dashboard shows instead of the org plan.
    */
-  allocation(): Promise<TurnAllocation> {
-    return this.http.get<TurnAllocation>("/api/me/allocation");
+  allocation(): Promise<CreditAllocation> {
+    return this.http.get<CreditAllocation>("/api/me/allocation");
   }
 
   /**
    * WINDOWED totals over [from, to) — defaults to the current calendar month. Role-scoped
    * server-side: an org_admin gets the whole org, every other member gets ONLY their own
-   * usage, so a member's "this month" is theirs alone.
+   * spend, so a member's "this month" is theirs alone.
    */
   summary(query: UsageSummaryQuery = {}): Promise<UsageSummary> {
     const qs = new URLSearchParams();
@@ -54,8 +54,8 @@ export class UsageClient {
 
   /**
    * Day × group series for the stacked usage chart — every (day, model|source|user)
-   * pair with its requests and tokens. Role-scoped like `daily`; `groupBy: "user"`
-   * is org_admin only.
+   * pair with its charged micro-credits, requests, and tokens. Role-scoped like
+   * `daily`; `groupBy: "user"` is org_admin only.
    */
   series(query: UsageSeriesQuery): Promise<{ points: UsageSeriesPoint[] }> {
     const qs = new URLSearchParams({ from: query.from, to: query.to });
@@ -67,6 +67,11 @@ export class UsageClient {
     return this.http.get<{ points: UsageSeriesPoint[] }>(`/api/usage/series?${qs.toString()}`);
   }
 
+  /** A workspace rollup (must be in the caller's org). */
+  workspace(id: string): Promise<UsageSummary> {
+    return this.http.get<UsageSummary>(`/api/usage/workspace/${encodeURIComponent(id)}`);
+  }
+
   /** The org rollup (org_admin). */
   org(): Promise<UsageSummary> {
     return this.http.get<UsageSummary>("/api/usage/org");
@@ -74,8 +79,8 @@ export class UsageClient {
 
   /**
    * Usage attributed BY MODEL. Org-scoped: an org_admin sees the whole org (and may
-   * pass `userId` to drill into one member); a member sees only their own.
-   * `from`/`to` are YYYY-MM-DD (all time when omitted).
+   * pass `userId` to drill into one member); a member sees only their own. Amounts
+   * are micro-credits. `from`/`to` are YYYY-MM-DD (all time when omitted).
    */
   byModel(query: UsageByModelQuery = {}): Promise<UsageByModelRow[]> {
     const qs = new URLSearchParams();

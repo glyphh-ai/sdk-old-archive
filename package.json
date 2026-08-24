@@ -1,10 +1,13 @@
 {
   "name": "@glyphh/sdk",
   "version": "1.0.1-beta.1",
-  "description": "The Glyphh client SDK \u2014 one library every client (mobile, desktop, CLI, web, platform) uses to authenticate and talk to the control plane + rotor runtime.",
+  "description": "The Glyphh client SDK — one library every client (mobile, desktop, CLI, web, platform) uses to authenticate and talk to the control plane + rotor runtime.",
   "license": "LicenseRef-Proprietary",
   "type": "module",
   "sideEffects": false,
+  "bin": {
+    "glyphh-sdk": "dist/cli.js"
+  },
   "publishConfig": {
     "access": "public"
   },
@@ -25,10 +28,26 @@
       "import": "./dist/storage/file.js",
       "require": "./dist/storage/file.cjs"
     },
+    "./runtime": {
+      "types": "./dist/runtime.d.ts",
+      "import": "./dist/runtime.js",
+      "require": "./dist/runtime.cjs"
+    },
+    "./models": {
+      "types": "./dist/models.d.ts",
+      "import": "./dist/models.js",
+      "require": "./dist/models.cjs"
+    },
     "./machine": {
       "types": "./dist/machine.d.ts",
       "import": "./dist/machine.js",
       "require": "./dist/machine.cjs"
+    },
+    "./slides": {
+      "types": "./dist/slides.d.ts",
+      "react-native": "./dist/slides.js",
+      "import": "./dist/slides.js",
+      "require": "./dist/slides.cjs"
     }
   },
   "main": "./dist/index.cjs",
@@ -46,6 +65,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
+    "repl": "tsx scripts/repl.ts",
+    "cli": "tsx scripts/cli.ts",
     "verify": "npm run typecheck && npm run lint && npm run test"
   },
   "devDependencies": {

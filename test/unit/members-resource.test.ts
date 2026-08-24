@@ -2,7 +2,7 @@
  * @license Proprietary — © Glyphh. All rights reserved.
  *
  * MembersClient path mapping — the member-edit writes hit the exact method + path the
- * server mounts: profile on the base PATCH, role on the /role subpath, and role
+ * server mounts: profile on the base PATCH, role on the /role subpath, and workspace
  * assignment on /org-role (null clears to the base). Deterministic recording stub.
  */
 
@@ -36,5 +36,15 @@ describe("MembersClient writes", () => {
     expect(calls).toEqual([{ method: "PATCH", path: "/api/org/members/u1/role", body: { role: "admin" } }]);
   });
 
+  it("assignWorkspace PATCHes /org-role with the workspace id", async () => {
+    const { calls, client } = recorder();
+    await client.assignWorkspace("u1", "ws1");
+    expect(calls).toEqual([{ method: "PATCH", path: "/api/org/members/u1/org-role", body: { roleId: "ws1" } }]);
+  });
 
+  it("assignWorkspace(null) clears to the base workspace", async () => {
+    const { calls, client } = recorder();
+    await client.assignWorkspace("u1", null);
+    expect(calls).toEqual([{ method: "PATCH", path: "/api/org/members/u1/org-role", body: { roleId: null } }]);
+  });
 });

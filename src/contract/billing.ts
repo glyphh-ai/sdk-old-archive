@@ -1,11 +1,9 @@
 /**
  * @license Proprietary — © Glyphh. All rights reserved.
  *
- * contract/billing.ts — plans and the org's subscription state. A plan is a flat
- * monthly price for a memory-quality tier: the generation model (the Anthropic
- * Fable → Haiku ladder), the embeddings model (a non-Anthropic vendor), a turn
- * quota per month, and a per-turn output-token cap. Counters enforce the quota;
- * they never bill — there are no credits anywhere. Money is USD cents.
+ * contract/billing.ts — plans, the org's subscription state, and its prepaid credit
+ * balance. Credits are exposed as whole-credit numbers (the server keeps micro-credit
+ * precision internally). Money is USD cents.
  */
 
 export interface Plan {
@@ -15,18 +13,11 @@ export interface Plan {
   /** The TRUE active Stripe price amount (cents) for this tier, when resolvable —
    *  falls back to monthlyUsdCents. Prefer this for display. */
   activeUsdCents?: number;
-  /** Provider-qualified generation model id ('vendor::model'). */
-  model: string;
-  /** Provider-qualified embeddings model id ('vendor::model'). */
-  embeddingsModel: string;
-  turnsPerMonth: number;
-  outputTokensPerTurn: number;
+  monthlyCredits: number;
   maxSeats: number;
   sso: boolean;
-  /** May the org override the provider key (BYOK, org_settings) — enterprise only. */
-  byok: boolean;
   /** True for the caller org's own PROVISIONED per-org (enterprise) plan — a real invoiced
-   *  price, shown as the current plan rather than the "contact sales" card. */
+   *  price + allowance, shown as the current plan rather than the "contact sales" card. */
   bespoke?: boolean;
 }
 
@@ -35,14 +26,49 @@ export interface Subscription {
   billingStatus: string; // trial | active | past_due | canceled | none
   seats: number;
   maxSeats: number;
-  /** The org's current RUNTIME IMAGE + its recurring price (USD cents/mo). Null
-   *  when the bound key resolves to no catalog row in the org's region. */
-  runtimeImage?: { key: string; region: string; monthlyUsdCents: number } | null;
+  /** The org's current RUNTIME IMAGE (§7b) + its recurring price in whole credits/mo —
+   *  the data hook recurring image billing consumes. Null when the bound key resolves
+   *  to no catalog row in the org's region. */
+  runtimeImage?: { key: string; region: string; monthlyCredits: number } | null;
+}
+
+export interface Balance {
+  /** Whole credits remaining across non-expired lots. */
+  credits: number;
 }
 
 /** A Stripe-hosted URL (Checkout or Customer Portal). */
 export interface HostedUrl {
   url: string;
+}
+
+/**
+ * The org's credit balance broken down by lot kind, in MICRO-credits (1 credit = 1e6)
+ * so the values compare directly against the auto-top-up threshold.
+ *   balance   — every non-expired lot (grants + purchases + admin)
+ *   allowance — the plan's per-seat monthly allowance
+ *   grants    — the expiring subscription/free grant lots
+ *   purchases — the non-expiring top-up lots
+ */
+export interface CreditsBreakdown {
+  balance: number;
+  allowance: number;
+  grants: number;
+  purchases: number;
+}
+
+/** The org's auto-top-up rule (micro-credits). */
+export interface AutotopupConfig {
+  enabled: boolean;
+  thresholdCredits: number; // fire an auto-top-up at/below this balance (micro-credits)
+  topupCredits: number; // micro-credits to purchase per fire
+}
+
+/** The input to configure auto-top-up. */
+export interface AutotopupInput {
+  enabled: boolean;
+  thresholdCredits: number;
+  topupCredits: number;
 }
 
 /** The outcome of a change-plan call. */
@@ -67,6 +93,19 @@ export interface Invoice {
   created: number;
   periodStart: number | null;
   periodEnd: number | null;
+}
+
+/** The input to buy a credit top-up (micro-credits). `embedded` asks for an
+ *  Embedded Checkout client secret instead of a hosted url. */
+export interface TopupInput {
+  credits: number;
+  embedded?: boolean;
+}
+
+/** A started top-up: hosted url OR embedded client secret, per the request. */
+export interface TopupCheckout {
+  url?: string;
+  clientSecret?: string;
 }
 
 /** Client-side billing config — the PUBLIC Stripe key (pk_*), or null when
