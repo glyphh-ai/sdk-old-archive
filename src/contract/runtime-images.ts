@@ -3,9 +3,8 @@
  *
  * contract/runtime-images.ts — the runtime IMAGE catalog (§7b): the SKUs an org's
  * runtime is provisioned FROM. `free` maps to the region's SHARED runtime; the
- * dedicated sizes map to per-org instances. Rows are per region; credits are WHOLE
- * credits per month (the server keeps micro-credit precision); the per-second
- * metering rate stays in micro-credits (sub-credit by nature).
+ * dedicated sizes map to per-org instances. Rows are per region; prices are flat
+ * USD cents per month.
  */
 
 export type RuntimeImageType = "shared" | "dedicated";
@@ -18,11 +17,7 @@ export interface RuntimeImage {
   type: RuntimeImageType;
   ramMb: number;
   diskGb: number;
-  /** Recurring rental in WHOLE credits per month. */
-  monthlyCredits: number;
-  /** Metering rate in MICRO-credits per second of runtime. */
-  costPerSecondMicro: number;
-  /** Cost basis in USD cents/month (admin margin input). */
+  /** Recurring rental in USD cents per month. */
   monthlyUsdCents: number;
   active: boolean;
   sort: number;
@@ -46,7 +41,7 @@ export interface OrgRuntimeImage {
   provisionedImageId: string | null;
 }
 
-/** Super-admin create input. `monthlyCredits` is WHOLE credits/month. */
+/** Super-admin create input. */
 export interface AdminRuntimeImageCreate {
   key: string;
   region: string;
@@ -54,8 +49,6 @@ export interface AdminRuntimeImageCreate {
   type: RuntimeImageType;
   ramMb: number;
   diskGb: number;
-  monthlyCredits: number;
-  costPerSecondMicro: number;
   monthlyUsdCents?: number;
   active?: boolean;
   sort?: number;
@@ -66,8 +59,6 @@ export interface AdminRuntimeImageUpdate {
   displayName?: string;
   ramMb?: number;
   diskGb?: number;
-  monthlyCredits?: number;
-  costPerSecondMicro?: number;
   monthlyUsdCents?: number;
   active?: boolean;
   sort?: number;

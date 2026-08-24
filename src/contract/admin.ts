@@ -4,9 +4,8 @@
  * contract/admin.ts — the super_admin platform-console wire shapes. These mirror
  * the server's admin endpoints, which back the admin pages that read snake_case
  * fields directly, so (unlike the camelCase billing/catalog contracts) the admin
- * shapes are snake_case — the SDK is a faithful typed passthrough. Credits are
- * micro-credits here (the pages divide by 1e6); the daily token buckets are
- * camelCase to match the chart series the Usage page consumes.
+ * shapes are snake_case — the SDK is a faithful typed passthrough. The daily
+ * token buckets are camelCase to match the chart series the Usage page consumes.
  */
 
 export interface AdminStats {
@@ -37,7 +36,6 @@ export interface AdminOrgMember {
 export interface AdminOrgDetail extends AdminOrgListItem {
   max_seats: number;
   created_at: string;
-  credits: { balance: number; used: number }; // micro-credits (balance + total consumed)
   members: AdminOrgMember[];
 }
 export interface AdminOrgPatch {
@@ -84,7 +82,10 @@ export interface AdminPlan {
   tier: string;
   display_name: string;
   monthly_usd_cents: number; // per-seat price
-  included_credits: number; // micro-credits per seat per month
+  model: string;
+  embeddings_model: string;
+  turns_per_month: number;
+  output_tokens_per_turn: number;
   max_seats: number;
   active: boolean;
   /** NULL for a global catalog plan; the org id for a bespoke per-org plan. */
@@ -97,20 +98,14 @@ export interface AdminPlan {
 export interface AdminPlanUpdate {
   display_name?: string;
   monthly_usd_cents?: number;
-  included_credits?: number;
+  model?: string;
+  embeddings_model?: string;
+  turns_per_month?: number;
+  output_tokens_per_turn?: number;
   max_seats?: number;
   active?: boolean;
   /** Gateway requests/minute; null clears the limit (unlimited). */
   rate_limit_rpm?: number | null;
-}
-/** One PLATFORM provider key row — write-only: label + last-4 hint, never the secret. */
-export interface AdminProviderKey {
-  id: string;
-  label: string;
-  /** Last 4 characters of the key, for identification. */
-  hint: string;
-  active: boolean;
-  createdAt: string;
 }
 
 export interface AdminPlanCreate {
@@ -118,7 +113,10 @@ export interface AdminPlanCreate {
   tier: string;
   display_name: string;
   monthly_usd_cents: number;
-  included_credits: number;
+  model: string;
+  embeddings_model: string;
+  turns_per_month: number;
+  output_tokens_per_turn: number;
   max_seats: number;
   rate_limit_rpm?: number | null;
   active?: boolean;
@@ -127,13 +125,13 @@ export interface AdminPlanCreate {
 /**
  * A per-org bespoke (enterprise) plan. Unlike the snake_case global-plan shapes above,
  * the org-plan write payloads are camelCase — they mirror the server's org-plan
- * endpoints (which take camelCase directly). `monthlyCredits` is the per-seat
- * micro-credit allowance; `monthlyUsdCents` is the per-seat price.
+ * endpoints (which take camelCase directly). `monthlyUsdCents` is the per-seat price.
  */
 export interface AdminOrgPlanInput {
   maxSeats: number;
   monthlyUsdCents: number;
-  monthlyCredits: number;
+  turnsPerMonth: number;
+  outputTokensPerTurn: number;
   displayName: string;
   /** The specific Stripe price the org is billed on (enterprise is provisioned/invoiced). */
   stripePriceId?: string;
@@ -142,45 +140,11 @@ export interface AdminOrgPlanInput {
 export interface AdminOrgPlanPatch {
   maxSeats?: number;
   monthlyUsdCents?: number;
-  monthlyCredits?: number;
+  turnsPerMonth?: number;
+  outputTokensPerTurn?: number;
   displayName?: string;
   stripePriceId?: string;
 }
-export interface AdminModel {
-  provider: string;
-  model: string;
-  display_name: string;
-  /** Short @-mention name; null = not mentionable. */
-  alias: string | null;
-  /** chat | image | video | speech | transcription. */
-  modality: string;
-  /** Unit the rates are quoted in: mtok | image | second | mchar | minute. */
-  rate_unit: string;
-  input_credits_per_mtok: number | null; // micro-credits/MTok; null = not per-token priced
-  output_credits_per_mtok: number | null;
-  /** Total tokens the model holds; what the gateway fits requests to. Null = unrecorded. */
-  context_window: number | null;
-  /** Largest single completion. Null = unrecorded. */
-  max_output_tokens: number | null;
-  active: boolean;
-  /** Live per-org default: orgs with no explicit org_models override follow this. */
-  default_on: boolean;
-}
-export interface AdminModelUpdate {
-  display_name?: string;
-  /** Short @-mention name; null clears it, omit keeps it. */
-  alias?: string | null;
-  active?: boolean;
-  /** Live per-org default: orgs with no explicit org_models override follow this. */
-  default_on?: boolean;
-  modality?: string;
-  rate_unit?: string;
-  input_credits_per_mtok?: number | null;
-  output_credits_per_mtok?: number | null;
-  context_window?: number | null;
-  max_output_tokens?: number | null;
-}
-
 /**
  * One entry of a plan's Stripe price history (super_admin). Unlike the other admin
  * shapes this is camelCase — it mirrors the billing wire contract, where the price
@@ -222,12 +186,10 @@ export interface AdminUsageByUser {
   email: string;
   name: string;
   requests: number;
-  credits: number; // micro-credits
   tokens: number;
 }
 export interface AdminUsageDay {
   day: string; // YYYY-MM-DD
-  credits: number; // micro-credits
   requests: number;
   inputTokens: number;
   outputTokens: number;
@@ -261,7 +223,6 @@ export interface AdminUsageByRuntime {
   orgs: number;
   users: number;
   requests: number;
-  credits: number; // micro-credits
   inputTokens: number;
   outputTokens: number;
 }

@@ -24,20 +24,7 @@ function recorder() {
   return { calls, client: new AdminClient(stub as unknown as AuthedHttp) };
 }
 
-describe("AdminClient catalog mutations", () => {
-  it("createModel POSTs the catalog wire shape to /api/admin/models", async () => {
-    const { calls, client } = recorder();
-    const input = { id: "acme::m1", providerSlug: "acme", name: "M1", kind: "proxied" as const, inputCreditsPerMTok: 3, outputCreditsPerMTok: 6 };
-    await client.createModel(input);
-    expect(calls).toEqual([{ method: "POST", path: "/api/admin/models", body: input }]);
-  });
-
-  it("deleteModel DELETEs the (provider, model) route, URL-encoded", async () => {
-    const { calls, client } = recorder();
-    await client.deleteModel("acme", "m/1");
-    expect(calls).toEqual([{ method: "DELETE", path: "/api/admin/models/acme/m%2F1" }]);
-  });
-
+describe("AdminClient console mutations", () => {
   it("createOrg POSTs { name, tier } to /api/admin/orgs", async () => {
     const { calls, client } = recorder();
     await client.createOrg({ name: "Globex", tier: "pro" });
@@ -48,7 +35,7 @@ describe("AdminClient catalog mutations", () => {
 describe("AdminClient per-org bespoke plans", () => {
   it("setOrgPlan POSTs the camelCase input to /api/admin/orgs/:orgId/plan", async () => {
     const { calls, client } = recorder();
-    const input = { maxSeats: 50, monthlyUsdCents: 9900, monthlyCredits: 1_000_000, displayName: "Globex Enterprise" };
+    const input = { maxSeats: 50, monthlyUsdCents: 9900, turnsPerMonth: 5000, outputTokensPerTurn: 8000, displayName: "Globex Enterprise" };
     await client.setOrgPlan("org-9", input);
     expect(calls).toEqual([{ method: "POST", path: "/api/admin/orgs/org-9/plan", body: input }]);
   });

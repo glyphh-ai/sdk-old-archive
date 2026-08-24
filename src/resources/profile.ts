@@ -8,7 +8,6 @@
 
 import type { AuthedHttp } from "../core/authed-http.js";
 import type { SelfProfile, SelfProfileUpdate } from "../contract/user.js";
-import { type VoiceSettings, DEFAULT_VOICE_SETTINGS } from "../contract/catalog.js";
 
 export class ProfileClient {
   constructor(private readonly http: AuthedHttp) {}
@@ -32,20 +31,5 @@ export class ProfileClient {
 
   update(patch: SelfProfileUpdate): Promise<SelfProfile> {
     return this.http.patch<SelfProfile>("/api/user/me", patch);
-  }
-
-  /** The caller's voice settings (STT input, TTS output + voice, mode). Reads the
-   *  `voice` pref key, filled with defaults so callers never see undefined. */
-  async voiceSettings(): Promise<VoiceSettings> {
-    const p = await this.prefs();
-    const v = (p.voice ?? {}) as Partial<VoiceSettings>;
-    return { ...DEFAULT_VOICE_SETTINGS, ...v };
-  }
-
-  /** Merge-update the caller's voice settings; returns the resolved settings. */
-  async setVoiceSettings(patch: Partial<VoiceSettings>): Promise<VoiceSettings> {
-    const next = { ...(await this.voiceSettings()), ...patch };
-    await this.setPrefs({ voice: next });
-    return next;
   }
 }
