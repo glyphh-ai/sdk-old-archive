@@ -16,6 +16,9 @@ export interface ApiKey {
   createdAt: string;
   expiresAt: string | null;
   lastUsedAt: string | null;
+  /** Attributed spend in micro-credits (summed from the org's usage ledger);
+   *  0 until the key records usage. Absent on older servers. */
+  creditsMicro?: number;
 }
 
 /** `apiKeys.create` returns the key metadata + the raw token (shown once). */
