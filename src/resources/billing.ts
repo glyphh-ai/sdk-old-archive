@@ -73,6 +73,11 @@ export class BillingClient {
     return this.http.get<Invoice[]>("/api/billing/invoices");
   }
 
+  /** The org's card on file (brand + last4), or null when none is saved. */
+  paymentMethod(): Promise<{ brand: string; last4: string; expMonth: number; expYear: number } | null> {
+    return this.http.get<{ card: { brand: string; last4: string; expMonth: number; expYear: number } | null }>("/api/billing/payment-method").then((r) => r.card);
+  }
+
   /** Open the Stripe Customer Portal (self-serve plan/payment management). */
   portal(): Promise<HostedUrl> {
     return this.http.post<HostedUrl>("/api/billing/portal");
