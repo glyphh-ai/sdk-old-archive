@@ -1,0 +1,87 @@
+/**
+ * @license Proprietary — © Glyphh. All rights reserved.
+ *
+ * Apps ↔ live control plane. Publish a static-bundle app, see it in browse, install +
+ * uninstall it, then deploy it to a `<slug>.glyphh.app` origin (LocalHostingDriver in
+ * dev) and tear it down. Needs the server on :3001.
+ */
+
+import { describe, it, expect } from "vitest";
+import { randomUUID } from "node:crypto";
+import { createClient, type Client } from "../src/index.js";
+
+const url = process.env.GLYPHH_SERVER_URL ?? "http://127.0.0.1:3001";
+
+async function signIn(): Promise<Client> {
+  const client = createClient({ url });
+  const start = await client.auth.startEmailLink(`apps-${randomUUID()}@example.com`);
+  await client.auth.verifyEmailLink(start.devToken!);
+  return client;
+}
+
+describe("@glyphh/sdk — apps + hosting", () => {
+  it("publish → browse → install → uninstall", async () => {
+    const client = await signIn();
+    const slug = `demo-${randomUUID().slice(0, 8)}`;
+
+    const listing = await client.apps.publish({
+      manifest: { slug, name: "Demo", version: "1.0.0", description: "a demo app" },
+      visibility: "org",
+    });
+    expect(listing.slug).toBe(slug);
+    expect(listing.version).toBe("1.0.0");
+
+    const browse = await client.apps.browse();
+    expect(browse.some((a) => a.slug === slug)).toBe(true);
+
+    const installed = await client.apps.install(slug);
+    expect(installed.slug).toBe(slug);
+    expect((await client.apps.installed()).some((a) => a.slug === slug)).toBe(true);
+
+    await client.apps.uninstall(slug);
+    expect((await client.apps.installed()).some((a) => a.slug === slug)).toBe(false);
+  });
+
+  it("deploys a published app and tears it down", async () => {
+    const client = await signIn();
+    const slug = `host-${randomUUID().slice(0, 8)}`;
+    await client.apps.publish({
+      manifest: { slug, name: "Host Me", version: "0.1.0" },
+    });
+
+    // Deploy requires a BUILT release — hosting serves real files now, so a
+    // manifest-only listing has nothing to put on the wire.
+    const rel = await client.apps.createRelease(slug, { version: "0.1.0" });
+    const built = await client.apps.uploadSource(slug, rel.id, new TextEncoder().encode("host-me-source"));
+    expect(built.status).toBe("ready");
+
+    const dep = await client.hosting.deploy({ appSlug: slug });
+    expect(dep.status).toBe("live");
+    // The wire url is the address a PERSON opens: the BRAND origin in prod
+    // (behind the edge), the real /hosted route on a DEV server (localhost
+    // publicUrl — no edge in front, the brand origin would be dead there).
+    // This suite runs against the local dev server, so expect the dev form.
+    expect(dep.url).toMatch(new RegExp(`^https?://[^/]+/hosted/${slug}/$|^https://[a-z0-9-]+\\.[a-z0-9.-]+$`));
+
+    const got = await client.hosting.status(dep.id);
+    expect(got.id).toBe(dep.id);
+    expect((await client.hosting.list()).some((d) => d.id === dep.id)).toBe(true);
+
+    // The deployed app shows up in the dashboard's panel-apps projection.
+    const panels = await client.apps.deployed();
+    const panel = panels.find((p) => p.id === dep.id);
+    expect(panel).toMatchObject({ appSlug: slug, url: dep.url, system: false });
+
+    await client.hosting.destroy(dep.id);
+    expect((await client.hosting.status(dep.id)).status).toBe("destroyed");
+  });
+
+  it("rejects a malformed manifest", async () => {
+    const client = await signIn();
+    await expect(
+      client.apps.publish({
+        manifest: { slug: "Not Kebab!", name: "Bad", version: "not-semver" },
+      }),
+    ).rejects.toMatchObject({ code: "E_VALIDATION" });
+  });
+});

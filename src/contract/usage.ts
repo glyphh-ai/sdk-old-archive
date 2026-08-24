@@ -1,18 +1,45 @@
 /**
  * @license Proprietary — © Glyphh. All rights reserved.
  *
- * contract/usage.ts — usage rollups. One append-only ledger of turns + tokens;
- * a summary at any level is a sum of the same rows. Counters enforce the plan's
- * turn quota — they never bill. There are no credits.
+ * contract/usage.ts — usage rollups. Everything flows user → workspace → org from
+ * one append-only ledger, so a summary at any level is a sum of the same rows.
+ * Credits are whole credits; `creditsSaved` is the shadow price of zero-cost usage
+ * (local / open-weight / custom MCP).
  */
 
 export interface UsageSummary {
-  /** Turns consumed in the window. */
-  turns: number;
-  inputTokens: number;
-  outputTokens: number;
+  /** Credits consumed in the window. */
+  credits: number;
+  /** Shadow price of zero-cost usage ("credits saved"). */
+  creditsSaved: number;
+  /** Credit breakdown by source. */
+  bySource: {
+    fly: number;
+    pipedream: number;
+    provider: number;
+  };
   /** Number of ledger events. */
   events: number;
+}
+
+/** One day of the org usage series (credits in micro-credits; only days with usage). */
+/**
+ * The caller's own SPEND ALLOWANCE — whole credits. What a non-admin member sees in
+ * place of the org plan: the credit cap their org admin set on their workspace, what
+ * they've spent in the current window, and the interval it resets on. Reported by the
+ * same code path that ENFORCES the cap, so the number shown is the number enforced.
+ */
+export interface CreditAllocation {
+  /** True when the workspace has no cap — spend is unlimited (cap/remaining are 0). */
+  uncapped: boolean;
+  capCredits: number;
+  spentCredits: number;
+  remainingCredits: number;
+  /** The admin-set interval: 1 (daily) | 7 (weekly) | 30 (monthly). */
+  periodDays: number;
+  windowStart: string;
+  windowEnd: string;
+  workspaceName: string;
 }
 
 /** A reporting window for {@link UsageClient.summary}; both bounds ISO or YYYY-MM-DD. */
@@ -21,21 +48,9 @@ export interface UsageSummaryQuery {
   to?: string;
 }
 
-/**
- * The caller's TURN ALLOWANCE — the plan's monthly quota, what they've used in
- * the current window, and what remains. Reported by the same code path that
- * ENFORCES the quota, so the number shown is the number enforced.
- */
-export interface TurnAllocation {
-  turnsPerMonth: number;
-  turnsUsed: number;
-  turnsRemaining: number;
-  windowStart: string;
-  windowEnd: string;
-}
-
 export interface UsageDay {
   day: string; // YYYY-MM-DD
+  credits: number; // micro-credits
   requests: number;
   inputTokens: number;
   outputTokens: number;
@@ -52,9 +67,10 @@ export interface UsageDailyQuery {
   userId?: string;
 }
 
-/** One model's usage rollup. */
+/** One model's usage rollup (charged credits in micro-credits). */
 export interface UsageByModelRow {
   model: string;
+  credits: number; // micro-credits
   requests: number;
   inputTokens: number;
   outputTokens: number;
@@ -71,11 +87,12 @@ export interface UsageByModelQuery {
 /** The stack dimension for the day × group series. */
 export type UsageSeriesGroupBy = "model" | "source" | "user";
 
-/** One (day, group) cell of the usage chart. */
+/** One (day, group) cell of the usage chart (charged credits in micro-credits). */
 export interface UsageSeriesPoint {
   day: string;
   /** The group's value: a model id, a source, or a user id ("(none)" when unattributed). */
   key: string;
+  credits: number; // micro-credits
   requests: number;
   inputTokens: number;
   outputTokens: number;

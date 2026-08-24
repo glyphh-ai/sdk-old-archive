@@ -23,17 +23,18 @@ describe("@glyphh/sdk — billing", () => {
   it("lists the seeded plans (Free/Basic/Pro/Enterprise)", async () => {
     const plans = await (await signIn()).billing.plans();
     const byTier = Object.fromEntries(plans.map((p) => [p.tier, p]));
-    expect(byTier.free).toBeDefined();
-    expect(byTier.basic).toBeDefined();
-    expect(byTier.pro).toBeDefined();
+    expect(byTier.free!.monthlyCredits).toBe(100);
+    expect(byTier.basic!.monthlyCredits).toBe(2000);
+    expect(byTier.pro!.monthlyCredits).toBe(10000);
     expect(byTier.enterprise!.sso).toBe(true);
   });
 
-  it("a new org is on the free tier", async () => {
+  it("a new org is on the free tier with its 100-credit grant", async () => {
     const client = await signIn();
     const status = await client.billing.status();
     expect(status.tier).toBe("free");
     expect(status.maxSeats).toBe(1);
+    expect((await client.billing.balance()).credits).toBe(100);
   });
 
   it("subscribe returns a Stripe checkout URL", async () => {
@@ -42,11 +43,39 @@ describe("@glyphh/sdk — billing", () => {
     expect(url).toMatch(/^https:\/\/checkout\.stripe\.com\//);
   });
 
+  it("credits() returns the micro-credit breakdown for a fresh free org", async () => {
+    const client = await signIn();
+    // Derived from the seeded free plan rather than a hardcoded constant: a fresh
+    // org's entire balance IS its plan's monthly grant, in micro-credits (1e6 per
+    // credit). Re-pricing the free tier moves this test with the seed.
+    const free = (await client.billing.plans()).find((p) => p.tier === "free")!;
+    const grant = free.monthlyCredits * 1_000_000;
+    const c = await client.billing.credits();
+    expect(c.balance).toBe(grant);
+    expect(c.allowance).toBe(grant);
+    expect(c.grants).toBe(grant);
+    expect(c.purchases).toBe(0);
+  });
+
+  it("autotopup() defaults to disabled and setAutotopup() round-trips", async () => {
+    const client = await signIn();
+    expect(await client.billing.autotopup()).toEqual({ enabled: false, thresholdCredits: 0, topupCredits: 0 });
+    const set = await client.billing.setAutotopup({ enabled: true, thresholdCredits: 100_000_000, topupCredits: 500_000_000 });
+    expect(set).toEqual({ enabled: true, thresholdCredits: 100_000_000, topupCredits: 500_000_000 });
+    expect((await client.billing.autotopup()).enabled).toBe(true);
+  });
+
   it("changePlan() on a free org yields a Checkout fallback URL", async () => {
     const client = await signIn();
     const change = await client.billing.changePlan("pro");
     expect(change.effect).toBe("checkout");
     expect(change.url).toMatch(/^https:\/\/checkout\.stripe\.com\//);
+  });
+
+  it("topup() returns a Stripe checkout URL", async () => {
+    const client = await signIn();
+    const { url } = await client.billing.topup({ credits: 1_000_000_000 });
+    expect(url).toMatch(/^https:\/\/checkout\.stripe\.com\//);
   });
 
   it("invoices() returns an array (empty for a new org)", async () => {

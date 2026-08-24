@@ -52,7 +52,7 @@ describe("@glyphh/sdk — accounts", () => {
     });
   });
 
-  it("member writes: updateProfile + setRole (on self, the sole member)", async () => {
+  it("member writes: updateProfile + setRole + assignWorkspace (on self, the sole member)", async () => {
     const client = await signIn();
     const me = await client.me();
 
@@ -62,5 +62,8 @@ describe("@glyphh/sdk — accounts", () => {
     const roled = await client.members.setRole(me.userId, "org_admin");
     expect(roled.role).toBe("org_admin");
 
+    // Clear to the base workspace (null) — a no-op on the sole member, but exercises the route.
+    const assigned = await client.members.assignWorkspace(me.userId, null);
+    expect(assigned.userId).toBe(me.userId);
   });
 });

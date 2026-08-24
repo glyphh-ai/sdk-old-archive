@@ -2,21 +2,24 @@
  * @license Proprietary — © Glyphh. All rights reserved.
  *
  * resources/admin.ts — Glyphh platform administration (super_admin only; the server
- * enforces the role — a non-super_admin call surfaces as ForbiddenError). The admin CONSOLE that
- * backs the platform admin pages — org + user management, plan pricing, runtime
- * image SKUs, usage rollups, support, and the audit log. Console shapes are snake_case (see contract/admin.ts).
+ * enforces the role — a non-super_admin call surfaces as ForbiddenError). Two halves:
+ * the catalog release (providers/models + pricing) and the full admin CONSOLE that
+ * backs the platform admin pages — org + user management, plan/model pricing, usage
+ * rollups, and the audit log. Console shapes are snake_case (see contract/admin.ts).
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
+import type { Provider, Model, ProviderCreate, ModelCreate, ModelPricing } from "../contract/catalog.js";
 import type {
   AdminStats, AdminOrgsPage, AdminOrgListItem, AdminOrgDetail, AdminOrgPatch, AdminCreateOrg,
   AdminUsersPage, AdminUser, AdminUserPatch,
-  AdminPlan, AdminPlanUpdate, AdminPlanCreate, AdminOrgPlanInput, AdminOrgPlanPatch, AdminPlanPrice,
+  AdminPlan, AdminPlanUpdate, AdminPlanCreate, AdminProviderKey, AdminOrgPlanInput, AdminOrgPlanPatch, AdminModel, AdminModelUpdate, AdminPlanPrice,
   AuditPage, AuditQuery, AdminUsageByUser, AdminUsageDay, AdminDailyQuery, AdminListQuery,
   AdminUsageByRuntime, AdminRuntimeUsageQuery, RuntimeMode,
 } from "../contract/admin.js";
 import type { EffectiveContext } from "../contract/membership.js";
 import type { RuntimeImage, AdminRuntimeImageCreate, AdminRuntimeImageUpdate } from "../contract/runtime-images.js";
+import type { AppServerImage, AdminAppServerImageCreate, AdminAppServerImageUpdate } from "../contract/app-servers.js";
 import type {
   AdminSupportPage, AdminSupportThread, AdminSupportTicket, AdminSupportQuery, SupportUnread,
 } from "../contract/support.js";
@@ -32,6 +35,25 @@ function withQuery(path: string, params: Record<string, string | number | undefi
 export class AdminClient {
   constructor(private readonly http: AuthedHttp) {}
 
+  // ── catalog release ─────────────────────────────────────────────────────────
+  createProvider(input: ProviderCreate): Promise<Provider> {
+    return this.http.post<Provider>("/api/admin/providers", input);
+  }
+  createModel(input: ModelCreate): Promise<Model> {
+    return this.http.post<Model>("/api/admin/models", input);
+  }
+  /** Rename a model's id (same provider) — an atomic migrate of the catalog row,
+   *  org support, and rotor bindings. Usage history keeps the old ref. */
+  renameModel(provider: string, model: string, newModel: string): Promise<AdminModel> {
+    return this.http.post<{ model: AdminModel }>(
+      `/api/admin/models/${encodeURIComponent(provider)}/${encodeURIComponent(model)}/rename`,
+      { model: newModel },
+    ).then((r) => r.model);
+  }
+  setModelPricing(id: string, pricing: ModelPricing): Promise<Model> {
+    return this.http.patch<Model>(`/api/admin/models/${encodeURIComponent(id)}`, pricing);
+  }
+
   // ── dashboard ─────────────────────────────────────────────────────────────
   stats(): Promise<AdminStats> {
     return this.http.get<AdminStats>("/api/admin/stats");
@@ -41,7 +63,7 @@ export class AdminClient {
   orgs(query: AdminListQuery = {}): Promise<AdminOrgsPage> {
     return this.http.get<AdminOrgsPage>(withQuery("/api/admin/orgs", { q: query.q, page: query.page, limit: query.limit }));
   }
-  /** Create a brand-new organization (standalone; base role provisioned). */
+  /** Create a brand-new organization (standalone; base workspace + free credits). */
   createOrg(input: AdminCreateOrg): Promise<AdminOrgListItem> {
     return this.http.post<AdminOrgListItem>("/api/admin/orgs", input);
   }
@@ -57,6 +79,11 @@ export class AdminClient {
   unlockOrg(id: string): Promise<{ ok: boolean }> {
     return this.http.post<{ ok: boolean }>(`/api/admin/orgs/${encodeURIComponent(id)}/unlock`);
   }
+  /** Grant whole credits to an org (never expires). Returns the new balance (micro). */
+  grantCredits(id: string, credits: number, note?: string): Promise<{ balance: number }> {
+    return this.http.post<{ balance: number }>(`/api/admin/orgs/${encodeURIComponent(id)}/credits`, note ? { credits, note } : { credits });
+  }
+
   // ── users ──────────────────────────────────────────────────────────────────
   users(query: AdminListQuery = {}): Promise<AdminUsersPage> {
     return this.http.get<AdminUsersPage>(withQuery("/api/admin/users", { q: query.q, page: query.page, limit: query.limit }));
@@ -86,6 +113,24 @@ export class AdminClient {
     return this.http.post<{ plan: AdminPlan }>("/api/admin/plans", input);
   }
 
+  // ── platform provider keys — encrypted in the DB, several per provider ──────
+  /** The console's provider list: catalog rows + active-key counts (no secrets). */
+  providers(): Promise<{ providers: Array<Record<string, unknown> & { slug: string; activeKeys: number }> }> {
+    return this.http.get<{ providers: Array<Record<string, unknown> & { slug: string; activeKeys: number }> }>("/api/admin/providers");
+  }
+  providerKeys(slug: string): Promise<{ keys: AdminProviderKey[] }> {
+    return this.http.get<{ keys: AdminProviderKey[] }>(`/api/admin/providers/${encodeURIComponent(slug)}/keys`);
+  }
+  /** Append a key (active immediately). Rotation = add new, deactivate old. */
+  addProviderKey(slug: string, key: string, label?: string): Promise<{ key: AdminProviderKey }> {
+    return this.http.post<{ key: AdminProviderKey }>(`/api/admin/providers/${encodeURIComponent(slug)}/keys`, { key, ...(label ? { label } : {}) });
+  }
+  setProviderKeyActive(id: string, active: boolean): Promise<{ key: AdminProviderKey }> {
+    return this.http.post<{ key: AdminProviderKey }>(`/api/admin/providers/keys/${encodeURIComponent(id)}/active`, { active });
+  }
+  removeProviderKey(id: string): Promise<void> {
+    return this.http.del<void>(`/api/admin/providers/keys/${encodeURIComponent(id)}`);
+  }
   /** Create/replace an org's bespoke (enterprise) plan — custom seat cap + per-seat price + allowance. */
   setOrgPlan(orgId: string, input: AdminOrgPlanInput): Promise<{ plan: AdminPlan }> {
     return this.http.post<{ plan: AdminPlan }>(`/api/admin/orgs/${encodeURIComponent(orgId)}/plan`, input);
@@ -98,12 +143,23 @@ export class AdminClient {
   removeOrgPlan(orgId: string): Promise<{ ok: boolean }> {
     return this.http.del<{ ok: boolean }>(`/api/admin/orgs/${encodeURIComponent(orgId)}/plan`);
   }
+  models(): Promise<{ models: AdminModel[] }> {
+    return this.http.get<{ models: AdminModel[] }>("/api/admin/models");
+  }
+  updateModel(provider: string, model: string, patch: AdminModelUpdate): Promise<{ model: AdminModel }> {
+    return this.http.put<{ model: AdminModel }>(`/api/admin/models/${encodeURIComponent(provider)}/${encodeURIComponent(model)}`, patch);
+  }
   /** DELETE an organization + everything it owns (typed-name confirmed).
    *  Sole-org members are deleted with it; multi-org members lose the
    *  membership. Refused while Stripe billing is live or a platform admin
    *  is a member. */
   deleteOrg(orgId: string, confirmName: string): Promise<{ orgId: string; name: string; usersDeleted: number; membersDetached: number }> {
     return this.http.post(`/api/admin/orgs/${encodeURIComponent(orgId)}/delete`, { confirmName });
+  }
+
+  /** Hard-delete a catalog model + its org support rows (super_admin). */
+  deleteModel(provider: string, model: string): Promise<void> {
+    return this.http.del<void>(`/api/admin/models/${encodeURIComponent(provider)}/${encodeURIComponent(model)}`);
   }
 
   // ── plan price history (super_admin) ──────────────────────────────────────────
@@ -129,7 +185,7 @@ export class AdminClient {
   runtimeImages(): Promise<{ images: RuntimeImage[] }> {
     return this.http.get<{ images: RuntimeImage[] }>("/api/admin/runtime-images");
   }
-  /** Add a SKU to a region's catalog. */
+  /** Add a SKU to a region's catalog (`monthlyCredits` in WHOLE credits/month). */
   createRuntimeImage(input: AdminRuntimeImageCreate): Promise<{ image: RuntimeImage }> {
     return this.http.post<{ image: RuntimeImage }>("/api/admin/runtime-images", input);
   }
@@ -144,6 +200,28 @@ export class AdminClient {
   deleteRuntimeImage(region: string, key: string): Promise<{ ok: boolean }> {
     return this.http.del<{ ok: boolean }>(
       `/api/admin/runtime-images/${encodeURIComponent(region)}/${encodeURIComponent(key)}`,
+    );
+  }
+
+  // ── app-server image catalog (the runtime-image treatment) ────────────────────
+  /** Every app-server SKU, every region, active + inactive. */
+  appServerImages(): Promise<{ images: AppServerImage[] }> {
+    return this.http.get<{ images: AppServerImage[] }>("/api/admin/app-servers");
+  }
+  /** Add an app-server SKU to a region's catalog (`monthlyCredits` in WHOLE credits/month). */
+  createAppServerImage(input: AdminAppServerImageCreate): Promise<{ image: AppServerImage }> {
+    return this.http.post<{ image: AppServerImage }>("/api/admin/app-servers", input);
+  }
+  /** Re-price / re-size / retire a region's app-server SKU (audited). */
+  updateAppServerImage(region: string, key: string, patch: AdminAppServerImageUpdate): Promise<{ image: AppServerImage }> {
+    return this.http.put<{ image: AppServerImage }>(
+      `/api/admin/app-servers/${encodeURIComponent(region)}/${encodeURIComponent(key)}`, patch,
+    );
+  }
+  /** Remove an app-server SKU from a region's catalog (audited). */
+  deleteAppServerImage(region: string, key: string): Promise<{ ok: boolean }> {
+    return this.http.del<{ ok: boolean }>(
+      `/api/admin/app-servers/${encodeURIComponent(region)}/${encodeURIComponent(key)}`,
     );
   }
 
