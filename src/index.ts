@@ -316,6 +316,8 @@ export type {
   ModelAuditPage,
   CustomModel,
   CustomModelInput,
+  CustomProvider,
+  CustomProviderInput,
 } from "./contract/models.js";
 export type {
   ModelTransport,

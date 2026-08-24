@@ -79,7 +79,8 @@ export interface CustomModel {
   org_id: string;
   id: string;              // catalog id, `custom::<slug>`
   name: string;
-  base_url: string;
+  base_url: string;        // '' on a provider-backed row (endpoint from the provider)
+  provider_slug: string | null;
   model_name: string;      // the string sent as "model" to the endpoint
   context_window: number;
   max_output_tokens: number;
@@ -93,11 +94,38 @@ export interface CustomModel {
 export interface CustomModelInput {
   slug: string;            // lowercase; the server namespaces it as custom::<slug>
   name: string;
-  baseUrl: string;
+  /** Direct endpoint — omit when `providerSlug` names an org provider. */
+  baseUrl?: string | undefined;
+  /** The org custom provider this model rides (endpoint + key come from it). */
+  providerSlug?: string | null | undefined;
   modelName: string;
   contextWindow: number;
   maxOutputTokens: number;
   key?: string | undefined;
+  active?: boolean | undefined;
+}
+
+/** An org custom PROVIDER — any OpenAI-spec endpoint (key write-only). */
+export interface CustomProvider {
+  org_id: string;
+  slug: string;
+  name: string;
+  base_url: string;
+  has_key: boolean;
+  /** Non-secret summary of the stored key; null when unset. */
+  key_hint: string | null;
+  active: boolean;
+  model_count: number;
+}
+
+/** Create/update input for a custom provider. Omit `key` on an edit to keep the stored one. */
+export interface CustomProviderInput {
+  slug: string;
+  name: string;
+  baseUrl: string;
+  key?: string | undefined;
+  /** Explicitly drop the stored key. */
+  clearKey?: boolean | undefined;
   active?: boolean | undefined;
 }
 

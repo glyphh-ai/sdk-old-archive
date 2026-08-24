@@ -20,6 +20,8 @@ export interface Provider {
   baseUrl: string | null;
   /** Is this provider enabled for the caller's org. */
   enabledForOrg: boolean;
+  /** Non-secret summary of the stored BYOK key (sk-ant-api03-rFX...zAAA); null when unset. */
+  byokHint?: string | null;
   /** Does the org have a BYOK key set (never the key itself). */
   hasByokKey: boolean;
 }

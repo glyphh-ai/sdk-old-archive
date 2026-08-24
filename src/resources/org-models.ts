@@ -9,7 +9,7 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
-import type { OrgModel, ModelAuditQuery, ModelAuditPage, CustomModel, CustomModelInput } from "../contract/models.js";
+import type { OrgModel, ModelAuditQuery, ModelAuditPage, CustomModel, CustomModelInput, CustomProvider, CustomProviderInput } from "../contract/models.js";
 
 /** Append defined params to a path as a query string. */
 function withQuery(path: string, params: Record<string, string | number | undefined>): string {
@@ -61,5 +61,22 @@ export class OrgModelsClient {
   /** Delete a custom model by its catalog id (`custom::<slug>`). */
   deleteCustom(id: string): Promise<void> {
     return this.http.del<void>(`/api/org/custom-models/${encodeURIComponent(id)}`);
+  }
+
+  // ── custom providers — any OpenAI-spec endpoint the org brings ──────────
+
+  /** The org's custom providers (no keys returned). */
+  listProviders(): Promise<CustomProvider[]> {
+    return this.http.get<{ providers: CustomProvider[] }>("/api/org/custom-providers").then((r) => r.providers);
+  }
+
+  /** Create or update a provider. Omit `key` on an edit to keep the stored one. */
+  saveProvider(input: CustomProviderInput): Promise<CustomProvider> {
+    return this.http.post<{ provider: CustomProvider }>("/api/org/custom-providers", input).then((r) => r.provider);
+  }
+
+  /** Delete a provider — its models are deleted with it. */
+  deleteProvider(slug: string): Promise<void> {
+    return this.http.del<void>(`/api/org/custom-providers/${encodeURIComponent(slug)}`);
   }
 }
