@@ -94,6 +94,16 @@ export interface Invite {
 }
 
 /** `members.invite` returns the invite + the raw token (shown once). */
+/** A pending (unaccepted, unexpired) invite — the Members page's Invited tab. */
+export interface PendingInvite {
+  id: string;
+  email: string;
+  role: string;
+  invitedByEmail: string | null;
+  createdAt: string;
+  expiresAt: string;
+}
+
 export interface CreatedInvite {
   invite: Invite;
   token: string;

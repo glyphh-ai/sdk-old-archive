@@ -25,12 +25,18 @@ export class GatewayClient {
    * callers should surface that rather than silently degrading.
    */
   complete(input: GatewayCompletionInput): Promise<GatewayCompletion> {
-    const { maxTokens, ...rest } = input;
+    const { maxTokens, service, runId, ...rest } = input;
+    const headers: Record<string, string> = {};
+    // Billing attribution: background work declares its SERVICE line
+    // (enrichment, memory-rotor) and, when it belongs to a turn, the RUN id —
+    // so the ledger never books it as an anonymous worker call.
+    if (service) headers["x-glyphh-service"] = service;
+    if (runId) headers["x-glyphh-run"] = runId;
     return this.http.post<GatewayCompletion>(
       "/api/gateway/v1/chat/completions",
       { ...rest, ...(maxTokens !== undefined ? { max_tokens: maxTokens } : {}) },
       // The gateway answers an OpenAI body verbatim, not the `{ data }` envelope.
-      { raw: true },
+      { raw: true, ...(Object.keys(headers).length ? { headers } : {}) },
     );
   }
 

@@ -17,6 +17,12 @@ export interface GatewayMessage {
 }
 
 export interface GatewayCompletionInput {
+  /** Billing service line for this call ('enrichment' | 'memory-rotor') —
+   *  background work declares itself so the ledger stays honest. */
+  service?: string;
+  /** The turn this call belongs to (x-glyphh-run) — ties background work to
+   *  the run that caused it. */
+  runId?: string;
   /** Catalog id (`provider::model`) or the bare model id. */
   model: string;
   messages: GatewayMessage[];

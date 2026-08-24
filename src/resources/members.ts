@@ -6,7 +6,7 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
-import type { CreatedInvite, Member, MemberRole, MemberSystemRole, MemberProfileUpdate } from "../contract/org.js";
+import type { CreatedInvite, Member, MemberRole, MemberSystemRole, MemberProfileUpdate, PendingInvite } from "../contract/org.js";
 
 export class MembersClient {
   constructor(private readonly http: AuthedHttp) {}
@@ -17,6 +17,16 @@ export class MembersClient {
 
   invite(email: string, role: MemberRole = "user"): Promise<CreatedInvite> {
     return this.http.post<CreatedInvite>("/api/org/members/invite", { email, role });
+  }
+
+  /** The org's PENDING invites (unaccepted + unexpired) — the Invited tab. */
+  pendingInvites(): Promise<PendingInvite[]> {
+    return this.http.get<PendingInvite[]>("/api/org/invites");
+  }
+
+  /** Revoke a pending invite by id. */
+  revokeInvite(id: string): Promise<void> {
+    return this.http.del<void>(`/api/org/invites/id/${encodeURIComponent(id)}`);
   }
 
   remove(userId: string): Promise<void> {
