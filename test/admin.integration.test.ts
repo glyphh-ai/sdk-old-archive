@@ -45,7 +45,7 @@ describe("@glyphh/sdk — admin org-plan gate (super_admin)", () => {
   it("setOrgPlan is forbidden for a non-platform-admin", async () => {
     const client = await signIn();
     await expect(
-      client.admin.setOrgPlan(randomUUID(), { maxSeats: 10, monthlyUsdCents: 5000, monthlyCredits: 1_000_000, displayName: "Bespoke" }),
+      client.admin.setOrgPlan(randomUUID(), { maxSeats: 10, monthlyUsdCents: 5000, turnsPerMonth: 1000, outputTokensPerTurn: 4000, displayName: "Bespoke" }),
     ).rejects.toBeInstanceOf(ForbiddenError);
   });
 

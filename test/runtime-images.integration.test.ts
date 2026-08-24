@@ -30,7 +30,7 @@ describe("@glyphh/sdk — runtime images (org surface)", () => {
     const small = images[1]!;
     expect(small.type).toBe("dedicated");
     expect(small.ramMb).toBe(1024);
-    expect(small.monthlyCredits).toBeGreaterThan(0);
+    expect(typeof small.monthlyUsdCents).toBe("number");
   });
 
   it("a fresh org is on FREE, realized as the shared runtime", async () => {
@@ -39,7 +39,7 @@ describe("@glyphh/sdk — runtime images (org surface)", () => {
     expect(cur.key).toBe("free");
     expect(cur.mode).toBe("shared");
     expect(cur.image?.type).toBe("shared");
-    expect(cur.image?.monthlyCredits).toBe(0);
+    expect(cur.image?.monthlyUsdCents).toBe(0);
     expect(cur.provisionedImageId).toBeNull();
   });
 
@@ -69,7 +69,7 @@ describe("@glyphh/sdk — runtime images (org surface)", () => {
   it("billing status exposes the current image + its monthly price (the billing hook)", async () => {
     const client = await signIn();
     const status = await client.billing.status();
-    expect(status.runtimeImage).toMatchObject({ key: "free", monthlyCredits: 0 });
+    expect(status.runtimeImage).toMatchObject({ key: "free", monthlyUsdCents: 0 });
   });
 });
 
@@ -102,10 +102,10 @@ describe("@glyphh/sdk — admin runtime-image CRUD is super_admin-gated", () => 
     await expect(
       client.admin.createRuntimeImage({
         key: "xl", region: "local", displayName: "XL", type: "dedicated",
-        ramMb: 16384, diskGb: 160, monthlyCredits: 16000, costPerSecondMicro: 6400,
+        ramMb: 16384, diskGb: 160,
       }),
     ).rejects.toBeInstanceOf(ForbiddenError);
-    await expect(client.admin.updateRuntimeImage("local", "small", { monthlyCredits: 1 })).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(client.admin.updateRuntimeImage("local", "small", { monthlyUsdCents: 1 })).rejects.toBeInstanceOf(ForbiddenError);
     await expect(client.admin.deleteRuntimeImage("local", "small")).rejects.toBeInstanceOf(ForbiddenError);
   });
 });
