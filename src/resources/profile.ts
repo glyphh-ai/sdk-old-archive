@@ -34,6 +34,12 @@ export class ProfileClient {
     return this.http.patch<SelfProfile>("/api/user/me", patch);
   }
 
+  /** Upload the caller's profile image (PNG/JPEG/GIF/WebP, ≤0.5MB; sniffed
+   *  server-side). The refreshed profile (with imageUrl) comes from get(). */
+  uploadImage(bytes: Uint8Array): Promise<{ key: string; contentType: string; bytes: number }> {
+    return this.http.post<{ key: string; contentType: string; bytes: number }>("/api/user/me/image", bytes);
+  }
+
   /** The caller's voice settings (STT input, TTS output + voice, mode). Reads the
    *  `voice` pref key, filled with defaults so callers never see undefined. */
   async voiceSettings(): Promise<VoiceSettings> {
