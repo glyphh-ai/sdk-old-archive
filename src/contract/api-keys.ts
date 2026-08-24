@@ -11,6 +11,8 @@ export interface ApiKey {
   label: string;
   /** A non-secret display prefix, e.g. "gy_ak_ab12…". The full token is never returned. */
   prefix: string;
+  /** Console-style hint — `gy_ak_abcdefgh...wxyz` — null on keys minted before it existed. */
+  tokenHint?: string | null;
   userId: string;
   userEmail: string;
   createdAt: string;
