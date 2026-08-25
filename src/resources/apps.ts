@@ -63,6 +63,22 @@ export class AppsClient {
     return this.http.post<AppDataQueryResult>(`/api/apps/${encodeURIComponent(slug)}/data/query`, query);
   }
 
+  // ── ingest — the app's inbound webhook surface (n8n / make.com / Boomi) ──
+  // Hooks are declared in the app manifest; external pipelines POST rows to
+  // the hook URL with a per-app `gy_ing_` token (minted here, shown once).
+  ingest(slug: string): Promise<{
+    hooks: Array<{ name: string; table: string; embed: string[]; description?: string; url: string }>;
+    tokens: Array<{ id: string; label: string; prefix: string; tokenHint: string; createdAt: string; lastUsedAt: string | null }>;
+  }> {
+    return this.http.get(`/api/apps/${encodeURIComponent(slug)}/ingest`) as ReturnType<AppsClient["ingest"]>;
+  }
+  createIngestToken(slug: string, label = ""): Promise<{ token: string; row: { id: string; label: string; prefix: string; tokenHint: string; createdAt: string } }> {
+    return this.http.post(`/api/apps/${encodeURIComponent(slug)}/ingest-tokens`, { label }) as ReturnType<AppsClient["createIngestToken"]>;
+  }
+  revokeIngestToken(slug: string, id: string): Promise<{ ok: boolean }> {
+    return this.http.del(`/api/apps/${encodeURIComponent(slug)}/ingest-tokens/${encodeURIComponent(id)}`) as Promise<{ ok: boolean }>;
+  }
+
   // ── embeddings + graph planes (app-runtime spec, 2026-08-20) ──────────────
   // The app sends values only; the platform computes vectors, scores
   // similarity, and walks the graph inside hard server-side caps.
