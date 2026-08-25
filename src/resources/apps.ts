@@ -107,10 +107,10 @@ export class AppsClient {
    * runs npm install + build, and publishes via build_app. A build failure
    * comes back as { ok:false, stage, error }, not a thrown transport error.
    */
-  buildFromSource(slug: string): Promise<{ ok: boolean; stage?: string; error?: string; result?: string }> {
+  buildFromSource(slug: string, opts: { deploy?: boolean } = {}): Promise<{ ok: boolean; stage?: string; error?: string; result?: string }> {
     // raw: the pod's reply is its own shape ({ ok, stage, error, result }), not
     // the control plane's { data } envelope.
-    return this.http.post(`/api/harness/apps/deploy`, { slug, fromSource: true }, { raw: true }) as ReturnType<AppsClient["buildFromSource"]>;
+    return this.http.post(`/api/harness/apps/deploy`, { slug, fromSource: true, ...(opts.deploy === false ? { deploy: false } : {}) }, { raw: true }) as ReturnType<AppsClient["buildFromSource"]>;
   }
   // ── OUTBOUND webhooks — subscriptions to the app's data changes. Deliveries
   // are signed POSTs (X-Glyphh-Signature: sha256=<hmac of body, keyed by the
