@@ -14,6 +14,19 @@ import type { SessionThread, SessionThreadMeta, PushThreadInput, PushThreadResul
 export class SessionsClient {
   constructor(private readonly http: AuthedHttp) {}
 
+  /**
+   * Mint a RUN-SCOPED session so a long agent run doesn't ride the caller's
+   * short-lived access token (which expires mid-build and 401s the gateway).
+   * Same user, same org, no new privilege — a visible, revocable device
+   * (`run:<id>`). RELEASE it when the run ends: the TTL is a ceiling.
+   */
+  createRunSession(runId: string): Promise<{ accessToken: string; expiresIn: number }> {
+    return this.http.post("/api/session/run", { runId });
+  }
+  releaseRunSession(runId: string): Promise<{ released: number }> {
+    return this.http.del(`/api/session/run/${encodeURIComponent(runId)}`) as Promise<{ released: number }>;
+  }
+
   /** Provision a runtime. The `runtimeToken` in the reply is shown ONCE — store it. */
   create(input: CreateSessionInput): Promise<ProvisionedSession> {
     return this.http.post<ProvisionedSession>("/api/sessions", input);
