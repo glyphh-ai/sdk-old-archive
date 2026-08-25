@@ -101,6 +101,13 @@ export class AppsClient {
   revokeIngestToken(slug: string, id: string): Promise<{ ok: boolean }> {
     return this.http.del(`/api/apps/${encodeURIComponent(slug)}/ingest-tokens/${encodeURIComponent(id)}`) as Promise<{ ok: boolean }>;
   }
+  /** Add a hook to the app's manifest (publisher only). Live immediately — no re-release. */
+  createIngestHook(slug: string, input: { name: string; table: string; embed?: string[]; description?: string }): Promise<{ name: string; table: string; embed: string[]; url: string }> {
+    return this.http.post(`/api/apps/${encodeURIComponent(slug)}/ingest`, input) as ReturnType<AppsClient["createIngestHook"]>;
+  }
+  removeIngestHook(slug: string, name: string): Promise<{ ok: boolean }> {
+    return this.http.del(`/api/apps/${encodeURIComponent(slug)}/ingest/${encodeURIComponent(name)}`) as Promise<{ ok: boolean }>;
+  }
 
   // ── embeddings + graph planes (app-runtime spec, 2026-08-20) ──────────────
   // The app sends values only; the platform computes vectors, scores
