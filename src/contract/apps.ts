@@ -228,6 +228,8 @@ export interface OrgApp {
   listing: AppListingRecord;
   createdAt: string;
   updatedAt: string;
+  /** Secret NAMES the manifest declares — what the app needs configured. */
+  secretNames?: string[];
 }
 
 /** One config var KEY set on an app. Values are write-only and never returned. */
