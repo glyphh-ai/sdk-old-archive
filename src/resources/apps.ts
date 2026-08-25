@@ -101,6 +101,17 @@ export class AppsClient {
   revokeIngestToken(slug: string, id: string): Promise<{ ok: boolean }> {
     return this.http.del(`/api/apps/${encodeURIComponent(slug)}/ingest-tokens/${encodeURIComponent(id)}`) as Promise<{ ok: boolean }>;
   }
+  /**
+   * Build + deploy from the app's R2 SOURCE HEAD on the org's regional pod
+   * (server-proxied — no pod binding needed). The pod pulls the snapshot,
+   * runs npm install + build, and publishes via build_app. A build failure
+   * comes back as { ok:false, stage, error }, not a thrown transport error.
+   */
+  buildFromSource(slug: string): Promise<{ ok: boolean; stage?: string; error?: string; result?: string }> {
+    // raw: the pod's reply is its own shape ({ ok, stage, error, result }), not
+    // the control plane's { data } envelope.
+    return this.http.post(`/api/harness/apps/deploy`, { slug, fromSource: true }, { raw: true }) as ReturnType<AppsClient["buildFromSource"]>;
+  }
   /** Add a hook to the app's manifest (publisher only). Live immediately — no re-release. */
   createIngestHook(slug: string, input: { name: string; table: string; embed?: string[]; description?: string }): Promise<{ name: string; table: string; embed: string[]; url: string }> {
     return this.http.post(`/api/apps/${encodeURIComponent(slug)}/ingest`, input) as ReturnType<AppsClient["createIngestHook"]>;
