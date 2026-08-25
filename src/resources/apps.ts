@@ -63,6 +63,12 @@ export class AppsClient {
     return this.http.post<AppDataQueryResult>(`/api/apps/${encodeURIComponent(slug)}/data/query`, query);
   }
 
+  /** Steer the NEXT release's version (publisher only; semver; a version an
+   *  existing release holds is refused). Later builds patch-bump from here. */
+  setVersion(slug: string, version: string): Promise<{ slug: string; version: string }> {
+    return this.http.patch(`/api/apps/${encodeURIComponent(slug)}/version`, { version }) as Promise<{ slug: string; version: string }>;
+  }
+
   // ── ingest — the app's inbound webhook surface (n8n / make.com / Boomi) ──
   // Hooks are declared in the app manifest; external pipelines POST rows to
   // the hook URL with a per-app `gy_ing_` token (minted here, shown once).
