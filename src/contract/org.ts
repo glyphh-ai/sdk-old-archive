@@ -77,6 +77,7 @@ export interface Member {
   email: string;
   name: string | null;
   role: string;
+  disabled: boolean;
 }
 
 /** `members.updateProfile` — set a member's display name from a first/last pair. */

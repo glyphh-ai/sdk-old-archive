@@ -39,6 +39,11 @@ export class MembersClient {
   }
 
   /** Set a member's system role — user | admin | org_admin (org_admin). */
+  /** Disable ⇄ enable a member — one flip locks their sessions out, reversibly. */
+  setStatus(userId: string, disabled: boolean): Promise<{ ok: boolean; disabled: boolean }> {
+    return this.http.patch(`/api/org/members/${encodeURIComponent(userId)}/status`, { disabled }) as Promise<{ ok: boolean; disabled: boolean }>;
+  }
+
   setRole(userId: string, role: MemberSystemRole): Promise<Member> {
     return this.http.patch<Member>(`/api/org/members/${encodeURIComponent(userId)}/role`, { role });
   }
