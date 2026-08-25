@@ -90,13 +90,13 @@ export class AppsClient {
   // Hooks are declared in the app manifest; external pipelines POST rows to
   // the hook URL with a per-app `gy_ing_` token (minted here, shown once).
   ingest(slug: string): Promise<{
-    hooks: Array<{ name: string; table: string; embed: string[]; description?: string; url: string }>;
-    tokens: Array<{ id: string; label: string; prefix: string; tokenHint: string; createdAt: string; lastUsedAt: string | null }>;
+    hooks: Array<{ name: string; table?: string; embed: string[]; description?: string; url: string }>;
+    tokens: Array<{ id: string; label: string; prefix: string; tokenHint: string; createdAt: string; lastUsedAt: string | null; expiresAt?: string | null; createdByEmail?: string | null }>;
   }> {
     return this.http.get(`/api/apps/${encodeURIComponent(slug)}/ingest`) as ReturnType<AppsClient["ingest"]>;
   }
-  createIngestToken(slug: string, label = ""): Promise<{ token: string; row: { id: string; label: string; prefix: string; tokenHint: string; createdAt: string } }> {
-    return this.http.post(`/api/apps/${encodeURIComponent(slug)}/ingest-tokens`, { label }) as ReturnType<AppsClient["createIngestToken"]>;
+  createIngestToken(slug: string, label = "", expiresDays?: number): Promise<{ token: string; row: { id: string; label: string; prefix: string; tokenHint: string; createdAt: string; expiresAt?: string | null } }> {
+    return this.http.post(`/api/apps/${encodeURIComponent(slug)}/ingest-tokens`, { label, ...(expiresDays ? { expiresDays } : {}) }) as ReturnType<AppsClient["createIngestToken"]>;
   }
   revokeIngestToken(slug: string, id: string): Promise<{ ok: boolean }> {
     return this.http.del(`/api/apps/${encodeURIComponent(slug)}/ingest-tokens/${encodeURIComponent(id)}`) as Promise<{ ok: boolean }>;
@@ -112,8 +112,21 @@ export class AppsClient {
     // the control plane's { data } envelope.
     return this.http.post(`/api/harness/apps/deploy`, { slug, fromSource: true }, { raw: true }) as ReturnType<AppsClient["buildFromSource"]>;
   }
+  // ── OUTBOUND webhooks — subscriptions to the app's data changes. Deliveries
+  // are signed POSTs (X-Glyphh-Signature: sha256=<hmac of body, keyed by the
+  // secret returned once at creation>). Pipelines (ingest tokens) are data IN;
+  // webhooks are events OUT.
+  webhooks(slug: string): Promise<{ webhooks: Array<{ id: string; url: string; description: string; active: boolean; createdAt: string; createdByEmail: string | null; lastFiredAt: string | null; lastStatus: number | null }> }> {
+    return this.http.get(`/api/apps/${encodeURIComponent(slug)}/webhooks`) as ReturnType<AppsClient["webhooks"]>;
+  }
+  createWebhook(slug: string, input: { url: string; description?: string }): Promise<{ webhook: { id: string; url: string; description: string; createdAt: string }; secret: string }> {
+    return this.http.post(`/api/apps/${encodeURIComponent(slug)}/webhooks`, input) as ReturnType<AppsClient["createWebhook"]>;
+  }
+  removeWebhook(slug: string, id: string): Promise<{ ok: boolean }> {
+    return this.http.del(`/api/apps/${encodeURIComponent(slug)}/webhooks/${encodeURIComponent(id)}`) as Promise<{ ok: boolean }>;
+  }
   /** Add a hook to the app's manifest (publisher only). Live immediately — no re-release. */
-  createIngestHook(slug: string, input: { name: string; table: string; embed?: string[]; description?: string }): Promise<{ name: string; table: string; embed: string[]; url: string }> {
+  createIngestHook(slug: string, input: { name: string; table?: string; embed?: string[]; description?: string }): Promise<{ name: string; table?: string; embed: string[]; url: string }> {
     return this.http.post(`/api/apps/${encodeURIComponent(slug)}/ingest`, input) as ReturnType<AppsClient["createIngestHook"]>;
   }
   removeIngestHook(slug: string, name: string): Promise<{ ok: boolean }> {
