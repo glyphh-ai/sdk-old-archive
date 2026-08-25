@@ -63,6 +63,23 @@ export class AppsClient {
     return this.http.post<AppDataQueryResult>(`/api/apps/${encodeURIComponent(slug)}/data/query`, query);
   }
 
+  // ── SOURCE OF RECORD (2026-08-25): the app's project source on R2 ──
+  // Snapshot mode: CAS chain (a stale base 409s with who moved the head).
+  // Git mode: the repo is authority; these become the derived mirror.
+  sourceHead(slug: string): Promise<{ mode: string; head: { hash: string; parentHash: string | null; createdAt: string; createdByEmail: string | null } | null }> {
+    return this.http.get(`/api/apps/${encodeURIComponent(slug)}/source/head`) as ReturnType<AppsClient["sourceHead"]>;
+  }
+  pushSource(slug: string, bytes: Uint8Array, opts: { baseHash?: string | null; force?: boolean } = {}): Promise<{ hash: string; noop?: boolean }> {
+    const q = new URLSearchParams();
+    if (opts.baseHash) q.set("baseHash", opts.baseHash);
+    if (opts.force) q.set("force", "1");
+    const qs = q.toString();
+    return this.http.put(`/api/apps/${encodeURIComponent(slug)}/source${qs ? `?${qs}` : ""}`, bytes) as Promise<{ hash: string; noop?: boolean }>;
+  }
+  pullSource(slug: string, hash: string): Promise<ArrayBuffer> {
+    return this.http.getBytes(`/api/apps/${encodeURIComponent(slug)}/source/archive/${encodeURIComponent(hash)}`);
+  }
+
   /** Steer the NEXT release's version (publisher only; semver; a version an
    *  existing release holds is refused). Later builds patch-bump from here. */
   setVersion(slug: string, version: string): Promise<{ slug: string; version: string }> {
