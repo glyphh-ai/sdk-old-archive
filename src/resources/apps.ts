@@ -125,6 +125,22 @@ export class AppsClient {
   removeWebhook(slug: string, id: string): Promise<{ ok: boolean }> {
     return this.http.del(`/api/apps/${encodeURIComponent(slug)}/webhooks/${encodeURIComponent(id)}`) as Promise<{ ok: boolean }>;
   }
+  // ── SCHEDULES — recurring agent runs against the app (cron + prompt) ──────
+  schedules(slug: string): Promise<{ schedules: Array<{ id: string; name: string; cron: string; prompt: string; enabled: boolean; createdByEmail: string | null; createdAt: string; nextRunAt: string | null; lastRunAt: string | null; lastStatus: string | null; lastError: string | null }> }> {
+    return this.http.get(`/api/apps/${encodeURIComponent(slug)}/schedules`) as ReturnType<AppsClient["schedules"]>;
+  }
+  createSchedule(slug: string, input: { name: string; cron: string; prompt: string }): Promise<{ schedule: unknown }> {
+    return this.http.post(`/api/apps/${encodeURIComponent(slug)}/schedules`, input) as Promise<{ schedule: unknown }>;
+  }
+  updateSchedule(slug: string, id: string, patch: { name?: string; cron?: string; prompt?: string; enabled?: boolean }): Promise<{ schedule: unknown }> {
+    return this.http.patch(`/api/apps/${encodeURIComponent(slug)}/schedules/${encodeURIComponent(id)}`, patch) as Promise<{ schedule: unknown }>;
+  }
+  deleteSchedule(slug: string, id: string): Promise<{ ok: boolean }> {
+    return this.http.del(`/api/apps/${encodeURIComponent(slug)}/schedules/${encodeURIComponent(id)}`) as Promise<{ ok: boolean }>;
+  }
+  runScheduleNow(slug: string, id: string): Promise<{ schedule: unknown }> {
+    return this.http.post(`/api/apps/${encodeURIComponent(slug)}/schedules/${encodeURIComponent(id)}/run`, {}) as Promise<{ schedule: unknown }>;
+  }
   /** Add a hook to the app's manifest (publisher only). Live immediately — no re-release. */
   createIngestHook(slug: string, input: { name: string; table?: string; embed?: string[]; description?: string }): Promise<{ name: string; table?: string; embed: string[]; url: string }> {
     return this.http.post(`/api/apps/${encodeURIComponent(slug)}/ingest`, input) as ReturnType<AppsClient["createIngestHook"]>;
