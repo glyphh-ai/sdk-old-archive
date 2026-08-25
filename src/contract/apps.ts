@@ -408,6 +408,7 @@ export interface AppListing {
   pricing: AppPricing;
   createdAt: string;
   updatedAt: string;
+  hasIngest?: boolean;
 }
 
 export interface PublishAppInput {
