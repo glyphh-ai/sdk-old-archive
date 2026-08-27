@@ -21,6 +21,10 @@ export interface AdminOrgListItem {
   tier: string;
   billing_status: string;
   member_count: number;
+  /** Micro-credits ever granted or purchased (every lot's total). */
+  credits_purchased: number;
+  /** Micro-credits consumed by metered spend. */
+  credits_spent: number;
 }
 export interface AdminOrgsPage {
   orgs: AdminOrgListItem[];
