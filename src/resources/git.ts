@@ -24,6 +24,12 @@ export class GitClient {
   }
 
   /** The connected account's repositories. */
+  /** Short-lived, repo-scoped clone token for a LOCAL `git clone` — the
+   *  desktop's create-from-git door. 404 when the App doesn't cover the repo. */
+  cloneToken(repo: string): Promise<{ token: string; expiresAt: string }> {
+    return this.http.post<{ token: string; expiresAt: string }>("/api/git/clone-token", { repo });
+  }
+
   repos(): Promise<Repo[]> {
     return this.http.get<Repo[]>("/api/git/repos");
   }
