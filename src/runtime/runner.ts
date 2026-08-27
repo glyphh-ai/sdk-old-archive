@@ -29,6 +29,7 @@
 import { createContext, Script } from "node:vm";
 import type { Client } from "../client.js";
 import type { GuardrailsPolicy } from "../contract/agents.js";
+import { UnsupportedError } from "../core/errors.js";
 
 // ── progress ─────────────────────────────────────────────────────────────────
 
@@ -393,81 +394,29 @@ export async function runProgram(
     }
   }
 
-  async function callSkill(slug: string, args: Record<string, unknown> = {}): Promise<unknown> {
+  // The skill library + connector (tool) control-plane surfaces were removed in the
+  // memory-proxy pivot: this client no longer exposes `skills`/`connections`, so a
+  // program that reaches for either fails loudly instead of silently no-op'ing.
+  async function callSkill(slug: string, _args: Record<string, unknown> = {}): Promise<unknown> {
     assertLive();
     if (!caps.skills?.includes(slug)) {
       throw new CapabilityError(`this program does not declare the "${slug}" skill`);
     }
-    if (depth >= MAX_DEPTH) {
-      throw new CapabilityError(`skill nesting too deep (${MAX_DEPTH}) — "${slug}" was not run`);
-    }
-    const event = emit("skill", slug, currentParent);
-    try {
-      const skill = await client.skills.get(slug);
-      // A prompt-only skill has no program: its prompt IS the work, so it runs as
-      // one agent turn on the calling program's default role.
-      if (!skill.code.trim()) {
-        const role = Object.keys(caps.roles ?? {})[0];
-        if (!role) throw new CapabilityError(`"${slug}" is prompt-only and this program binds no model role`);
-        const out = await agent(role, `${skill.prompt}\n\nInput: ${JSON.stringify(args)}`);
-        settle(event);
-        return out;
-      }
-      const nested = await runProgram(
-        client,
-        {
-          program: { slug: skill.slug, code: skill.code },
-          // A nested skill inherits the caller's reach, narrowed by its own manifest:
-          // it can never widen what the caller was allowed.
-          capabilities: {
-            roles: caps.roles,
-            skills: (skill.manifest.requires ?? []).filter((s) => caps.skills?.includes(s)),
-            connections: (skill.manifest.requires ?? []).filter((c) => caps.connections?.includes(c)),
-            allowedTools: skill.manifest.allowedTools?.filter((t) => !caps.allowedTools || caps.allowedTools.includes(t)),
-            apps: caps.apps,
-            memory: caps.memory,
-          },
-          input: args,
-          guardrails: rails,
-          signal: opts.signal,
-          depth: depth + 1,
-        },
-        host,
-      );
-      usage.calls += nested.usage.calls;
-      usage.outputTokens += nested.usage.outputTokens;
-      events.push(...nested.events);
-      logs.push(...nested.logs);
-      if (nested.error) throw new Error(nested.error);
-      settle(event);
-      return nested.output;
-    } catch (err) {
-      settle(event, err instanceof Error ? err.message : String(err));
-      throw err;
-    }
+    throw new UnsupportedError(`skills are not available on this control-plane client — cannot run "${slug}"`);
   }
 
-  async function callTool(qualified: string, args: Record<string, unknown> = {}): Promise<unknown> {
+  async function callTool(qualified: string, _args: Record<string, unknown> = {}): Promise<unknown> {
     assertLive();
     const dot = qualified.indexOf(".");
     if (dot <= 0) throw new CapabilityError(`tool must be qualified as "<connection>.<tool>" — got "${qualified}"`);
     const slug = qualified.slice(0, dot);
-    const tool = qualified.slice(dot + 1);
     if (!caps.connections?.includes(slug)) {
       throw new CapabilityError(`this program does not declare the "${slug}" connection`);
     }
     if (caps.allowedTools && !caps.allowedTools.includes(qualified)) {
       throw new CapabilityError(`this program does not allow the tool "${qualified}"`);
     }
-    const event = emit("tool", qualified, currentParent);
-    try {
-      const { result } = await client.connections.runTool({ slug, tool, props: args });
-      settle(event);
-      return result.ret;
-    } catch (err) {
-      settle(event, err instanceof Error ? err.message : String(err));
-      throw err;
-    }
+    throw new UnsupportedError(`connector tools are not available on this control-plane client — cannot run "${qualified}"`);
   }
 
   const ctx = {

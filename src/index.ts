@@ -1,30 +1,14 @@
 /**
  * @license Proprietary — © Glyphh. All rights reserved.
  *
- * The public surface of @glyphh/sdk. This slice ships the control-plane (auth)
- * half; the rotor streaming transport (session/turn/reconnect) exports here next.
+ * The public surface of @glyphh/sdk — the control-plane client: licensing,
+ * org/membership, billing, runtime provisioning, memory (stator) and the metered
+ * gateway.
  */
 
 export { createClient } from "./client.js";
-export type { Client, ClientOptions, OpenSessionOptions, OpenHarnessOptions, RunTurnOptions, RunHandle } from "./client.js";
+export type { Client, ClientOptions } from "./client.js";
 export type { AuthedHttp } from "./core/authed-http.js";
-
-export { Session } from "./session/session.js";
-export type { SessionConfig } from "./session/session.js";
-export { SseTransport } from "./transport/sse-transport.js";
-export type { Transport, TurnRequest } from "./transport/transport.js";
-export type { Run, RunOptions } from "./transport/run.js";
-export { WIRE_VERSION, isWireEvent } from "./protocol/events.js";
-export type { WireEvent, WireEventKind, TurnEvent, LifecycleEvent, RunResult } from "./protocol/events.js";
-
-export { HarnessClient, HarnessRun } from "./transport/harness.js";
-export type { HarnessClientOptions, HarnessRunOptions, HarnessStartOptions, HarnessWsFactory, HarnessWsLike } from "./transport/harness.js";
-export { HARNESS_WIRE_VERSION, isHarnessTerminal, isHarnessWireFrame } from "./contract/harness.js";
-export type {
-  HarnessFrame, HarnessWireFrame, HarnessAskQuestion, HarnessActionKind, HarnessMode,
-  HarnessPermission, HarnessRunBody, HarnessRunAck, HarnessAnswer, HarnessRunResult,
-  HarnessAttachmentRef, HarnessChatTurn, HarnessMcpServerRef, HarnessImageRef,
-} from "./contract/harness.js";
 
 export { AuthClient } from "./auth/auth-client.js";
 export { InMemoryTokenStore } from "./auth/token-store.js";
@@ -71,12 +55,6 @@ export type {
   RuntimeImage, RuntimeImageType, OrgRuntimeImage,
   AdminRuntimeImageCreate, AdminRuntimeImageUpdate,
 } from "./contract/runtime-images.js";
-export { AppServersClient } from "./resources/app-servers.js";
-export type {
-  AppServerImage, AdminAppServerImageCreate, AdminAppServerImageUpdate,
-  ServerDeployment, ServerDeployStatus, DeployToServerInput, QueuedServerDeployment,
-  CustomDomain, CustomDomainStatus, AddCustomDomainInput, DnsInstructions, DnsRecord,
-} from "./contract/app-servers.js";
 export { CatalogClient } from "./resources/catalog.js";
 export { ProvidersClient } from "./resources/providers.js";
 export { AdminClient } from "./resources/admin.js";
@@ -119,39 +97,8 @@ export type {
   AdminDailyQuery,
   AdminListQuery,
 } from "./contract/admin.js";
-export { MarketingClient } from "./resources/marketing.js";
-export type {
-  MarketingLink,
-  MarketingClick,
-  ClicksByDay,
-  MarketingLinksPage,
-  MarketingStats,
-  CreateLinkInput,
-  UpdateLinkInput,
-  LinksQuery,
-  MarketingStatsQuery,
-} from "./contract/marketing.js";
 export { LoopsClient } from "./resources/loops.js";
 export type { Loop, LoopSummary, LoopManifest, LoopRole, ResolvedLoopRole, CreateLoopInput, UpdateLoopInput } from "./contract/loops.js";
-export { ConnectionsClient } from "./resources/connections.js";
-export type {
-  Connection,
-  ConnectionKind,
-  CustomMcpInput,
-  ConnectLink,
-  ConnectorApp,
-  ConnectorTool,
-  ResolvedConnection,
-  RunToolResult,
-  PersonalConnection,
-  PersonalConnectSession,
-  OrgMcpConnection,
-  OrgMcpInput,
-  OrgMcpPatch,
-  OrgMcpCreateResult,
-  OrgPipedreamConnection,
-  McpOAuthStart,
-} from "./contract/connections.js";
 export { UsageClient } from "./resources/usage.js";
 export type { UsageSummary, UsageDay, UsageDailyQuery, UsageByModelRow, UsageByModelQuery } from "./contract/usage.js";
 export { ApiKeysClient } from "./resources/api-keys.js";
@@ -174,126 +121,16 @@ export type {
   PushThreadInput,
   PushThreadResult,
 } from "./contract/threads.js";
-export { FilesClient } from "./resources/files.js";
-export type { FileArtifact, FileKind, ListFilesQuery, CreateFileInput } from "./contract/files.js";
-export { OfficeSlidesClient, OfficeDocsClient, OfficeDriveClient, OfficeSheetsClient } from "./resources/office.js";
-export { DesignsClient } from "./resources/design.js";
 export { StatorClient } from "./resources/stator.js";
-export { MediaClient } from "./resources/media.js";
-export type { MediaProject } from "./resources/media.js";
-export { MusicClient } from "./resources/music.js";
-export type { MusicArtist, MusicSong, MusicInstrument, MusicLibInstrument, MusicArtistInput, MusicSongInput } from "./resources/music.js";
-export type {
-  OfficeSlide, OfficeSlideMeta,
-  OfficeDoc, OfficeDocMeta, OfficeSuggestion, CreateSuggestionInput,
-  OfficeDocTemplate, OfficeFolder, OfficeDriveFile, OfficeDriveListing,
-  OfficeSheet, OfficeSheetMeta, Workbook, Worksheet, SheetColumn, SheetCell,
-} from "./contract/office.js";
-export type {
-  Design, DesignMeta, DesignSystem, DesignColor, DesignFont, DesignAsset, DesignSource, DesignImageryRef, DesignCanvas, UploadDesignAssetInput,
-} from "./contract/design.js";
 export type {
   StatorFact, MemoryTier, StatorRecallInput, StatorRecallResult, StatorWriteInput,
   StatorBrowseResult, StatorGraphInput, StatorGraphNode, StatorGraphResult, StatorForgetInput, StatorAmendInput,
 } from "./contract/stator.js";
-export type {
-  MediaAsset, MediaKind, MediaUploadTicket, MediaUploadInput, MediaFinalizeInput, MediaGenerateInput, MediaJob,
-} from "./contract/media.js";
-export { GitClient } from "./resources/git.js";
-export type { GitConnection, GitConnectLink, Repo } from "./contract/git.js";
-export { AppsClient } from "./resources/apps.js";
-export type {
-  AppManifest,
-  AppListing,
-  AppVisibility,
-  PublishAppInput,
-  InstalledApp,
-  AppEntitlementStatus,
-  AppKind,
-  AppLauncherConfig,
-  AppExecutionHome,
-  AppVariant,
-  OrgApp,
-  PanelApp,
-  AppSecretKey,
-  CreateAppEntryInput,
-  UpdateAppEntryInput,
-  AppRelease,
-  AppUsageDay,
-  AppAuditEntry,
-  AppListingRecord,
-  AppMarketplaceDetail,
-  AppCategory,
-  UpdateListingInput,
-  AppMediaKind,
-  StoredAppMedia,
-  AppReview,
-  FlaggedAppReview,
-  AppComment,
-  AppCommentThread,
-  FlaggedAppComment,
-  AppPricing,
-  UpdateAppPricingInput,
-  AppReleaseReviewStatus,
-  AppReviewQueueRelease,
-  ReleaseScanFinding,
-  ScanFindingCounts,
-  AppDeveloperCard,
-  AppReport,
-} from "./contract/apps.js";
-export { MarketplaceClient } from "./resources/marketplace.js";
-export type {
-  DeveloperScope,
-  MarketplaceDeveloper,
-  CreateDeveloperInput,
-  UpdateDeveloperInput,
-  DeveloperReview,
-  FlaggedDeveloperReview,
-} from "./contract/marketplace.js";
-export { HostingClient } from "./resources/hosting.js";
-export type { Deployment, DeployStatus, DeployInput } from "./contract/hosting.js";
-export { LibraryClient } from "./resources/library.js";
-export type { LibraryItem, LibraryKind, LibraryScope, SaveLibraryItemInput } from "./contract/library.js";
-export { RelayClient } from "./resources/relay.js";
-export { AttachClient, type AttachStatus, type AttachedMachine, type FsEntry, type FsListing } from "./resources/attach.js";
-export { RunStreamClient, type RunStreamHandle, type RunStreamFrame } from "./resources/run-stream.js";
-export type {
-  RelayPolicy,
-  RelayDevice,
-  RelayDeviceStatus,
-  RelayStatus,
-  EnableRelayInput,
-} from "./contract/relay.js";
 export { RotorConfigClient } from "./resources/rotor-config.js";
 export type { RotorRole, RotorCatalogEntry } from "./contract/rotors.js";
 export { OrgModelsClient } from "./resources/org-models.js";
 export { ModelsClient } from "./resources/models.js";
-export { AgentsClient } from "./resources/agents.js";
-export type {
-  Agent,
-  AgentSummary,
-  AgentScope,
-  AgentSelections,
-  AgentTask,
-  AgentTaskKind,
-  LiveAgent,
-  GuardrailsPolicy as AgentGuardrailsPolicy,
-  CreateAgentInput,
-  UpdateAgentInput,
-  CreateAgentTaskInput,
-  UpdateAgentTaskInput,
-} from "./contract/agents.js";
-export { SkillsClient } from "./resources/skills.js";
-export type {
-  Skill,
-  SkillSummary,
-  SkillManifest,
-  SkillIO,
-  CreateSkillInput,
-  UpdateSkillInput,
-} from "./contract/skills.js";
 export { GatewayClient } from "./resources/gateway.js";
-export { GuestClient } from "./resources/guest.js";
 export type {
   GatewayMessage,
   GatewayCompletionInput,
@@ -304,8 +141,6 @@ export type {
   MessageTurn,
   MessageTurnInput,
   ToolUse,
-  GuestToken,
-  GuestTurnInput,
 } from "./contract/gateway.js";
 export type {
   OrgModel,
@@ -355,12 +190,3 @@ export type {
   GuardrailsPolicy,
   Guardrails,
 } from "./contract/org.js";
-
-// ── App spec + validator — the one contract every app builder shares ────────
-export { GLYPHH_APP_SPEC } from "./app-spec/spec.js";
-export {
-  validateAppBundle, parseAppManifest, lintRemoteAssets,
-  checkCallTargets, checkCronExpressions, extractConnectorCalls,
-  KNOWN_CAPABILITIES,
-} from "./app-spec/validate.js";
-export type { AppBundle, AppValidationResult, ParsedAppManifest, AppManifestTool } from "./app-spec/validate.js";
