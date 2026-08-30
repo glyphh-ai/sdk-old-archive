@@ -74,9 +74,13 @@ export interface RunTurnOptions {
    *  runs it directly; a desktop-relay turn overrides the machine's own loop
    *  model with it (so the caller's picker wins). Absent → the executor's default. */
   model?: string;
-  /** The agent LOOP (rotor) id this turn runs. On a desktop-relay turn it overrides
-   *  the machine's own active loop, so the caller's loop pick (rover/memory/roles)
-   *  wins over the desktop's. Absent → the executor's active loop. */
+  /** The agent LOOP (rotor) id this turn runs. DESKTOP TARGET ONLY: a desktop-relay
+   *  turn forwards this to attach.run, overriding the machine's own active loop so
+   *  the caller's pick (rover/memory/roles) wins. On the CLOUD target it is a no-op —
+   *  the harness run body (HarnessRunBody) carries no `loop`, and the cloud loop is
+   *  resolved server-side by the harness proxy from the org's memory rotor (delivered
+   *  to the pod as the `memory` policy, not a per-turn loop id). Absent → the
+   *  executor's active loop. */
   loop?: string;
   permission?: string;
   images?: Array<{ mediaType: string; data: string }>;
@@ -124,12 +128,6 @@ export interface ClientOptions {
   onSignedOut?: () => void;
   /** A `gy_ak_` API key for headless use — bypasses the interactive session entirely. */
   apiKey?: string;
-  /** A `gy_wk_` APP WORKER SERVICE TOKEN (from `apps.mintWorkerToken`) — the
-   *  credential an rrotor pod's headless app worker sends as its bearer. Valid
-   *  ONLY on that one app's data planes (`apps.dataQuery`/`dataEmbed*`/
-   *  `dataGraph*`/`dataStatus`/`dataExport`) + `connections.run`; every other
-   *  surface will 401 by design. Ignored when `apiKey` is set. */
-  workerToken?: string;
   /** Request timeout in ms (default 30s). */
   timeoutMs?: number;
   /** Optional observability. No telemetry by default — silent unless you pass a sink. */
@@ -309,9 +307,9 @@ export function createClient(opts: ClientOptions): Client {
     ...(opts.refreshMarginMs !== undefined ? { refreshMarginMs: opts.refreshMarginMs } : {}),
     ...(opts.onSignedOut ? { onSignedOut: opts.onSignedOut } : {}),
   });
-  // Static credentials (an API key, or an app worker token) have no session to
-  // refresh; anything else rides the interactive session.
-  const staticCred = opts.apiKey ?? opts.workerToken;
+  // A static credential (an API key) has no session to refresh; anything else rides
+  // the interactive session.
+  const staticCred = opts.apiKey;
   const token: TokenProvider = staticCred ? staticTokenProvider(staticCred) : sessionTokenProvider(refresh);
   // Session clients recover a mid-call 401 with one forced refresh (a dead
   // refresh signs out); a static credential has nothing to refresh.
