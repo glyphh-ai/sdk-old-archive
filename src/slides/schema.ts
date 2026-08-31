@@ -6,7 +6,7 @@
  */
 
 import type { SlideSpec } from "./types.js";
-import { SLIDE_LAYOUTS, LAYOUT_NAMES } from "./layouts.js";
+import { SLIDE_LAYOUTS, LAYOUT_NAMES, UNIVERSAL_FIELDS } from "./layouts.js";
 import { SLIDE_THEMES } from "./theme.js";
 import { s } from "./util.js";
 
@@ -50,7 +50,10 @@ export function layoutCatalog(): Array<{ layout: string; summary: string; requir
     layout: l.name,
     summary: l.summary,
     required: l.schema.filter((f) => f.required).map((f) => f.key),
-    fields: l.schema.map((f) => `${f.key}${f.required ? "*" : ""} — ${f.doc}`),
+    // Layout-specific fields first, then the universal ones every layout takes
+    // (enter/fx/footer/notes) — documented once here so the model always sees
+    // the motion vocabulary next to the layout it's filling.
+    fields: [...l.schema, ...UNIVERSAL_FIELDS].map((f) => `${f.key}${f.required ? "*" : ""} — ${f.doc}`),
     sample: l.sample,
   }));
 }

@@ -95,5 +95,99 @@ export const SLIDE_BASE_CSS = `
 
 .gp-tag{display:inline-flex;align-items:center;gap:12px;align-self:flex-start;background:var(--slide-surface);border:1px solid var(--slide-border);border-radius:999px;padding:12px 26px;font:600 26px/1 var(--slide-font-body);color:var(--slide-muted);margin:0 0 34px}
 .gp-tag b{color:var(--slide-accent);font-weight:700}
-.gp-footer{position:absolute;left:var(--slide-pad);right:var(--slide-pad);bottom:56px;display:flex;justify-content:space-between;align-items:center;font:500 26px/1 var(--slide-font-body);color:var(--slide-muted)}
+#stage{counter-reset:gpslide}
+.slide{counter-increment:gpslide}
+.gp-footer{position:absolute;left:var(--slide-pad);right:var(--slide-pad);bottom:44px;display:flex;justify-content:space-between;align-items:center;font:500 24px/1 var(--slide-font-body);color:var(--slide-muted);letter-spacing:.02em;z-index:3}
+.gp-footer .gp-pagenum::after{content:counter(gpslide,decimal-leading-zero)}
+
+/* ── motion: slide-ENTRANCE animations ──────────────────────────────────────
+   A layout root carrying .gp-enter-<fx> replays its entrance every time its
+   slide becomes active (.slide.on re-matches the rule → the animation runs).
+   Applied via the universal \`enter\` field on any slide spec. */
+@keyframes gpFade{from{opacity:0}to{opacity:1}}
+@keyframes gpUp{from{opacity:0;transform:translateY(70px)}to{opacity:1;transform:none}}
+@keyframes gpDown{from{opacity:0;transform:translateY(-70px)}to{opacity:1;transform:none}}
+@keyframes gpLeft{from{opacity:0;transform:translateX(90px)}to{opacity:1;transform:none}}
+@keyframes gpRight{from{opacity:0;transform:translateX(-90px)}to{opacity:1;transform:none}}
+@keyframes gpZoom{from{opacity:0;transform:scale(.86)}to{opacity:1;transform:none}}
+@keyframes gpZoomOut{from{opacity:0;transform:scale(1.15)}to{opacity:1;transform:none}}
+@keyframes gpBlurIn{from{opacity:0;filter:blur(20px)}to{opacity:1;filter:none}}
+@keyframes gpRise{from{opacity:0;transform:translateY(160px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes gpWipe{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+@keyframes gpPop{0%{opacity:0;transform:scale(.7)}70%{opacity:1;transform:scale(1.04)}100%{opacity:1;transform:none}}
+@keyframes gpKenBurns{from{transform:scale(1)}to{transform:scale(1.09)}}
+.slide.on .gp-enter-fade{animation:gpFade .8s ease both}
+.slide.on .gp-enter-up{animation:gpUp .75s cubic-bezier(.22,1,.36,1) both}
+.slide.on .gp-enter-down{animation:gpDown .75s cubic-bezier(.22,1,.36,1) both}
+.slide.on .gp-enter-left{animation:gpLeft .75s cubic-bezier(.22,1,.36,1) both}
+.slide.on .gp-enter-right{animation:gpRight .75s cubic-bezier(.22,1,.36,1) both}
+.slide.on .gp-enter-zoom{animation:gpZoom .8s cubic-bezier(.22,1,.36,1) both}
+.slide.on .gp-enter-zoom-out{animation:gpZoomOut .8s cubic-bezier(.22,1,.36,1) both}
+.slide.on .gp-enter-blur{animation:gpBlurIn .9s ease both}
+.slide.on .gp-enter-rise{animation:gpRise .9s cubic-bezier(.22,1,.36,1) both}
+.slide.on .gp-enter-wipe{animation:gpWipe .9s cubic-bezier(.6,.05,.2,1) both}
+.slide.on .gp-enter-pop{animation:gpPop .7s cubic-bezier(.34,1.56,.64,1) both}
+.slide.on .gp-kenburns{animation:gpKenBurns 16s ease-out both}
+
+/* ── motion: per-FRAGMENT reveal effects ────────────────────────────────────
+   The shell reveals .frag on advance (adds .show). data-fx picks the hidden
+   pose; the shared transition carries it home. Default (no data-fx) keeps the
+   classic fade-up. Set via the universal \`fx\` field (or per-item \`fx\`). */
+.frag[data-fx]{transition:opacity .55s ease,transform .6s cubic-bezier(.22,1,.36,1),filter .55s ease,clip-path .6s cubic-bezier(.6,.05,.2,1)}
+.frag[data-fx="fade"]{transform:none}
+.frag[data-fx="up"]{transform:translateY(56px)}
+.frag[data-fx="down"]{transform:translateY(-44px)}
+.frag[data-fx="left"]{transform:translateX(80px)}
+.frag[data-fx="right"]{transform:translateX(-80px)}
+.frag[data-fx="zoom"]{transform:scale(.84)}
+.frag[data-fx="zoom-out"]{transform:scale(1.16)}
+.frag[data-fx="blur"]{transform:none;filter:blur(16px)}
+.slide.on .frag[data-fx="blur"].show{filter:none}
+.frag[data-fx="rise"]{transform:translateY(130px)}
+.frag[data-fx="wipe"]{transform:none;clip-path:inset(0 100% 0 0);opacity:1}
+.slide.on .frag[data-fx="wipe"].show{clip-path:inset(0 0 0 0)}
+.frag[data-fx="pop"]{transform:scale(.7);transition-timing-function:ease,cubic-bezier(.34,1.56,.64,1),ease,ease}
+
+/* ── hero: edge-bleed media one side, content the other ───────────────────── */
+.gp-heromedia{position:absolute;top:0;bottom:0;width:47%;background:var(--slide-surface) center/cover no-repeat;z-index:0}
+.gp-heromedia.left{left:0}
+.gp-heromedia.right{right:0}
+.gp-frame.gp-hero{z-index:1}
+.gp-frame.gp-hero.media-left{padding-left:calc(47% + 96px)}
+.gp-frame.gp-hero.media-right{padding-right:calc(47% + 96px)}
+.gp-logoimg{max-height:120px;max-width:560px;object-fit:contain;object-position:left;align-self:flex-start;margin:0 0 48px;display:block}
+.gp-frame.center .gp-logoimg{align-self:center;object-position:center}
+.gp-cta{display:inline-flex;align-self:flex-start;background:var(--slide-accent);color:var(--slide-bg);border-radius:14px;padding:22px 44px;font:700 30px/1 var(--slide-font-body);margin-top:52px}
+.gp-frame.center .gp-cta{align-self:center}
+
+/* ── image: contained media scaled to fit (logos, diagrams, screenshots) ──── */
+.gp-imagewrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+.gp-imagewrap img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+.gp-imagewrap.framed img{border-radius:var(--slide-radius);box-shadow:0 40px 120px rgba(0,0,0,.35)}
+.gp-caption{font:400 28px/1.4 var(--slide-font-body);color:var(--slide-muted);margin:30px 0 0;text-align:center}
+
+/* ── gallery: a grid of shots with optional captions ──────────────────────── */
+.gp-gallery{display:grid;gap:36px;flex:1;min-height:0;margin-top:44px;align-items:stretch}
+.gp-shot{display:flex;flex-direction:column;gap:16px;min-height:0}
+.gp-shot .gp-mediabox{min-height:0;flex:1}
+.gp-shot p{font:400 26px/1.35 var(--slide-font-body);color:var(--slide-muted);margin:0;text-align:center}
+
+/* ── logo wall: "trusted by" tiles ────────────────────────────────────────── */
+.gp-logos{display:grid;grid-template-columns:repeat(4,1fr);gap:40px;flex:1;align-content:center;margin-top:40px}
+.gp-logos .cell{height:190px;border-radius:var(--slide-radius);background:var(--slide-surface);border:1px solid var(--slide-border);display:flex;align-items:center;justify-content:center;padding:38px;box-sizing:border-box}
+.gp-logos .cell img{max-width:100%;max-height:100%;object-fit:contain}
+
+/* ── split: two color-blocked half-panes ──────────────────────────────────── */
+.gp-splitpane{position:absolute;top:0;bottom:0;width:50%;display:flex;flex-direction:column;justify-content:center;padding:var(--slide-pad);box-sizing:border-box;overflow:hidden}
+.gp-splitpane.left{left:0}
+.gp-splitpane.right{right:0}
+.gp-splitpane.tone-surface{background:var(--slide-surface)}
+.gp-splitpane.tone-accent{background:var(--slide-accent)}
+.gp-splitpane.tone-accent .gp-title,.gp-splitpane.tone-accent .gp-body,.gp-splitpane.tone-accent .gp-colhead,.gp-splitpane.tone-accent .gp-bullets li{color:var(--slide-bg)}
+.gp-splitpane.tone-accent .gp-bullets li::before{background:var(--slide-bg)}
+.gp-splitpane .gp-splitmedia{position:absolute;inset:0;background:center/cover no-repeat}
+
+/* ── statement: one massive line ──────────────────────────────────────────── */
+.gp-statement{font:800 138px/1.04 var(--slide-font-display);letter-spacing:-.03em;color:var(--slide-fg);margin:0;max-width:1720px}
+.gp-statement .gp-accent{color:var(--slide-accent)}
 `.trim();

@@ -10,27 +10,57 @@
  * shell's `.frag` mechanism (elements marked `frag` appear on advance).
  */
 
-import type { FieldSchema, LayoutFn, LayoutSpec, RenderCtx } from "./types.js";
+import type { FieldSchema, LayoutFn, LayoutSpec, RenderCtx, SlideSpec } from "./types.js";
 import { esc, s, list, rows, hasMedia } from "./util.js";
 import { renderSlideChart, type SlideChartType } from "./chart-svg.js";
 
 // ── small emit helpers ───────────────────────────────────────────────────────
 const eyebrow = (v: unknown): string => (s(v) ? `<p class="gp-eyebrow">${esc(v)}</p>` : "");
 const rule = (): string => `<div class="gp-rule"></div>`;
-/** Reveal-on-advance wrapper (build step i). */
-const frag = (i: number, html: string): string => html.replace(/^<(\w+)/, `<$1 class="frag" data-step="${i}"`);
+
+/** The motion vocabulary — every name has matching CSS in base-css.ts. */
+export const MOTION_FX = ["fade", "up", "down", "left", "right", "zoom", "zoom-out", "blur", "rise", "wipe", "pop"] as const;
+const FX = new Set<string>(MOTION_FX);
+
+/** The slide-entrance class for a spec's universal `enter` field. */
+const enterCls = (c: SlideSpec): string => {
+  const e = s(c.enter);
+  return e && FX.has(e) ? ` gp-enter-${e}` : "";
+};
+/** The fragment effect from the first valid candidate (per-item fx → spec fx). */
+const fxOf = (...vals: unknown[]): string | undefined => {
+  for (const v of vals) { const f = s(v); if (f && FX.has(f)) return f; }
+  return undefined;
+};
+
+/** Reveal-on-advance wrapper (build step i, optional per-fragment effect).
+ *  Injects into the first real tag — merging with an existing class attribute
+ *  and tolerating leading whitespace. (The old regex required the string to
+ *  START with `<`, so indented fragments — cards, team, timeline — silently
+ *  never became build steps, and an existing class attr was shadowed.) */
+const frag = (i: number, html: string, fx?: string): string => {
+  const fxAttr = fx && FX.has(fx) ? ` data-fx="${fx}"` : "";
+  return html.replace(/^(\s*)<(\w+)((?:[^>"']|"[^"]*"|'[^']*')*?)>/, (_m, ws: string, tag: string, attrs: string) => {
+    const withClass = /class="/.test(attrs) ? attrs.replace(/class="/, `class="frag `) : `${attrs} class="frag"`;
+    return `${ws}<${tag}${withClass} data-step="${i}"${fxAttr}>`;
+  });
+};
 
 // ── layouts ──────────────────────────────────────────────────────────────────
 
-const title: LayoutFn = (c) => `
-<div class="gp-frame center">
+const title: LayoutFn = (c, ctx) => {
+  const logo = ctx.media(c.logo);
+  return `
+<div class="gp-frame center${enterCls(c)}">
+  ${logo ? `<img class="gp-logoimg" src="${logo}" alt="" />` : ""}
   ${eyebrow(c.eyebrow)}
   <h1 class="gp-title lg">${esc(c.title)}</h1>
   ${s(c.subtitle) ? `<p class="gp-sub frag" data-step="1">${esc(c.subtitle)}</p>` : ""}
 </div>`;
+};
 
 const sectionDivider: LayoutFn = (c) => `
-<div class="gp-frame">
+<div class="gp-frame${enterCls(c)}">
   ${s(c.number) ? `<p class="gp-kicker">${esc(c.number)}</p>` : ""}
   ${rule()}
   <h1 class="gp-title">${esc(c.title)}</h1>
@@ -38,9 +68,10 @@ const sectionDivider: LayoutFn = (c) => `
 </div>`;
 
 const bullets: LayoutFn = (c) => {
-  const items = list(c.points).map((p, i) => frag(i + 1, `<li>${inline(p)}</li>`)).join("");
+  const fx = fxOf(c.fx);
+  const items = list(c.points).map((p, i) => frag(i + 1, `<li>${inline(p)}</li>`, fx)).join("");
   return `
-<div class="gp-frame top" style="justify-content:center">
+<div class="gp-frame top${enterCls(c)}" style="justify-content:center">
   ${eyebrow(c.eyebrow)}
   <h2 class="gp-title sm">${esc(c.title)}</h2>
   <ul class="gp-bullets ${c.style === "check" ? "check" : ""}">${items}</ul>
@@ -54,7 +85,7 @@ const twoColumn: LayoutFn = (c) => {
       ${colBody(body)}
     </div>`;
   return `
-<div class="gp-frame top" style="justify-content:center">
+<div class="gp-frame top${enterCls(c)}" style="justify-content:center">
   ${eyebrow(c.eyebrow)}
   ${s(c.title) ? `<h2 class="gp-title sm" style="margin-bottom:20px">${esc(c.title)}</h2>` : ""}
   <div class="gp-grid2">
@@ -74,13 +105,13 @@ const imageSide = (side: "left" | "right"): LayoutFn => (c, ctx) => {
     </div>`;
   const order = side === "left" ? [media, text] : [text, media];
   return `
-<div class="gp-frame" style="padding-block:var(--slide-pad)">
+<div class="gp-frame${enterCls(c)}" style="padding-block:var(--slide-pad)">
   <div class="gp-grid2 media">${order.join("")}</div>
 </div>`;
 };
 
 const quote: LayoutFn = (c) => `
-<div class="gp-frame">
+<div class="gp-frame${enterCls(c)}">
   <blockquote class="gp-quote"><span class="mark">“</span>${esc(c.quote ?? c.text)}<span class="mark">”</span></blockquote>
   ${s(c.attribution ?? c.author) ? `<p class="gp-cite">— <b>${esc(c.attribution ?? c.author)}</b>${s(c.role) ? `, ${esc(c.role)}` : ""}</p>` : ""}
 </div>`;
@@ -94,13 +125,13 @@ const bigStat: LayoutFn = (c) => {
         <p class="gp-statlabel">${esc(st.label)}</p>
       </div>`).join("");
     return `
-<div class="gp-frame">
+<div class="gp-frame${enterCls(c)}">
   ${s(c.title) ? `<h2 class="gp-title sm" style="margin-bottom:20px">${esc(c.title)}</h2>` : ""}
   <div class="gp-stats-row">${cells}</div>
 </div>`;
   }
   return `
-<div class="gp-frame center">
+<div class="gp-frame center${enterCls(c)}">
   <p class="gp-stat">${esc(c.stat ?? c.value)}</p>
   <p class="gp-statlabel">${esc(c.label)}</p>
   ${s(c.caption) ? `<p class="gp-statcap">${esc(c.caption)}</p>` : ""}
@@ -109,15 +140,16 @@ const bigStat: LayoutFn = (c) => {
 
 const cards: LayoutFn = (c) => {
   const items = rows(c.cards ?? c.items);
+  const fx = fxOf(c.fx) ?? "up";
   const wide = items.length <= 2 && items.length > 0 ? "gp-grid2c" : "gp-grid3";
   const cells = items.slice(0, 6).map((it, i) => frag(i + 1, `
     <div class="gp-card">
       ${s(it.label ?? it.number) ? `<p class="gp-cardnum">${esc(it.label ?? it.number)}</p>` : ""}
       <h3>${esc(it.title ?? it.heading)}</h3>
       ${s(it.body ?? it.text) ? `<p>${esc(it.body ?? it.text)}</p>` : ""}
-    </div>`)).join("");
+    </div>`, fxOf(it.fx) ?? fx)).join("");
   return `
-<div class="gp-frame top" style="justify-content:center">
+<div class="gp-frame top${enterCls(c)}" style="justify-content:center">
   ${eyebrow(c.eyebrow)}
   ${s(c.title) ? `<h2 class="gp-title sm" style="margin-bottom:44px">${esc(c.title)}</h2>` : ""}
   <div class="${wide}">${cells}</div>
@@ -137,7 +169,7 @@ const comparison: LayoutFn = (c) => {
       </div>`;
   };
   return `
-<div class="gp-frame top" style="justify-content:center">
+<div class="gp-frame top${enterCls(c)}" style="justify-content:center">
   ${eyebrow(c.eyebrow)}
   ${s(c.title) ? `<h2 class="gp-title sm" style="margin-bottom:40px">${esc(c.title)}</h2>` : ""}
   <div class="gp-grid2c">
@@ -149,14 +181,15 @@ const comparison: LayoutFn = (c) => {
 
 const timeline: LayoutFn = (c) => {
   const items = rows(c.items ?? c.milestones).slice(0, 5);
+  const fx = fxOf(c.fx) ?? "left";
   const cells = items.map((it, i) => frag(i + 1, `
     <div class="gp-tl">
       <p class="date">${esc(it.date ?? it.when)}</p>
       <p class="label">${esc(it.label ?? it.title)}</p>
       ${s(it.note ?? it.body) ? `<p class="note">${esc(it.note ?? it.body)}</p>` : ""}
-    </div>`)).join("");
+    </div>`, fxOf(it.fx) ?? fx)).join("");
   return `
-<div class="gp-frame top" style="justify-content:center">
+<div class="gp-frame top${enterCls(c)}" style="justify-content:center">
   ${eyebrow(c.eyebrow)}
   <h2 class="gp-title sm">${esc(c.title)}</h2>
   <div class="gp-timeline">${cells}</div>
@@ -169,10 +202,10 @@ const agenda: LayoutFn = (c) => {
     const parts = it.split(/\s+—\s+|\s+-\s+/);
     const main = parts[0] ?? it;
     const sub = parts.slice(1).join(" — ");
-    return frag(i + 1, `<li>${esc(main)}${sub ? `<span class="sub">${esc(sub)}</span>` : ""}</li>`);
+    return frag(i + 1, `<li>${esc(main)}${sub ? `<span class="sub">${esc(sub)}</span>` : ""}</li>`, fxOf(c.fx));
   }).join("");
   return `
-<div class="gp-frame top" style="justify-content:center">
+<div class="gp-frame top${enterCls(c)}" style="justify-content:center">
   ${eyebrow(c.eyebrow ?? "Agenda")}
   ${s(c.title) ? `<h2 class="gp-title sm">${esc(c.title)}</h2>` : ""}
   <ol class="gp-agenda">${li}</ol>
@@ -183,7 +216,7 @@ const chart: LayoutFn = (c) => {
   const type = (["bar", "line", "area", "pie"].includes(String(c.chartType)) ? c.chartType : "bar") as SlideChartType;
   const svg = renderSlideChart(type, c.series ?? c.data ?? c.points);
   return `
-<div class="gp-frame top" style="justify-content:center">
+<div class="gp-frame top${enterCls(c)}" style="justify-content:center">
   ${eyebrow(c.eyebrow)}
   <h2 class="gp-title sm">${esc(c.title)}</h2>
   <div class="gp-chart">${svg || `<p class="gp-sub">No data.</p>`}</div>
@@ -192,7 +225,7 @@ const chart: LayoutFn = (c) => {
 };
 
 const code: LayoutFn = (c) => `
-<div class="gp-frame top" style="justify-content:center">
+<div class="gp-frame top${enterCls(c)}" style="justify-content:center">
   ${eyebrow(c.eyebrow ?? (s(c.language) ? String(c.language) : ""))}
   ${s(c.title) ? `<h2 class="gp-title sm">${esc(c.title)}</h2>` : ""}
   <pre class="gp-code">${esc(c.code ?? c.body)}</pre>
@@ -202,18 +235,129 @@ const code: LayoutFn = (c) => `
 const fullBleedImage: LayoutFn = (c, ctx) => {
   const bg = ctx.media(c.media ?? c.image);
   const fill = bg ? `background-image:url(${bg})` : "";
+  const hasText = s(c.title) || s(c.subtitle) || s(c.eyebrow);
+  // No text → no scrim, no frame: the artwork carries the slide bare.
+  // scrim:false forces the scrim off even with text (readable art).
+  const scrim = hasText && c.scrim !== false ? `<div class="gp-scrim"></div>` : "";
+  const kb = c.kenburns ? " gp-kenburns" : "";
   return `
-<div class="gp-fill" style="${fill}"></div>
-<div class="gp-scrim"></div>
-<div class="gp-frame">
+<div class="gp-fill${kb}" style="${fill}"></div>
+${scrim}
+${hasText ? `<div class="gp-frame${enterCls(c)}">
   ${eyebrow(c.eyebrow)}
   <h1 class="gp-title">${esc(c.title)}</h1>
+  ${s(c.subtitle) ? `<p class="gp-sub">${esc(c.subtitle)}</p>` : ""}
+</div>` : ""}`;
+};
+
+// ── the GO-BIG layouts ───────────────────────────────────────────────────────
+
+/** The marquee: edge-bleed media one side, content the other (his ask:
+ *  "image left, text right for the hero"). Optional logo + CTA chip. */
+const hero: LayoutFn = (c, ctx) => {
+  const side = c.side === "right" ? "right" : "left";
+  const bg = ctx.media(c.media ?? c.image);
+  const logo = ctx.media(c.logo);
+  return `
+<div class="gp-heromedia ${side}${c.kenburns ? " gp-kenburns" : ""}" style="${bg ? `background-image:url(${bg})` : ""}"></div>
+<div class="gp-frame gp-hero media-${side}${enterCls(c)}">
+  ${logo ? `<img class="gp-logoimg" src="${logo}" alt="" />` : ""}
+  ${eyebrow(c.eyebrow)}
+  <h1 class="gp-title">${esc(c.title)}</h1>
+  ${s(c.subtitle) ? `<p class="gp-sub">${esc(c.subtitle)}</p>` : ""}
+  ${s(c.cta) ? `<span class="gp-cta frag" data-step="1">${esc(c.cta)}</span>` : ""}
+</div>`;
+};
+
+/** A bare contained image, scaled to fit — logos, diagrams, screenshots.
+ *  The whole-artwork slide the deck engine never had. */
+const image: LayoutFn = (c, ctx) => {
+  const src = ctx.media(c.media ?? c.image);
+  const framed = c.framed ? " framed" : "";
+  return `
+<div class="gp-frame${enterCls(c)}">
+  ${s(c.title) ? `${eyebrow(c.eyebrow)}<h2 class="gp-title sm" style="margin-bottom:36px">${esc(c.title)}</h2>` : ""}
+  <div class="gp-imagewrap${framed}">${src ? `<img src="${src}" alt="" />` : `<div class="gp-mediabox"></div>`}</div>
+  ${s(c.caption) ? `<p class="gp-caption">${esc(c.caption)}</p>` : ""}
+</div>`;
+};
+
+/** A grid of shots with optional captions (2–6 images). */
+const gallery: LayoutFn = (c, ctx) => {
+  const shots = rows(c.images ?? c.items).slice(0, 6);
+  const cols = Math.min(Math.max(Number(c.columns) || (shots.length <= 2 ? shots.length : shots.length <= 4 ? 2 : 3), 1), 3);
+  const fx = fxOf(c.fx) ?? "zoom";
+  const cells = shots.map((it, i) => {
+    const url = ctx.media(it.media ?? it.image);
+    return frag(i + 1, `
+    <div class="gp-shot">
+      <div class="gp-mediabox" style="${url ? `background-image:url(${url})` : ""}"></div>
+      ${s(it.caption) ? `<p>${esc(it.caption)}</p>` : ""}
+    </div>`, fxOf(it.fx) ?? fx);
+  }).join("");
+  return `
+<div class="gp-frame top${enterCls(c)}" style="justify-content:center">
+  ${eyebrow(c.eyebrow)}
+  ${s(c.title) ? `<h2 class="gp-title sm">${esc(c.title)}</h2>` : ""}
+  <div class="gp-gallery" style="grid-template-columns:repeat(${cols},1fr)">${cells}</div>
+</div>`;
+};
+
+/** A "trusted by" wall of logo tiles (up to 12). */
+const logoWall: LayoutFn = (c, ctx) => {
+  const logos = list(c.logos).slice(0, 12);
+  const fx = fxOf(c.fx) ?? "pop";
+  const cells = logos.map((id, i) => {
+    const url = ctx.media(id);
+    return frag(i + 1, `<div class="cell">${url ? `<img src="${url}" alt="" />` : ""}</div>`, fx);
+  }).join("");
+  return `
+<div class="gp-frame top${enterCls(c)}" style="justify-content:center">
+  ${eyebrow(c.eyebrow)}
+  ${s(c.title) ? `<h2 class="gp-title sm">${esc(c.title)}</h2>` : ""}
+  <div class="gp-logos">${cells}</div>
+</div>`;
+};
+
+/** Two color-blocked half-panes — a statement side vs a content side. */
+const split: LayoutFn = (c, ctx) => {
+  const pane = (v: unknown, sideCls: string): string => {
+    const o = (v ?? {}) as Record<string, unknown>;
+    const tone = o.tone === "accent" ? " tone-accent" : o.tone === "surface" ? " tone-surface" : "";
+    const media = ctx.media(o.media ?? o.image);
+    if (media) return `<div class="gp-splitpane ${sideCls}"><div class="gp-splitmedia" style="background-image:url(${media})"></div></div>`;
+    return `
+    <div class="gp-splitpane ${sideCls}${tone}">
+      ${s(o.heading) ? `<h2 class="gp-title sm" style="margin-bottom:26px">${esc(o.heading)}</h2>` : ""}
+      ${colBody(o.body ?? o.points)}
+    </div>`;
+  };
+  return `${pane(c.left, `left${enterCls(c) ? " gp-enter-left" : ""}`)}${pane(c.right, `right${enterCls(c) ? " gp-enter-right" : ""}`)}`;
+};
+
+/** One massive line. `**word**` renders in the accent color. */
+const statement: LayoutFn = (c) => {
+  const text = esc(c.text ?? c.title).replace(/\*\*([^*]+)\*\*/g, `<span class="gp-accent">$1</span>`);
+  return `
+<div class="gp-frame${c.align === "center" ? " center" : ""}${enterCls(c)}">
+  ${eyebrow(c.eyebrow)}
+  <p class="gp-statement">${text}</p>
   ${s(c.subtitle) ? `<p class="gp-sub">${esc(c.subtitle)}</p>` : ""}
 </div>`;
 };
 
+/** FULLY CUSTOM: raw HTML + optional CSS, with the whole animation contract
+ *  open. The structure lock scopes the CSS to this slide and passes
+ *  @keyframes through verbatim, so anything authored here keeps the deck safe. */
+const custom: LayoutFn = (c) => {
+  // A </style> in the css would break out of the tag — neutralize it.
+  const css = s(c.css).replace(/<\s*\/\s*style/gi, "");
+  return `${css ? `<style>${css}</style>` : ""}${s(c.html) || `<div class="gp-frame center"><p class="gp-sub">Empty slide.</p></div>`}`;
+};
+
 const team: LayoutFn = (c) => {
   const people = rows(c.members ?? c.people).slice(0, 8);
+  const fx = fxOf(c.fx) ?? "pop";
   const cells = people.map((m, i) => {
     const av = m.photo ?? m.avatar ?? m.media;
     // ctx isn't threaded into map easily; use token directly via hasMedia guard
@@ -223,22 +367,25 @@ const team: LayoutFn = (c) => {
       <div class="gp-avatar" style="${bg}"></div>
       <p class="name">${esc(m.name)}</p>
       <p class="role">${esc(m.role ?? m.title)}</p>
-    </div>`);
+    </div>`, fxOf(m.fx) ?? fx);
   }).join("");
   return `
-<div class="gp-frame top" style="justify-content:center">
+<div class="gp-frame top${enterCls(c)}" style="justify-content:center">
   ${eyebrow(c.eyebrow)}
   <h2 class="gp-title sm">${esc(c.title)}</h2>
   <div class="gp-team">${cells}</div>
 </div>`;
 };
 
-const closing: LayoutFn = (c) => `
-<div class="gp-frame center">
-  ${rule()}
+const closing: LayoutFn = (c, ctx) => {
+  const logo = ctx.media(c.logo);
+  return `
+<div class="gp-frame center${enterCls(c)}">
+  ${logo ? `<img class="gp-logoimg" src="${logo}" alt="" />` : rule()}
   <h1 class="gp-title lg">${esc(c.title ?? "Thank you")}</h1>
   ${s(c.subtitle ?? c.contact) ? `<p class="gp-sub">${esc(c.subtitle ?? c.contact)}</p>` : ""}
 </div>`;
+};
 
 /** Escape hatch: raw content. Still passes through the structure lock. */
 const blank: LayoutFn = (c) => s(c.html) || `<div class="gp-frame center"><p class="gp-sub">Empty slide.</p></div>`;
@@ -274,12 +421,57 @@ function f(key: string, type: FieldSchema["type"], doc: string, required = false
   return { key, type, required, doc };
 }
 
+/** Universal fields honoured by EVERY layout (documented once, appended to
+ *  each catalog entry by layoutCatalog). */
+export const UNIVERSAL_FIELDS: FieldSchema[] = [
+  f("enter", "text", `Slide-entrance animation, replays each time the slide shows: ${MOTION_FX.join(" | ")}.`),
+  f("fx", "text", `Reveal effect for this slide's build-step fragments (bullets/cards/etc; per-item "fx" overrides): ${MOTION_FX.join(" | ")}.`),
+  f("footer", "text", "Footer line for this slide (left text + auto page number right). Omit for chrome-free slides."),
+  f("notes", "text", "Speaker notes (presenter view only)."),
+];
+
 export const SLIDE_LAYOUTS: Record<string, LayoutSpec> = {
   title: {
-    name: "title", summary: "Opening / cover slide: big centered title, optional eyebrow + subtitle.",
+    name: "title", summary: "Opening / cover slide: big centered title, optional logo, eyebrow + subtitle.",
     render: title,
-    schema: [f("title", "text", "The deck's headline.", true), f("subtitle", "text", "One supporting line."), f("eyebrow", "text", "Small label above the title (e.g. company or date).")],
-    sample: { layout: "title", eyebrow: "Q3 REVIEW", title: "Building the future of work", subtitle: "How we tripled activation in 90 days" },
+    schema: [f("title", "text", "The deck's headline.", true), f("subtitle", "text", "One supporting line."), f("eyebrow", "text", "Small label above the title (e.g. company or date)."), f("logo", "media", "Media-library asset id for a logo above the title, scaled to fit.")],
+    sample: { layout: "title", eyebrow: "Q3 REVIEW", title: "Building the future of work", subtitle: "How we tripled activation in 90 days", enter: "rise" },
+  },
+  hero: {
+    name: "hero", summary: "The marquee: edge-bleed image one side, big title + subtitle (+logo, +CTA chip) the other.",
+    render: hero,
+    schema: [f("title", "text", "The headline.", true), f("media", "media", "Media-library asset id for the bleed image."), f("side", "text", "'left' (default) or 'right' — which side the image bleeds on."), f("subtitle", "text", "Supporting line."), f("eyebrow", "text", "Small label."), f("logo", "media", "Logo asset id shown above the title."), f("cta", "text", "A call-to-action chip (revealed on advance)."), f("kenburns", "boolean", "Slow Ken-Burns zoom on the image.")],
+    sample: { layout: "hero", media: "asset_123", side: "left", title: "What's your superpower?", subtitle: "Direct every model and tool you've got.", cta: "glyphh.ai", enter: "up" },
+  },
+  image: {
+    name: "image", summary: "One image scaled to FIT (contained, never cropped) — logos, diagrams, screenshots. Optional title/caption; nothing else on the slide.",
+    render: image,
+    schema: [f("media", "media", "Media-library asset id.", true), f("title", "text", "Optional heading above."), f("caption", "text", "Optional line under the image."), f("eyebrow", "text", "Small label."), f("framed", "boolean", "Rounded corners + shadow around the image.")],
+    sample: { layout: "image", media: "asset_logo", enter: "zoom" },
+  },
+  gallery: {
+    name: "gallery", summary: "A grid of 2–6 images with optional captions, revealed in sequence.",
+    render: gallery,
+    schema: [f("images", "items", "[{media, caption?, fx?}] — up to 6.", true), f("title", "text", "Optional heading."), f("columns", "number", "Force a column count (1–3)."), f("eyebrow", "text", "Small label.")],
+    sample: { layout: "gallery", title: "In the wild", images: [{ media: "asset_1", caption: "Desktop" }, { media: "asset_2", caption: "Mobile" }] },
+  },
+  "logo-wall": {
+    name: "logo-wall", summary: "A 'trusted by' wall of logo tiles (up to 12), popping in one by one.",
+    render: logoWall,
+    schema: [f("logos", "list", "Media-library asset ids (array), up to 12.", true), f("title", "text", "Optional heading."), f("eyebrow", "text", "Small label (e.g. 'TRUSTED BY').")],
+    sample: { layout: "logo-wall", eyebrow: "TRUSTED BY", logos: ["asset_a", "asset_b", "asset_c"] },
+  },
+  split: {
+    name: "split", summary: "Two color-blocked half-panes: each is {heading?, body?, tone?: 'accent'|'surface'} or {media} for a full-bleed image half.",
+    render: split,
+    schema: [f("left", "text", "{heading?, body?|points?, tone?} or {media} for the left half.", true), f("right", "text", "Same shape for the right half.", true)],
+    sample: { layout: "split", left: { heading: "Before", body: ["Manual", "Fragile"], tone: "surface" }, right: { heading: "After", body: ["Automated", "Governed"], tone: "accent" } },
+  },
+  statement: {
+    name: "statement", summary: "One massive line — a manifesto beat. **word** renders in the accent color.",
+    render: statement,
+    schema: [f("text", "text", "The line. **bold** spans take the accent color.", true), f("subtitle", "text", "A quieter follow-on line."), f("eyebrow", "text", "Small label."), f("align", "text", "'center' centers it (default left).")],
+    sample: { layout: "statement", text: "We put the **human** back in intelligence.", enter: "blur" },
   },
   "section-divider": {
     name: "section-divider", summary: "Chapter break: accent rule, big title, optional number + subtitle.",
@@ -360,10 +552,10 @@ export const SLIDE_LAYOUTS: Record<string, LayoutSpec> = {
     sample: { layout: "code", title: "Call the API", language: "TypeScript", code: "const deck = await client.officeSlides.get('q3.html');" },
   },
   "full-bleed-image": {
-    name: "full-bleed-image", summary: "Edge-to-edge background image with a title overlaid on a scrim.",
+    name: "full-bleed-image", summary: "Edge-to-edge background image. Text is OPTIONAL — with no title/subtitle the artwork runs bare (no scrim).",
     render: fullBleedImage,
-    schema: [f("media", "media", "Media-library asset id for the background.", true), f("title", "text", "Overlaid headline.", true), f("subtitle", "text", "Overlaid supporting line."), f("eyebrow", "text", "Small overlaid label.")],
-    sample: { layout: "full-bleed-image", media: "asset_bg", title: "Made for teams", subtitle: "From day one" },
+    schema: [f("media", "media", "Media-library asset id for the background.", true), f("title", "text", "Overlaid headline (omit for a bare image slide)."), f("subtitle", "text", "Overlaid supporting line."), f("eyebrow", "text", "Small overlaid label."), f("scrim", "boolean", "false disables the text scrim."), f("kenburns", "boolean", "Slow Ken-Burns zoom on the image.")],
+    sample: { layout: "full-bleed-image", media: "asset_bg", kenburns: true },
   },
   team: {
     name: "team", summary: "A grid of people (photo, name, role) — up to 8.",
@@ -372,13 +564,23 @@ export const SLIDE_LAYOUTS: Record<string, LayoutSpec> = {
     sample: { layout: "team", title: "The team", members: [{ name: "Ada", role: "Engineering" }, { name: "Chris", role: "Product" }] },
   },
   closing: {
-    name: "closing", summary: "A closing / thank-you slide with an optional contact line.",
+    name: "closing", summary: "A closing / thank-you slide with an optional logo + contact line.",
     render: closing,
-    schema: [f("title", "text", "Defaults to 'Thank you'."), f("subtitle", "text", "A closing line."), f("contact", "text", "Email / URL / handle.")],
-    sample: { layout: "closing", title: "Let's build", contact: "hello@glyphh.ai" },
+    schema: [f("title", "text", "Defaults to 'Thank you'."), f("subtitle", "text", "A closing line."), f("contact", "text", "Email / URL / handle."), f("logo", "media", "Logo asset id above the title (replaces the accent rule).")],
+    sample: { layout: "closing", title: "Let's build", contact: "hello@glyphh.ai", enter: "fade" },
+  },
+  custom: {
+    name: "custom",
+    summary: "FULLY CUSTOM slide: your own HTML + CSS + animations on the 1920×1080 stage. The CSS is scoped to this slide; @keyframes work. Use the gp-* classes for the theme's look, or go completely your own way.",
+    render: custom,
+    schema: [
+      f("html", "richtext", "Raw inner HTML for the slide. The stage is a fixed 1920×1080 canvas; position absolutely or use .gp-frame (inset:0, themed padding). Theme classes available: gp-title/gp-sub/gp-eyebrow/gp-bullets/gp-card/gp-frame + var(--slide-bg/fg/muted/accent/surface/border). Build steps: class=\"frag\" data-step=\"1\" (+ optional data-fx=\"up|zoom|…\") reveal on advance. NO <script>/<iframe> (stripped); position:fixed becomes absolute.", true),
+      f("css", "richtext", "CSS for this slide only (auto-scoped — it can't leak). @keyframes pass through, so author any animation; animations tied to .slide.on replay each time the slide shows."),
+    ],
+    sample: { layout: "custom", html: "<div class=\"gp-frame center\"><h1 class=\"gp-title spin\">Custom</h1></div>", css: "@keyframes spin{to{transform:rotate(360deg)}} .spin{animation:spin 4s linear infinite}" },
   },
   blank: {
-    name: "blank", summary: "Escape hatch — raw slide HTML when no layout fits (still structure-locked).",
+    name: "blank", summary: "Escape hatch — raw slide HTML when no layout fits (still structure-locked). Prefer `custom`, which also takes CSS.",
     render: blank,
     schema: [f("html", "richtext", "Raw inner HTML for the section.", true)],
     sample: { layout: "blank", html: "<div class=\"gp-frame center\"><h1 class=\"gp-title\">Custom</h1></div>" },

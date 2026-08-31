@@ -40,7 +40,12 @@ function renderOneSection(spec: SlideSpec): string {
   const inner = layout.render(spec, ctx);
   const notes = s(spec.notes) ? ` data-notes="${esc(spec.notes)}"` : "";
   const hidden = spec.hidden ? ` data-gp-hidden="1"` : "";
-  return `<section class="slide"${hidden}${notes}>\n${inner}\n</section>`;
+  // Universal `footer` field: left text + auto page number (a CSS counter, so
+  // insert/remove/renumber stay correct with zero bookkeeping).
+  const footer = s(spec.footer)
+    ? `\n<div class="gp-footer"><span>${esc(spec.footer)}</span><span class="gp-pagenum"></span></div>`
+    : "";
+  return `<section class="slide"${hidden}${notes}>\n${inner}${footer}\n</section>`;
 }
 
 /** Replace every {{MEDIA:id}} token in `html` using the resolver (deduped). A

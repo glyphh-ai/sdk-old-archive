@@ -14,6 +14,12 @@ export interface SlideSpec {
   hidden?: boolean;
   /** Rare per-slide theme override (a SLIDE_THEMES key). */
   theme?: string;
+  /** Universal slide-entrance animation (a MOTION_FX name) — replays on show. */
+  enter?: string;
+  /** Universal build-step reveal effect (a MOTION_FX name) for this slide's frags. */
+  fx?: string;
+  /** Universal footer: left text + auto page number. Omit = chrome-free slide. */
+  footer?: string;
   /** Layout-specific content fields. */
   [field: string]: unknown;
 }
