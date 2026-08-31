@@ -114,11 +114,14 @@ export interface DnsInstructions {
   apexUnsupported: boolean;
 }
 
-/** A custom domain bound to a dedicated app-server deployment. */
+/** A custom domain bound to a dedicated app-server deployment — or, with
+ *  target='app' (deploymentId null), to the app's HOSTED deployment (P2). */
 export interface CustomDomain {
   id: string;
   appId: string;
-  deploymentId: string;
+  deploymentId: string | null;
+  /** 'app-server' | 'app'. */
+  target: string;
   hostname: string;
   status: CustomDomainStatus;
   /** Raw Cloudflare ownership/cert detail (debug). */
@@ -132,7 +135,8 @@ export interface CustomDomain {
 }
 
 export interface AddCustomDomainInput {
-  /** The app-server deployment the domain points at. */
-  deploymentId: string;
+  /** The dedicated server to bind. OMIT to bind the domain to the APP's hosted
+   *  deployment instead (target='app' — no server required). */
+  deploymentId?: string;
   hostname: string;
 }
