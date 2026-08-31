@@ -209,7 +209,18 @@ export function toOpenAIRequest(req: AnthropicRequest, model: string, opts: ToOp
     out.stream_options = { include_usage: true };
   }
   if (req.tools?.length) {
-    out.tools = req.tools.map((t) => ({
+    // OpenAI-spec providers hard-cap `tools` at 128 (Anthropic has no such cap,
+    // so a turn roved from an Anthropic-sized session can arrive carrying far
+    // more — a desktop session with connectors sent 340 and the provider 400'd
+    // the WHOLE turn). Keep the first 128: core tools register before lent /
+    // connector tools, and a turn missing tail tools beats a dead turn.
+    // MIRRORED in server gateway translate/openai.ts — fix both, always.
+    const OPENAI_MAX_TOOLS = 128;
+    const kept = req.tools.length > OPENAI_MAX_TOOLS ? req.tools.slice(0, OPENAI_MAX_TOOLS) : req.tools;
+    if (kept.length < req.tools.length) {
+      console.warn(`[runtime] openai-spec tool cap: sending ${kept.length} of ${req.tools.length} tools (provider max 128)`);
+    }
+    out.tools = kept.map((t) => ({
       type: "function",
       function: {
         name: t.name,
