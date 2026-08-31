@@ -137,3 +137,21 @@ export interface OrgInfraChoice {
   /** infra tier id ('shared' | 'ded-small' | …); 'shared' is the free default. */
   tier: string;
 }
+
+/** One org white-label domain (docs/custom-domains.md P1): verify once, then every
+ *  published app answers at `<slug>.<domain>`. */
+export interface OrgDomain {
+  id: string;
+  domain: string;
+  /** pending | verifying | active | error | removed */
+  status: string;
+  /** WorkOS SSO binding (P3) — null means the platform login fronts this domain. */
+  sso: string | null;
+  error: string | null;
+  verifiedAt: string | null;
+  createdAt: string;
+  /** The records the customer publishes: the ownership TXT + one wildcard CNAME. */
+  dns: Array<{ type: "TXT" | "CNAME"; name: string; value: string }>;
+  /** Per-app hostname states under this domain (hostname → verifying|active|error). */
+  hostnames: Record<string, string>;
+}

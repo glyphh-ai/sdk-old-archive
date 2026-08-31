@@ -6,7 +6,7 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
-import type { Org, OrgUpdate, Guardrails, GuardrailsPolicy, OrgInfra, OrgInfraChoice } from "../contract/org.js";
+import type { Org, OrgUpdate, Guardrails, GuardrailsPolicy, OrgInfra, OrgInfraChoice, OrgDomain } from "../contract/org.js";
 
 export class OrgClient {
   constructor(private readonly http: AuthedHttp) {}
@@ -55,5 +55,30 @@ export class OrgClient {
   /** Replace the org guardrails policy wholesale; pass null to clear it (org_admin). */
   setGuardrails(policy: GuardrailsPolicy | null): Promise<Guardrails> {
     return this.http.patch<Guardrails>("/api/org/guardrails", { guardrails_policy: policy });
+  }
+
+  // ── org white-label domains (org_admin) ─────────────────────────────────
+
+  /** The org's custom domains (docs/custom-domains.md): verify one, and every
+   *  published app answers at `<slug>.<domain>`. */
+  async domains(): Promise<OrgDomain[]> {
+    const { domains } = await this.http.get<{ domains: OrgDomain[] }>("/api/org/domains");
+    return domains;
+  }
+
+  /** Claim a domain — returns the DNS records (TXT + wildcard CNAME) to publish. */
+  addDomain(domain: string): Promise<OrgDomain> {
+    return this.http.post<OrgDomain>("/api/org/domains", { domain });
+  }
+
+  /** Check the ownership TXT; on success the domain goes active and per-app
+   *  hostnames start registering. Throws E_FAILED_PRECONDITION while DNS lags. */
+  verifyDomain(id: string): Promise<OrgDomain> {
+    return this.http.post<OrgDomain>(`/api/org/domains/${encodeURIComponent(id)}/verify`, {});
+  }
+
+  /** Remove a domain — tears down its per-app hostnames; the edge stops at once. */
+  removeDomain(id: string): Promise<void> {
+    return this.http.del<void>(`/api/org/domains/${encodeURIComponent(id)}`);
   }
 }
