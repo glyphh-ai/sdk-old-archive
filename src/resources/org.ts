@@ -81,4 +81,9 @@ export class OrgClient {
   removeDomain(id: string): Promise<void> {
     return this.http.del<void>(`/api/org/domains/${encodeURIComponent(id)}`);
   }
+
+  /** Point the domain's BARE apex at a flagship app (null clears it). */
+  setDomainApexApp(id: string, appId: string | null): Promise<OrgDomain> {
+    return this.http.post<OrgDomain>(`/api/org/domains/${encodeURIComponent(id)}/apex-app`, { appId });
+  }
 }

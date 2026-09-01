@@ -147,11 +147,13 @@ export interface OrgDomain {
   status: string;
   /** WorkOS SSO binding (P3) — null means the platform login fronts this domain. */
   sso: string | null;
+  /** The app the BARE apex serves (null = subdomains only). */
+  apexAppId: string | null;
   error: string | null;
   verifiedAt: string | null;
   createdAt: string;
   /** The records the customer publishes: the ownership TXT + one wildcard CNAME. */
-  dns: Array<{ type: "TXT" | "CNAME"; name: string; value: string }>;
+  dns: Array<{ type: "TXT" | "CNAME" | "A" | "AAAA"; name: string; value: string }>;
   /** Per-app hostname states under this domain (hostname → verifying|active|error). */
   hostnames: Record<string, string>;
 }
