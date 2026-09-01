@@ -97,6 +97,8 @@ export interface AdminPlan {
   org_name: string | null;
   /** Gateway requests/minute for orgs on this plan; null = unlimited. */
   rate_limit_rpm?: number | null;
+  /** The plan's MODEL allow-list (catalog ids); null = every model. */
+  allowed_models?: string[] | null;
 }
 export interface AdminPlanUpdate {
   display_name?: string;
@@ -106,6 +108,8 @@ export interface AdminPlanUpdate {
   active?: boolean;
   /** Gateway requests/minute; null clears the limit (unlimited). */
   rate_limit_rpm?: number | null;
+  /** The plan's MODEL allow-list (catalog ids). null clears it (every model). */
+  allowed_models?: string[] | null;
 }
 /** One PLATFORM provider key row — write-only: label + last-4 hint, never the secret. */
 export interface AdminProviderKey {
