@@ -80,6 +80,32 @@ export class AppsClient {
     return this.http.getBytes(`/api/apps/${encodeURIComponent(slug)}/source/archive/${encodeURIComponent(hash)}`);
   }
 
+  // ── CO-WORKING (docs/app-ownership.md, 2026-09-01) ─────────────────────────
+  /** The app's collaborator roster (owner/collaborators/org_admin see it). */
+  async collaborators(slug: string): Promise<Array<{ userId: string; role: "read" | "edit" | "admin"; email: string; name: string | null; addedAt: string }>> {
+    const { collaborators } = await this.http.get<{ collaborators: Array<{ userId: string; role: "read" | "edit" | "admin"; email: string; name: string | null; addedAt: string }> }>(
+      `/api/apps/${encodeURIComponent(slug)}/collaborators`);
+    return collaborators;
+  }
+  /** Add or re-role a collaborator (same-org member). Owner / collab-admin / org_admin. */
+  setCollaborator(slug: string, userId: string, role: "read" | "edit" | "admin"): Promise<unknown> {
+    return this.http.put(`/api/apps/${encodeURIComponent(slug)}/collaborators/${encodeURIComponent(userId)}`, { role });
+  }
+  removeCollaborator(slug: string, userId: string): Promise<unknown> {
+    return this.http.del(`/api/apps/${encodeURIComponent(slug)}/collaborators/${encodeURIComponent(userId)}`);
+  }
+  /** Move a release up the org ladder: submit (owner/collab-admin) or
+   *  approve/reject (an org admin who is never the app's owner). */
+  orgReview(slug: string, releaseId: string, action: "submit" | "approve" | "reject"): Promise<unknown> {
+    return this.http.post(`/api/apps/${encodeURIComponent(slug)}/releases/${encodeURIComponent(releaseId)}/org-review`, { action });
+  }
+  /** The org admin's approval queue: every submitted release across the org. */
+  async pendingOrgReleases(): Promise<Array<{ appId: string; slug: string; name: string; releaseId: string; version: string; submittedAt: string; ownerEmail: string | null }>> {
+    const { pending } = await this.http.get<{ pending: Array<{ appId: string; slug: string; name: string; releaseId: string; version: string; submittedAt: string; ownerEmail: string | null }> }>(
+      "/api/org/app-releases/pending");
+    return pending;
+  }
+
   /** Steer the NEXT release's version (publisher only; semver; a version an
    *  existing release holds is refused). Later builds patch-bump from here. */
   setVersion(slug: string, version: string): Promise<{ slug: string; version: string }> {
