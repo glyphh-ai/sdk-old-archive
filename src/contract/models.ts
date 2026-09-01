@@ -45,6 +45,8 @@ export interface OrgModel {
   providerEnabled: boolean;
   /** Whether the org has a BYOK key for the model's provider (never the key). */
   hasByokKey: boolean;
+  /** False when the org's PLAN excludes this model (free-tier gate). */
+  planAllowed?: boolean;
 }
 
 /** A model the caller may actually use, with the route it resolves to. */
