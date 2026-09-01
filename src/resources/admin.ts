@@ -83,6 +83,14 @@ export class AdminClient {
   grantCredits(id: string, credits: number, note?: string): Promise<{ balance: number }> {
     return this.http.post<{ balance: number }>(`/api/admin/orgs/${encodeURIComponent(id)}/credits`, note ? { credits, note } : { credits });
   }
+  /** Mint a seat-gated invite INTO `id` on the org's behalf (the super-admin Members tab). */
+  inviteOrgMember(id: string, email: string, role?: "org_admin" | "user"): Promise<{ acceptUrl: string }> {
+    return this.http.post<{ acceptUrl: string }>(`/api/admin/orgs/${encodeURIComponent(id)}/members/invite`, role ? { email, role } : { email });
+  }
+  /** Remove a member from `id` on the org's behalf; their owned apps pass to an org admin. */
+  removeOrgMember(id: string, userId: string): Promise<{ ok: boolean }> {
+    return this.http.del<{ ok: boolean }>(`/api/admin/orgs/${encodeURIComponent(id)}/members/${encodeURIComponent(userId)}`);
+  }
 
   // ── users ──────────────────────────────────────────────────────────────────
   users(query: AdminListQuery = {}): Promise<AdminUsersPage> {
