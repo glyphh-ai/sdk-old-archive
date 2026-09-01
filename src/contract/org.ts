@@ -147,12 +147,17 @@ export interface OrgDomain {
   status: string;
   /** WorkOS SSO binding (P3) — null means the platform login fronts this domain. */
   sso: string | null;
-  /** The app the BARE apex serves (null = subdomains only). */
+  /** The app the BARE apex serves (null = nothing at the naked domain). */
   apexAppId: string | null;
+  /** Opt-in: expose EVERY published app at <slug>.<domain>. Default false —
+   *  explicit per-app hostnames are the norm; the wildcard hijacks undefined
+   *  subdomains, so it is flipped on deliberately. */
+  wildcard: boolean;
   error: string | null;
   verifiedAt: string | null;
   createdAt: string;
-  /** The records the customer publishes: the ownership TXT + one wildcard CNAME. */
+  /** The records to publish: ownership TXT + apex A/AAAA (always, when the apex
+   *  IPs are configured), and the wildcard CNAME only when wildcard is on. */
   dns: Array<{ type: "TXT" | "CNAME" | "A" | "AAAA"; name: string; value: string }>;
   /** Per-app hostname states under this domain (hostname → verifying|active|error). */
   hostnames: Record<string, string>;

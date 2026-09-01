@@ -86,4 +86,11 @@ export class OrgClient {
   setDomainApexApp(id: string, appId: string | null): Promise<OrgDomain> {
     return this.http.post<OrgDomain>(`/api/org/domains/${encodeURIComponent(id)}/apex-app`, { appId });
   }
+
+  /** Flip the org-wide wildcard (opt-in). ON exposes every published app at
+   *  `<slug>.<domain>`; OFF tears down the swept subdomains (apex + explicit
+   *  per-app hostnames untouched). Off by default — see the footgun warning. */
+  setDomainWildcard(id: string, wildcard: boolean): Promise<OrgDomain> {
+    return this.http.post<OrgDomain>(`/api/org/domains/${encodeURIComponent(id)}/wildcard`, { wildcard });
+  }
 }
