@@ -79,6 +79,12 @@ export class AppsClient {
   pullSource(slug: string, hash: string): Promise<ArrayBuffer> {
     return this.http.getBytes(`/api/apps/${encodeURIComponent(slug)}/source/archive/${encodeURIComponent(hash)}`);
   }
+  /** The snapshot chain, newest first — the app's version history. */
+  async sourceHistory(slug: string): Promise<Array<{ hash: string; parentHash: string | null; createdAt: string; createdByEmail: string | null; isHead: boolean }>> {
+    const { history } = await this.http.get<{ history: Array<{ hash: string; parentHash: string | null; createdAt: string; createdByEmail: string | null; isHead: boolean }> }>(
+      `/api/apps/${encodeURIComponent(slug)}/source/history`);
+    return history;
+  }
 
   // ── CO-WORKING (docs/app-ownership.md, 2026-09-01) ─────────────────────────
   /** The app's collaborator roster (owner/collaborators/org_admin see it). */
