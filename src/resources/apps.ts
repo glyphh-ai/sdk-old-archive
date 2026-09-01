@@ -69,10 +69,11 @@ export class AppsClient {
   sourceHead(slug: string): Promise<{ mode: string; head: { hash: string; parentHash: string | null; createdAt: string; createdByEmail: string | null } | null }> {
     return this.http.get(`/api/apps/${encodeURIComponent(slug)}/source/head`) as ReturnType<AppsClient["sourceHead"]>;
   }
-  pushSource(slug: string, bytes: Uint8Array, opts: { baseHash?: string | null; force?: boolean } = {}): Promise<{ hash: string; noop?: boolean }> {
+  pushSource(slug: string, bytes: Uint8Array, opts: { baseHash?: string | null; force?: boolean; note?: string } = {}): Promise<{ hash: string; noop?: boolean }> {
     const q = new URLSearchParams();
     if (opts.baseHash) q.set("baseHash", opts.baseHash);
     if (opts.force) q.set("force", "1");
+    if (opts.note) q.set("note", opts.note.slice(0, 500));
     const qs = q.toString();
     return this.http.put(`/api/apps/${encodeURIComponent(slug)}/source${qs ? `?${qs}` : ""}`, bytes) as Promise<{ hash: string; noop?: boolean }>;
   }
@@ -80,8 +81,8 @@ export class AppsClient {
     return this.http.getBytes(`/api/apps/${encodeURIComponent(slug)}/source/archive/${encodeURIComponent(hash)}`);
   }
   /** The snapshot chain, newest first — the app's version history. */
-  async sourceHistory(slug: string): Promise<Array<{ hash: string; parentHash: string | null; createdAt: string; createdByEmail: string | null; isHead: boolean }>> {
-    const { history } = await this.http.get<{ history: Array<{ hash: string; parentHash: string | null; createdAt: string; createdByEmail: string | null; isHead: boolean }> }>(
+  async sourceHistory(slug: string): Promise<Array<{ hash: string; parentHash: string | null; createdAt: string; createdByEmail: string | null; note: string | null; isHead: boolean }>> {
+    const { history } = await this.http.get<{ history: Array<{ hash: string; parentHash: string | null; createdAt: string; createdByEmail: string | null; note: string | null; isHead: boolean }> }>(
       `/api/apps/${encodeURIComponent(slug)}/source/history`);
     return history;
   }
