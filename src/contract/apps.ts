@@ -279,6 +279,9 @@ export interface AppRelease {
   reviewNotes: string | null;
   submittedAt: string | null;
   reviewedAt: string | null;
+  /** The ORG approval ladder (app co-working): null until submitted to the
+   *  org admins; approval lifts a private app into the org catalog. */
+  orgReview?: "submitted" | "approved" | "rejected" | null;
   /** The declarative schema version this release pins (marketplace M8); null
    *  when the app declares no schema. */
   schemaVersion: number | null;
