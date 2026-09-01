@@ -173,6 +173,11 @@ export interface AdminModel {
   active: boolean;
   /** Live per-org default: orgs with no explicit org_models override follow this. */
   default_on: boolean;
+  /** Long-context tier: the WHOLE request bills at the multipliers once the
+   *  prompt crosses this token threshold. Null = flat pricing. */
+  long_context_threshold: number | null;
+  long_context_input_mult: number | null;
+  long_context_output_mult: number | null;
 }
 export interface AdminModelUpdate {
   display_name?: string;
@@ -187,6 +192,9 @@ export interface AdminModelUpdate {
   output_credits_per_mtok?: number | null;
   context_window?: number | null;
   max_output_tokens?: number | null;
+  long_context_threshold?: number | null;
+  long_context_input_mult?: number | null;
+  long_context_output_mult?: number | null;
 }
 
 /**
