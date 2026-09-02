@@ -239,6 +239,9 @@ export interface CreateAppEntryInput {
 
 export interface UpdateAppEntryInput {
   name?: string;
+  /** Rename the dev-facing slug (his order, 2026-09-02). The public address
+   *  (public_slug) stays sticky, so a rename never moves a live URL. */
+  slug?: string;
   url?: string;
   nativeRef?: string;
   description?: string;
