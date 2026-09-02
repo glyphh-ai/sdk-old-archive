@@ -244,9 +244,9 @@ export class AdminClient {
   }
 
   // ── usage ────────────────────────────────────────────────────────────────────
-  usageByUser(days?: number, filters: { region?: string; mode?: RuntimeMode } = {}): Promise<{ users: AdminUsageByUser[] }> {
+  usageByUser(days?: number, filters: { region?: string; mode?: RuntimeMode; orgId?: string } = {}): Promise<{ users: AdminUsageByUser[] }> {
     return this.http.get<{ users: AdminUsageByUser[] }>(
-      withQuery("/api/admin/usage/by-user", { days, region: filters.region, mode: filters.mode }),
+      withQuery("/api/admin/usage/by-user", { days, region: filters.region, mode: filters.mode, orgId: filters.orgId }),
     );
   }
   usageDaily(query: AdminDailyQuery): Promise<{ days: AdminUsageDay[] }> {
@@ -261,7 +261,7 @@ export class AdminClient {
   usageByRuntime(query: AdminRuntimeUsageQuery): Promise<{ runtimes: AdminUsageByRuntime[] }> {
     return this.http.get<{ runtimes: AdminUsageByRuntime[] }>(
       withQuery("/api/admin/usage/by-runtime", {
-        from: query.from, to: query.to, region: query.region, mode: query.mode, tier: query.tier,
+        from: query.from, to: query.to, region: query.region, mode: query.mode, tier: query.tier, orgId: query.orgId,
       }),
     );
   }

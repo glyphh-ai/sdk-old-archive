@@ -288,6 +288,8 @@ export interface AdminRuntimeUsageQuery {
   region?: string | undefined;
   mode?: RuntimeMode | undefined;
   tier?: string | undefined;
+  /** Narrow to ONE org (the Usage page's All-orgs filter). */
+  orgId?: string | undefined;
 }
 
 /** Common list query for the paginated/searchable admin tables. */
