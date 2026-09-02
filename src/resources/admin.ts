@@ -15,7 +15,7 @@ import type {
   AdminUsersPage, AdminUser, AdminUserPatch,
   AdminPlan, AdminPlanUpdate, AdminPlanCreate, AdminProviderKey, AdminOrgPlanInput, AdminOrgPlanPatch, AdminModel, AdminModelUpdate, AdminPlanPrice,
   AuditPage, AuditQuery, AdminUsageByUser, AdminUsageDay, AdminDailyQuery, AdminListQuery,
-  AdminUsageByRuntime, AdminRuntimeUsageQuery, RuntimeMode,
+  AdminUsageByRuntime, AdminRuntimeUsageQuery, RuntimeMode, AdminRevenue,
 } from "../contract/admin.js";
 import type { EffectiveContext } from "../contract/membership.js";
 import type { RuntimeImage, AdminRuntimeImageCreate, AdminRuntimeImageUpdate } from "../contract/runtime-images.js";
@@ -256,6 +256,10 @@ export class AdminClient {
         region: query.region, mode: query.mode,
       }),
     );
+  }
+  /** REAL revenue for a window: Stripe collected cash + the credit-lot math. */
+  revenue(query: { from: string; to: string; orgId?: string }): Promise<AdminRevenue> {
+    return this.http.get<AdminRevenue>(withQuery("/api/admin/revenue", { from: query.from, to: query.to, orgId: query.orgId }));
   }
   /** Usage + billing broken down by WHERE it ran: region × shared|dedicated × tier. */
   usageByRuntime(query: AdminRuntimeUsageQuery): Promise<{ runtimes: AdminUsageByRuntime[] }> {

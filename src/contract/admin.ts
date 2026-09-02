@@ -292,6 +292,17 @@ export interface AdminRuntimeUsageQuery {
   orgId?: string | undefined;
 }
 
+/** The admin REVENUE rollup: real Stripe cash + the credit-lot money math. */
+export interface AdminRevenue {
+  /** Collected cash in the window (succeeded charges − refunds); null = Stripe unconfigured. */
+  stripe: { totalUsdCents: number; byDay: Array<{ day: string; usdCents: number }> } | null;
+  /** Micro-credits ADDED in the window, by lot kind (purchase | grant | admin). */
+  lotsInWindow: Record<string, number>;
+  /** Micro-credits BURNED all-time, by lot kind — exact (total − remaining);
+   *  a windowed burn split is not reconstructable (no per-debit journal). */
+  consumedAllTime: Record<string, number>;
+}
+
 /** Common list query for the paginated/searchable admin tables. */
 export interface AdminListQuery {
   q?: string | undefined;
