@@ -6,7 +6,7 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
-import type { Org, OrgUpdate, Guardrails, GuardrailsPolicy, OrgInfra, OrgInfraChoice, OrgDomain, EdgeTrafficReport } from "../contract/org.js";
+import type { Org, OrgUpdate, Guardrails, GuardrailsPolicy, OrgInfra, OrgInfraChoice, OrgDomain, EdgeTrafficReport, MarketingLink } from "../contract/org.js";
 
 export class OrgClient {
   constructor(private readonly http: AuthedHttp) {}
@@ -73,6 +73,20 @@ export class OrgClient {
     if (filter?.host) q.set("host", filter.host);
     if (filter?.appId) q.set("app", filter.appId);
     return this.http.get<EdgeTrafficReport>(`/api/org/domains/traffic?${q.toString()}`);
+  }
+
+  // ── Marketing links (org_admin/admin): campaign URLs the edge attributes ──
+  marketingLinks(days = 30): Promise<{ links: MarketingLink[] }> {
+    return this.http.get<{ links: MarketingLink[] }>(`/api/org/marketing/links?days=${Math.max(1, Math.min(90, days))}`);
+  }
+  createMarketingLink(input: { name: string; targetUrl: string; appId?: string }): Promise<{ link: MarketingLink }> {
+    return this.http.post<{ link: MarketingLink }>("/api/org/marketing/links", input);
+  }
+  updateMarketingLink(id: string, patch: { name?: string; archived?: boolean }): Promise<void> {
+    return this.http.patch<void>(`/api/org/marketing/links/${encodeURIComponent(id)}`, patch);
+  }
+  deleteMarketingLink(id: string): Promise<void> {
+    return this.http.del<void>(`/api/org/marketing/links/${encodeURIComponent(id)}`);
   }
 
   /** Claim a domain — returns the DNS records (TXT + wildcard CNAME) to publish. */

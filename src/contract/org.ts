@@ -179,8 +179,38 @@ export interface EdgeTrafficDay {
   blocked: number;
 }
 
-/** The apex-edge traffic report both dashboards read (org + per-app). */
+/** The apex-edge traffic report both dashboards read (org + per-app), plus
+ *  the telemetry rollups (his order, 2026-09-02): pages, referrers, uniques,
+ *  sessions/bounce/duration. A page view is a served HTML document; visitors
+ *  are daily-salted hashes (no IP ever stored). */
 export interface EdgeTrafficReport {
   days: EdgeTrafficDay[];
   hosts: Array<EdgeTrafficDay & { hostname: string }>;
+  topPages: Array<{ path: string; views: number }>;
+  topReferrers: Array<{ refHost: string; views: number }>;
+  engagement: {
+    uniques: number;
+    sessions: number;
+    bounced: number;
+    durationMsSum: number;
+    viewsSum: number;
+  };
+}
+
+/** An org-minted marketing link: target + ?glm=<code>; the edge attributes
+ *  clicks and whole sessions back to the code. Stats cover the asked window. */
+export interface MarketingLink {
+  id: string;
+  code: string;
+  name: string;
+  targetUrl: string;
+  /** The shareable URL — target with the glm code applied. */
+  url: string;
+  appId: string | null;
+  archived: boolean;
+  createdAt: string;
+  clicks: number;
+  sessions: number;
+  bounced: number;
+  durationMsSum: number;
 }
