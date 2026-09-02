@@ -66,9 +66,13 @@ export class OrgClient {
     return domains;
   }
 
-  /** Apex-edge traffic for the org's hostnames: per-day series + per-host totals. */
-  domainsTraffic(days = 30): Promise<EdgeTrafficReport> {
-    return this.http.get<EdgeTrafficReport>(`/api/org/domains/traffic?days=${Math.max(1, Math.min(90, days))}`);
+  /** Apex-edge traffic for the org's hostnames: per-day series + per-host totals.
+   *  Optionally narrowed to one hostname and/or one app (the Metrics filters). */
+  domainsTraffic(days = 30, filter?: { host?: string; appId?: string }): Promise<EdgeTrafficReport> {
+    const q = new URLSearchParams({ days: String(Math.max(1, Math.min(90, days))) });
+    if (filter?.host) q.set("host", filter.host);
+    if (filter?.appId) q.set("app", filter.appId);
+    return this.http.get<EdgeTrafficReport>(`/api/org/domains/traffic?${q.toString()}`);
   }
 
   /** Claim a domain — returns the DNS records (TXT + wildcard CNAME) to publish. */
