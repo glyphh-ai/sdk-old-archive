@@ -77,17 +77,16 @@ export class OrgClient {
 
   // ── Agency client orgs (org_admin; his order 2026-09-02): workspaces the
   // org creates and FUNDS for its clients — the consultancy model. ──
-  clients(): Promise<{ clients: Array<{ id: string; name: string; createdAt: string; creditsMicro: number; members: number }> }> {
-    return this.http.get("/api/org/clients") as Promise<{ clients: Array<{ id: string; name: string; createdAt: string; creditsMicro: number; members: number }> }>;
+  clients(): Promise<{ clients: Array<{ id: string; name: string; createdAt: string; creditsMicro: number; members: number; monthlyCapMicro: number; monthUsedMicro: number }> }> {
+    return this.http.get("/api/org/clients") as Promise<{ clients: Array<{ id: string; name: string; createdAt: string; creditsMicro: number; members: number; monthlyCapMicro: number; monthUsedMicro: number }> }>;
   }
   createClient(name: string): Promise<{ id: string; name: string }> {
     return this.http.post<{ id: string; name: string }>("/api/org/clients", { name });
   }
-  /** Move credits parent → client (never mints; refuses when the parent is dry). */
-  fundClient(id: string, credits: number): Promise<{ transferredMicro: number; requestedMicro: number }> {
-    return this.http.post<{ transferredMicro: number; requestedMicro: number }>(
-      `/api/org/clients/${encodeURIComponent(id)}/credits`, { credits },
-    );
+  /** The monthly gate: the client spends from YOUR pool up to this many
+   *  credits per calendar month (0 closes it). Their own lots drain first. */
+  setClientCap(id: string, monthlyCapCredits: number): Promise<void> {
+    return this.http.patch<void>(`/api/org/clients/${encodeURIComponent(id)}`, { monthlyCapCredits });
   }
 
   // ── Marketing links (org_admin/admin): campaign URLs the edge attributes ──
