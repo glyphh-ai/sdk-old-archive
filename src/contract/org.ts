@@ -67,7 +67,7 @@ export interface Guardrails {
   guardrails_policy: GuardrailsPolicy | null;
 }
 
-export type MemberRole = "org_admin" | "user";
+export type MemberRole = "org_admin" | "admin" | "user";
 
 /** The system role a member may be SET to (org_admin is granted via invite, not here). */
 export type MemberSystemRole = "org_admin" | "admin" | "user";
