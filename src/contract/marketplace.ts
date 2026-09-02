@@ -151,3 +151,34 @@ export interface AdminDeveloperEarningsSummary {
   netCreditsMicro: number;
   unpaidNetCreditsMicro: number;
 }
+
+// ── Library marketplace (skills + loops, his order 2026-09-02) ───────────────
+
+/** A skills/loops marketplace listing — a content snapshot frozen at publish,
+ *  platform-reviewed like an app release. Always free to install. */
+export interface LibraryListing {
+  id: string;
+  kind: "skill" | "loop";
+  slug: string;
+  name: string;
+  description: string;
+  manifest: Record<string, unknown>;
+  reviewStatus: "submitted" | "in_review" | "approved" | "rejected";
+  reviewNotes: string | null;
+  submittedAt: string;
+  listedAt: string | null;
+  suspended: boolean;
+  installs: number;
+  /** Whether the CALLER holds an install seat. */
+  installed: boolean;
+}
+
+/** An open org-share submission awaiting an org admin's ruling. */
+export interface LibraryShareRequest {
+  id: string;
+  kind: "skill" | "loop";
+  slug: string;
+  name: string;
+  requestedBy: string;
+  submittedAt: string;
+}

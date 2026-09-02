@@ -53,4 +53,14 @@ export class LoopsClient {
   remove(id: string): Promise<void> {
     return this.http.del<void>(`/api/loops/${encodeURIComponent(id)}`);
   }
+
+  /** Submit MY personal loop to the org admin for org-wide sharing. */
+  share(ref: string): Promise<{ id: string; status: string }> {
+    return this.http.post<{ id: string; status: string }>(`/api/loops/${encodeURIComponent(ref)}/share`, {});
+  }
+
+  /** Publish an ORG-shared loop to the marketplace (org_admin; platform-reviewed, always free). */
+  publish(ref: string): Promise<{ id: string; reviewStatus: string }> {
+    return this.http.post<{ id: string; reviewStatus: string }>(`/api/loops/${encodeURIComponent(ref)}/publish`, {});
+  }
 }
