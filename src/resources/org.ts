@@ -88,6 +88,10 @@ export class OrgClient {
   setClientCap(id: string, monthlyCapCredits: number): Promise<void> {
     return this.http.patch<void>(`/api/org/clients/${encodeURIComponent(id)}`, { monthlyCapCredits });
   }
+  /** Detach (graduate) a client: the org lives on, unmanaged and unfunded. */
+  detachClient(id: string): Promise<void> {
+    return this.http.del<void>(`/api/org/clients/${encodeURIComponent(id)}`);
+  }
 
   // ── Marketing links (org_admin/admin): campaign URLs the edge attributes ──
   marketingLinks(days = 30): Promise<{ links: MarketingLink[] }> {
