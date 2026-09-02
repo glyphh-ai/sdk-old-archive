@@ -80,6 +80,11 @@ export class AppsClient {
   pullSource(slug: string, hash: string): Promise<ArrayBuffer> {
     return this.http.getBytes(`/api/apps/${encodeURIComponent(slug)}/source/archive/${encodeURIComponent(hash)}`);
   }
+  /** Apex-edge traffic for THIS app's custom hostnames (developers' surface). */
+  traffic(slug: string, days = 30): Promise<import("../contract/org.js").EdgeTrafficReport> {
+    return this.http.get(`/api/apps/${encodeURIComponent(slug)}/traffic?days=${Math.max(1, Math.min(90, days))}`) as Promise<import("../contract/org.js").EdgeTrafficReport>;
+  }
+
   /** The snapshot chain, newest first — the app's version history. */
   async sourceHistory(slug: string): Promise<Array<{ hash: string; parentHash: string | null; createdAt: string; createdByEmail: string | null; note: string | null; isHead: boolean }>> {
     const { history } = await this.http.get<{ history: Array<{ hash: string; parentHash: string | null; createdAt: string; createdByEmail: string | null; note: string | null; isHead: boolean }> }>(

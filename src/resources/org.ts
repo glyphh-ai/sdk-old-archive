@@ -6,7 +6,7 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
-import type { Org, OrgUpdate, Guardrails, GuardrailsPolicy, OrgInfra, OrgInfraChoice, OrgDomain } from "../contract/org.js";
+import type { Org, OrgUpdate, Guardrails, GuardrailsPolicy, OrgInfra, OrgInfraChoice, OrgDomain, EdgeTrafficReport } from "../contract/org.js";
 
 export class OrgClient {
   constructor(private readonly http: AuthedHttp) {}
@@ -64,6 +64,11 @@ export class OrgClient {
   async domains(): Promise<OrgDomain[]> {
     const { domains } = await this.http.get<{ domains: OrgDomain[] }>("/api/org/domains");
     return domains;
+  }
+
+  /** Apex-edge traffic for the org's hostnames: per-day series + per-host totals. */
+  domainsTraffic(days = 30): Promise<EdgeTrafficReport> {
+    return this.http.get<EdgeTrafficReport>(`/api/org/domains/traffic?days=${Math.max(1, Math.min(90, days))}`);
   }
 
   /** Claim a domain — returns the DNS records (TXT + wildcard CNAME) to publish. */

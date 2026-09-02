@@ -162,3 +162,25 @@ export interface OrgDomain {
   /** Per-app hostname states under this domain (hostname → verifying|active|error). */
   hostnames: Record<string, string>;
 }
+
+/** One day (or one hostname's total) of apex-edge traffic. */
+export interface EdgeTrafficDay {
+  day: string;
+  requests: number;
+  bytesIn: number;
+  bytesOut: number;
+  avgMs: number;
+  maxMs: number;
+  s2xx: number;
+  s3xx: number;
+  s4xx: number;
+  s5xx: number;
+  /** Edge-served refusals: rate limit, challenge, unknown hostname. */
+  blocked: number;
+}
+
+/** The apex-edge traffic report both dashboards read (org + per-app). */
+export interface EdgeTrafficReport {
+  days: EdgeTrafficDay[];
+  hosts: Array<EdgeTrafficDay & { hostname: string }>;
+}
