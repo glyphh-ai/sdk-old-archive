@@ -261,6 +261,13 @@ export class AppsClient {
     return this.http.patch<{ ok: boolean }>(`/api/apps/entries/${encodeURIComponent(slug)}`, patch);
   }
 
+  /** CLONE an app the org owns as a template (his order, 2026-09-02): new
+   *  slug, private, history seeded from the source head; public address,
+   *  domains, listing and releases deliberately NOT copied. */
+  clone(slug: string, input: { slug: string; name?: string }): Promise<{ id: string; slug: string; name: string }> {
+    return this.http.post<{ id: string; slug: string; name: string }>(`/api/apps/${encodeURIComponent(slug)}/clone`, input);
+  }
+
   /** Delete an app of any kind. Refused (409) while a live deployment exists. */
   removeEntry(slug: string): Promise<void> {
     return this.http.del<void>(`/api/apps/entries/${encodeURIComponent(slug)}`);
