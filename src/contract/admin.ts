@@ -308,4 +308,6 @@ export interface AdminListQuery {
   q?: string | undefined;
   page?: number | undefined;
   limit?: number | undefined;
+  /** Orgs list only: narrow to one agency's client fleet. */
+  parent?: string | undefined;
 }

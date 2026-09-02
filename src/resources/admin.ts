@@ -61,7 +61,7 @@ export class AdminClient {
 
   // ── orgs ─────────────────────────────────────────────────────────────────────
   orgs(query: AdminListQuery = {}): Promise<AdminOrgsPage> {
-    return this.http.get<AdminOrgsPage>(withQuery("/api/admin/orgs", { q: query.q, page: query.page, limit: query.limit }));
+    return this.http.get<AdminOrgsPage>(withQuery("/api/admin/orgs", { q: query.q, page: query.page, limit: query.limit, parent: query.parent }));
   }
   /** Create a brand-new organization (standalone; base workspace + free credits). */
   createOrg(input: AdminCreateOrg): Promise<AdminOrgListItem> {
