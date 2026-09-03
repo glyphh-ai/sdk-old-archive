@@ -177,6 +177,9 @@ export interface EdgeTrafficDay {
   s5xx: number;
   /** Edge-served refusals: rate limit, challenge, unknown hostname. */
   blocked: number;
+  /** Platform-served unavailability pages (app offline / not connected) —
+   *  our honest answer, never the app's error. */
+  offline: number;
 }
 
 /** The apex-edge traffic report both dashboards read (org + per-app), plus
@@ -188,6 +191,8 @@ export interface EdgeTrafficReport {
   hosts: Array<EdgeTrafficDay & { hostname: string }>;
   topPages: Array<{ path: string; views: number }>;
   topReferrers: Array<{ refHost: string; views: number }>;
+  /** WHAT the errors are: paths behind 4xx/5xx that reached the app. */
+  topErrorPaths: Array<{ path: string; hits: number }>;
   engagement: {
     uniques: number;
     sessions: number;
