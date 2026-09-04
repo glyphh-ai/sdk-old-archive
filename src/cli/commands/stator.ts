@@ -1,68 +1,79 @@
 /**
  * @license Proprietary — © Glyphh. All rights reserved.
  *
- * commands/stator.ts — the org memory plane from the CLI: recall/write (the
- * runtime path) and the curation surface (browse/graph/forget/amend).
+ * commands/stator.ts — the org memory plane (the fact substrate) from the
+ * CLI: recall (the runtime path) and the curation surface
+ * (browse/create/graph/forget/amend).
  */
 
 import type { CommandRegistry } from "../registry.js";
 import { flagStr } from "../args.js";
 
+/** Parse "layer.role=value" pairs into the {layer: {role: value}} shape. */
+function parseSlots(pairs: string[]): Record<string, Record<string, string>> {
+  const out: Record<string, Record<string, string>> = {};
+  for (const pair of pairs) {
+    const eq = pair.indexOf("=");
+    const path = eq > 0 ? pair.slice(0, eq) : "";
+    const value = eq > 0 ? pair.slice(eq + 1) : "";
+    const dot = path.indexOf(".");
+    if (dot <= 0 || !value) throw new Error(`slot "${pair}" must be layer.role=value`);
+    const layer = path.slice(0, dot), role = path.slice(dot + 1);
+    (out[layer] ??= {})[role] = value;
+  }
+  return out;
+}
+
 export function registerStator(reg: CommandRegistry): void {
   reg.register({
     path: "memory recall",
-    summary: "directives + scored semantic hits + the entity's fact node",
-    usage: "memory recall <query> [--thread <id>] [--entity <e>] [--k <n>]",
+    summary: "cosine-gated fact hits for a query, plus their fact-block rendering",
+    usage: "memory recall <query> [--k <n>]",
     covers: ["stator.recall"],
     async run(ctx, args) {
       const query = args.positional.join(" ").trim();
-      const thread = flagStr(args, "thread");
-      const entity = flagStr(args, "entity");
       const k = flagStr(args, "k");
       ctx.printJson(await ctx.client.stator.recall({
         ...(query ? { query } : {}),
-        ...(thread ? { threadId: thread } : {}),
-        ...(entity ? { entity } : {}),
         ...(k ? { topK: Number(k) } : {}),
       }));
     },
   });
 
   reg.register({
-    path: "memory write",
-    summary: "persist a turn, or absorb facts from text (--absorb)",
-    usage: "memory write <text> [--absorb] [--thread <id>] [--speaker <s>] [--tier short|mid|long]",
-    covers: ["stator.write"],
+    path: "memory browse",
+    summary: "every live fact glyphh in the caller's ledger",
+    usage: "memory browse [--limit <n>]",
+    covers: ["stator.browse"],
     async run(ctx, args) {
-      const text = args.positional.join(" ").trim();
-      if (!text) throw new Error("usage: memory write <text> [--absorb]");
-      const thread = flagStr(args, "thread");
-      const speaker = flagStr(args, "speaker");
-      const tierFlag = flagStr(args, "tier");
-      const tier = tierFlag === "short" || tierFlag === "mid" || tierFlag === "long" ? tierFlag : undefined;
-      ctx.printJson(await ctx.client.stator.write({
-        text,
-        mode: args.flags["absorb"] ? "absorb" : "turn",
-        ...(thread ? { threadId: thread } : {}),
-        ...(speaker ? { speaker } : {}),
-        ...(tier ? { tier } : {}),
+      const limit = flagStr(args, "limit");
+      ctx.printJson(await ctx.client.stator.browse(limit ? { limit: Number(limit) } : {}));
+    },
+  });
+
+  reg.register({
+    path: "memory create",
+    summary: "append a new fact glyphh (slots as layer.role=value pairs)",
+    usage: "memory create <name> [layer.role=value ...] [--confidence <f>] [--scope org|user]",
+    covers: ["stator.create"],
+    async run(ctx, args) {
+      const [name, ...pairs] = args.positional;
+      if (!name) throw new Error("usage: memory create <name> [layer.role=value ...]");
+      const confidence = flagStr(args, "confidence");
+      const scopeFlag = flagStr(args, "scope");
+      const facts = parseSlots(pairs);
+      ctx.printJson(await ctx.client.stator.create({
+        name,
+        ...(Object.keys(facts).length ? { facts } : {}),
+        ...(confidence ? { confidence: Number(confidence) } : {}),
+        ...(scopeFlag === "user" || scopeFlag === "org" ? { scope: scopeFlag } : {}),
       }));
     },
   });
 
   reg.register({
-    path: "memory browse",
-    summary: "the raw memory: facts (version chains), corpus turns, recency window",
-    usage: "memory browse [--thread <id>]",
-    covers: ["stator.browse"],
-    async run(ctx, args) {
-      ctx.printJson(await ctx.client.stator.browse(flagStr(args, "thread")));
-    },
-  });
-
-  reg.register({
     path: "memory graph",
-    summary: "the semantic space: nodes + 3D coords + banded similarity edges",
+    summary: "the fact space: nodes + 3D PCA coords + banded similarity edges",
     usage: "memory graph [--max <n>] [--sem <f>] [--nmin <f>] [--nmax <f>]",
     covers: ["stator.graph"],
     async run(ctx, args) {
@@ -79,36 +90,32 @@ export function registerStator(reg: CommandRegistry): void {
 
   reg.register({
     path: "memory forget",
-    summary: "delete facts by filter, or a corpus turn by exact text",
-    usage: "memory forget [--entity <e>] [--role <r>] [--filler <f>] [--key <k>] [--turn <text>]",
+    summary: "tombstone a fact by id (it leaves every future turn; the row stays)",
+    usage: "memory forget <id>",
     covers: ["stator.forget"],
     async run(ctx, args) {
-      const entity = flagStr(args, "entity"), role = flagStr(args, "role"),
-        filler = flagStr(args, "filler"), key = flagStr(args, "key"), turn = flagStr(args, "turn");
-      const fact = entity || role || filler || key
-        ? { ...(entity ? { entity } : {}), ...(role ? { role } : {}), ...(filler ? { filler } : {}), ...(key ? { key } : {}) }
-        : undefined;
-      if (!fact && !turn) throw new Error("usage: memory forget needs a fact filter and/or --turn <text>");
-      ctx.printJson(await ctx.client.stator.forget({ ...(fact ? { fact } : {}), ...(turn ? { turnText: turn } : {}) }));
+      const id = args.positional.join(" ").trim();
+      if (!id) throw new Error("usage: memory forget <id>");
+      ctx.printJson(await ctx.client.stator.forget({ id }));
     },
   });
 
   reg.register({
     path: "memory amend",
-    summary: "correct a fact (keyed = supersede the chain; keyless = replace)",
-    usage: "memory amend <entity> <role> <filler> [--key <k>] [--tier short|mid|long]",
+    summary: "correct a fact: appends a new version and supersedes the old id",
+    usage: "memory amend <id> [--name <n>] [layer.role=value ...] [--confidence <f>]",
     covers: ["stator.amend"],
     async run(ctx, args) {
-      const [entity, role, ...rest] = args.positional;
-      const filler = rest.join(" ").trim();
-      if (!entity || !role || !filler) throw new Error("usage: memory amend <entity> <role> <filler>");
-      const key = flagStr(args, "key");
-      const tierFlag = flagStr(args, "tier");
-      const tier = tierFlag === "short" || tierFlag === "mid" || tierFlag === "long" ? tierFlag : undefined;
+      const [id, ...pairs] = args.positional;
+      if (!id) throw new Error("usage: memory amend <id> [--name <n>] [layer.role=value ...]");
+      const name = flagStr(args, "name");
+      const confidence = flagStr(args, "confidence");
+      const facts = parseSlots(pairs);
       ctx.printJson(await ctx.client.stator.amend({
-        entity, role, filler,
-        ...(key ? { key } : {}),
-        ...(tier ? { tier } : {}),
+        id,
+        ...(name ? { name } : {}),
+        ...(Object.keys(facts).length ? { facts } : {}),
+        ...(confidence ? { confidence: Number(confidence) } : {}),
       }));
     },
   });

@@ -1,47 +1,51 @@
 /**
  * @license Proprietary — © Glyphh. All rights reserved.
  *
- * resources/stator.ts — the org memory plane. recall/write are the runtime
- * path; browse/graph/forget/amend are the curation surface (the Memory panel).
+ * resources/stator.ts — the org memory plane (the FACT SUBSTRATE). recall is
+ * the runtime path; browse/graph/create/forget/amend are the curation surface
+ * (the Memory panel).
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
 import type {
-  StatorRecallInput, StatorRecallResult, StatorWriteInput,
-  StatorBrowseResult, StatorGraphInput, StatorGraphResult,
-  StatorForgetInput, StatorAmendInput,
+  StatorRecallInput, StatorRecallResult,
+  StatorBrowseInput, StatorBrowseResult,
+  StatorCreateInput, StatorCreateResult,
+  StatorGraphInput, StatorGraphResult,
+  StatorForgetInput, StatorForgetResult,
+  StatorAmendInput, StatorAmendResult,
 } from "../contract/stator.js";
 
 export class StatorClient {
   constructor(private readonly http: AuthedHttp) {}
 
-  /** Standing directives + semantic hits (scored) + the entity's fact node. */
+  /** Cosine-gated fact hits for a query, plus their fact-block rendering. */
   recall(input: StatorRecallInput = {}): Promise<StatorRecallResult> {
     return this.http.post<StatorRecallResult>("/api/stator/recall", input, { raw: true });
   }
 
-  /** Persist a turn (recency + similarity corpus) or absorb facts from text. */
-  write(input: StatorWriteInput): Promise<{ written: number; mode: string }> {
-    return this.http.post<{ written: number; mode: string }>("/api/stator/write", input, { raw: true });
+  /** Every live fact for the caller — the review surface. */
+  browse(input: StatorBrowseInput = {}): Promise<StatorBrowseResult> {
+    return this.http.post<StatorBrowseResult>("/api/stator/browse", input, { raw: true });
   }
 
-  /** The raw memory: every fact (version chains included), the corpus, the window. */
-  browse(threadId?: string): Promise<StatorBrowseResult> {
-    return this.http.post<StatorBrowseResult>("/api/stator/browse", threadId ? { threadId } : {}, { raw: true });
+  /** Append a NEW fact glyphh to the org ledger. */
+  create(input: StatorCreateInput): Promise<StatorCreateResult> {
+    return this.http.post<StatorCreateResult>("/api/stator/create", input, { raw: true });
   }
 
-  /** The semantic space as data: nodes, 3D PCA coords, banded similarity edges. */
+  /** The fact space as data: nodes, 3D PCA coords, banded similarity edges. */
   graph(input: StatorGraphInput = {}): Promise<StatorGraphResult> {
     return this.http.post<StatorGraphResult>("/api/stator/graph", input, { raw: true });
   }
 
-  /** Targeted deletes: a fact filter (≥1 field) and/or an exact turn text. */
-  forget(input: StatorForgetInput): Promise<{ deleted: number }> {
-    return this.http.post<{ deleted: number }>("/api/stator/forget", input, { raw: true });
+  /** Tombstone a fact by id — it leaves every future turn; the row stays for audit. */
+  forget(input: StatorForgetInput): Promise<StatorForgetResult> {
+    return this.http.post<StatorForgetResult>("/api/stator/forget", input, { raw: true });
   }
 
-  /** Correct a fact — keyed amends supersede the chain, keyless replace. */
-  amend(input: StatorAmendInput): Promise<{ written: number }> {
-    return this.http.post<{ written: number }>("/api/stator/amend", input, { raw: true });
+  /** Correct a fact — appends a new version and supersedes the old id. */
+  amend(input: StatorAmendInput): Promise<StatorAmendResult> {
+    return this.http.post<StatorAmendResult>("/api/stator/amend", input, { raw: true });
   }
 }

@@ -193,8 +193,9 @@ export type {
   Design, DesignMeta, DesignSystem, DesignColor, DesignFont, DesignAsset, DesignSource, DesignImageryRef, DesignCanvas, UploadDesignAssetInput,
 } from "./contract/design.js";
 export type {
-  StatorFact, MemoryTier, StatorRecallInput, StatorRecallResult, StatorWriteInput,
-  StatorBrowseResult, StatorGraphInput, StatorGraphNode, StatorGraphResult, StatorForgetInput, StatorAmendInput,
+  GlyphFact, StatorRecallInput, StatorRecallResult, StatorBrowseInput, StatorBrowseResult,
+  StatorCreateInput, StatorCreateResult, StatorGraphInput, StatorGraphNode, StatorGraphResult,
+  StatorForgetInput, StatorForgetResult, StatorAmendInput, StatorAmendResult,
 } from "./contract/stator.js";
 export type {
   MediaAsset, MediaKind, MediaUploadTicket, MediaUploadInput, MediaFinalizeInput, MediaGenerateInput, MediaJob,

@@ -1,73 +1,85 @@
 /**
  * @license Proprietary — © Glyphh. All rights reserved.
  *
- * contract/stator.ts — the org MEMORY PLANE wire shapes. Recall/write are what
- * every runtime rides; browse/graph/forget/amend are the CURATION surface the
- * desktop Memory panel drives. Owner-scoped end to end: the server proxy
- * region-routes to the org's stator and the bearer's org/user scopes every op.
+ * contract/stator.ts — the org MEMORY PLANE wire shapes: the FACT SUBSTRATE
+ * (the glyph ledger the per-turn fact block reads). Recall is the runtime
+ * path; browse/graph/create/forget/amend are the CURATION surface the desktop
+ * Memory panel drives. Owner-scoped end to end: the server proxy region-routes
+ * to the org's runtime and the bearer's org/user scopes every op.
  */
 
-export type MemoryTier = "short" | "mid" | "long";
-
-export interface StatorFact {
-  entity: string;
-  role: string;
-  filler: string;
-  space_id?: string;
-  key?: string;
-  is_current: boolean;
-  speaker?: string;
-  tick: number;
-  tier?: MemoryTier;
-  session?: string;
+/** One fact glyphh, as the ledger serializes it. `concept.facts` holds the
+ *  stored slots as {layer: {role: value}} over the universal schema. */
+export interface GlyphFact {
+  id: string;
+  name: string;
+  /** Cosine to the probe — present on recall hits only. */
+  cos?: number;
+  confidence: number;
+  scope: "org" | "user";
+  derived: boolean;
+  citations?: string[];
+  concept: { name?: string; facts?: Record<string, Record<string, string>> };
+  createdAt: string;
 }
 
-export interface StatorRecallInput { threadId?: string; query?: string; entity?: string; topK?: number; threshold?: number }
+export interface StatorRecallInput { query?: string; topK?: number }
 export interface StatorRecallResult {
-  directives: string[];
-  recalled: Array<{ text: string; score: number }>;
-  facts: StatorFact[];
+  /** The hits rendered as fact-block lines — what a prompt would inject. */
   block: string;
+  facts: GlyphFact[];
 }
 
-export interface StatorWriteInput {
-  threadId?: string;
-  entity?: string;
-  mode?: "turn" | "absorb";
-  text?: string;
-  speaker?: string;
-  tier?: MemoryTier;
-  date?: string;
-}
-
+export interface StatorBrowseInput { limit?: number }
 export interface StatorBrowseResult {
-  /** Every fact, superseded versions included (is_current marks the chain head). */
-  facts: StatorFact[];
-  /** The similarity corpus — recorded turns, "[date] speaker: text"-shaped. */
-  turns: string[];
-  /** The session recency window (newest last, capped at 20). */
-  window: Array<{ speaker: string; text: string }>;
+  /** Every live fact rendered as ledger lines. */
+  block: string;
+  facts: GlyphFact[];
 }
 
-export interface StatorGraphInput { threadId?: string; max?: number; semMin?: number; neuralMin?: number; neuralMax?: number }
+export interface StatorCreateInput {
+  name: string;
+  /** {layer: {role: value}} over the universal schema; off-schema slots are
+   *  preserved verbatim (reported back as preservedSlots). */
+  facts?: Record<string, Record<string, string>>;
+  confidence?: number;
+  scope?: "org" | "user";
+}
+export interface StatorCreateResult {
+  id: string;
+  confidence: number;
+  scope: "org" | "user";
+  preservedSlots?: string[];
+}
+
+export interface StatorGraphInput { max?: number; semMin?: number; neuralMin?: number; neuralMax?: number }
 export interface StatorGraphNode {
+  /** Index into coords. */
   id: number;
-  kind: "turn" | "fact";
-  text: string;
-  tier?: string;
-  entity?: string;
-  role?: string;
+  factId: string;
+  name: string;
+  /** "layer.role=value" lines — the info card's body. */
+  slots: string[];
+  scope: string;
+  derived: boolean;
+  confidence: number;
+  createdAt: string;
 }
 export interface StatorGraphResult {
   nodes: StatorGraphNode[];
-  /** 3D PCA coordinates, index-aligned with nodes. */
+  /** 3D PCA coordinates over the cortex space, index-aligned with nodes. */
   coords: Array<[number, number, number]>;
   edges: Array<{ a: number; b: number; sim: number; kind: "semantic" | "neural" }>;
 }
 
-export interface StatorForgetInput {
-  fact?: { entity?: string; role?: string; filler?: string; key?: string };
-  turnText?: string;
-}
+export interface StatorForgetInput { id: string }
+export interface StatorForgetResult { forgotten: boolean }
 
-export interface StatorAmendInput { entity: string; role: string; filler: string; key?: string; tier?: MemoryTier }
+export interface StatorAmendInput {
+  /** The fact to correct — a new version is appended and this id superseded. */
+  id: string;
+  name?: string;
+  facts?: Record<string, Record<string, string>>;
+  confidence?: number;
+}
+export interface StatorAmendResult { id: string; supersedes: string }
