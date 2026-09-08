@@ -69,12 +69,14 @@ const sectionDivider: LayoutFn = (c) => `
 
 const bullets: LayoutFn = (c) => {
   const fx = fxOf(c.fx);
-  const items = list(c.points).map((p, i) => frag(i + 1, `<li>${inline(p)}</li>`, fx)).join("");
+  const pts = list(c.points);
+  const items = pts.map((p, i) => frag(i + 1, `<li>${inline(p)}</li>`, fx)).join("");
+  const fit = pts.length >= 8 ? ` style="--n:${pts.length}"` : "";   // count-based shrink past 7 (see base-css)
   return `
 <div class="gp-frame top${enterCls(c)}" style="justify-content:center">
   ${eyebrow(c.eyebrow)}
   <h2 class="gp-title sm">${esc(c.title)}</h2>
-  <ul class="gp-bullets ${c.style === "check" ? "check" : ""}">${items}</ul>
+  <ul class="gp-bullets ${c.style === "check" ? "check" : ""}"${fit}>${items}</ul>
 </div>`;
 };
 
@@ -204,11 +206,16 @@ const agenda: LayoutFn = (c) => {
     const sub = parts.slice(1).join(" — ");
     return frag(i + 1, `<li>${esc(main)}${sub ? `<span class="sub">${esc(sub)}</span>` : ""}</li>`, fxOf(c.fx));
   }).join("");
+  // Auto-fit: at 7+ entries the fixed row size overran the 1080px frame and
+  // clipped top/bottom (his report — the agent rebuilt the agenda as `custom`
+  // to escape it). `--n` drives a count-based shrink in base-css; emitted ONLY
+  // past the threshold, so shorter agendas render byte-identically as before.
+  const fit = items.length >= 7 ? ` style="--n:${items.length}"` : "";
   return `
 <div class="gp-frame top${enterCls(c)}" style="justify-content:center">
   ${eyebrow(c.eyebrow ?? "Agenda")}
   ${s(c.title) ? `<h2 class="gp-title sm">${esc(c.title)}</h2>` : ""}
-  <ol class="gp-agenda">${li}</ol>
+  <ol class="gp-agenda"${fit}>${li}</ol>
 </div>`;
 };
 
@@ -497,7 +504,7 @@ export const SLIDE_LAYOUTS: Record<string, LayoutSpec> = {
     sample: { layout: "section-divider", number: "01", title: "The problem", subtitle: "Why the old way breaks down" },
   },
   bullets: {
-    name: "bullets", summary: "Title + a list of points that reveal one at a time. **bold**/*italic* allowed.",
+    name: "bullets", summary: "Title + a list of points that reveal one at a time (auto-fits up to ~10; more should split across slides). **bold**/*italic* allowed.",
     render: bullets,
     schema: [f("title", "text", "Slide heading.", true), f("points", "list", "The bullet points (array of strings).", true), f("eyebrow", "text", "Small label above the title."), f("style", "text", "'check' for checkmark bullets.")],
     sample: { layout: "bullets", title: "What changed", points: ["**Onboarding** cut to 3 steps", "Live preview on every edit", "One-click publish"] },
@@ -551,7 +558,7 @@ export const SLIDE_LAYOUTS: Record<string, LayoutSpec> = {
     sample: { layout: "timeline", title: "Roadmap", items: [{ date: "Q1", label: "Launch", note: "GA" }, { date: "Q2", label: "Teams" }, { date: "Q3", label: "Enterprise" }] },
   },
   agenda: {
-    name: "agenda", summary: "A numbered agenda / table of contents. Use ' — ' to add a sub-note per item.",
+    name: "agenda", summary: "A numbered agenda / table of contents (auto-fits up to ~12 entries; split into sections beyond that). Use ' — ' to add a sub-note per item.",
     render: agenda,
     schema: [f("title", "text", "Optional heading."), f("items", "list", "Agenda entries; 'Topic — note' splits the note out.", true), f("eyebrow", "text", "Label (defaults to 'Agenda').")],
     sample: { layout: "agenda", title: "Today", items: ["The problem — 5 min", "The solution — 10 min", "Demo — 15 min", "Q&A"] },

@@ -34,6 +34,12 @@ export const SLIDE_BASE_CSS = `
 .gp-bullets li b,.gp-bullets li strong{font-weight:700}
 .gp-bullets li::before{content:"";position:absolute;left:0;top:.5em;width:22px;height:22px;border-radius:7px;background:var(--slide-accent)}
 .gp-bullets.check li::before{border-radius:50%;background:none;box-shadow:inset 0 0 0 4px var(--slide-accent)}
+/* Count-based auto-fit: layouts set --n only past a threshold, so shorter
+   lists keep the sizes above; these engage only when the row count would
+   otherwise clip the 1080px frame. min() caps at the default so it only ever
+   shrinks. */
+.gp-bullets[style*="--n"]{gap:min(32px,calc(720px / var(--n) * 0.18))}
+.gp-bullets[style*="--n"] li{font-size:min(40px,calc(720px / var(--n) * 0.5))}
 
 .gp-grid2{display:grid;grid-template-columns:1fr 1fr;gap:72px;flex:1;align-items:center;min-height:0}
 .gp-grid2.media{grid-template-columns:1.05fr .95fr}
@@ -69,6 +75,10 @@ export const SLIDE_BASE_CSS = `
 .gp-agenda li{display:flex;gap:38px;align-items:baseline;font:500 50px/1.15 var(--slide-font-display);color:var(--slide-fg);border-bottom:1px solid var(--slide-border);padding:26px 0}
 .gp-agenda li::before{counter-increment:a;content:counter(a,decimal-leading-zero);font:700 34px/1 var(--slide-font-mono);color:var(--slide-accent);min-width:70px}
 .gp-agenda li .sub{font:400 28px/1 var(--slide-font-body);color:var(--slide-muted);margin-left:auto}
+/* Auto-fit past ~7 entries (the layout sets --n only then) — shorter agendas
+   are untouched; min() guarantees it only shrinks, never grows. */
+.gp-agenda[style*="--n"] li{font-size:min(50px,calc(720px / var(--n) * 0.62));padding:min(26px,calc(720px / var(--n) * 0.14)) 0}
+.gp-agenda[style*="--n"] li::before{font-size:min(34px,calc(720px / var(--n) * 0.42))}
 
 .gp-timeline{display:flex;gap:0;flex:1;align-items:stretch;margin-top:56px}
 .gp-tl{flex:1;position:relative;padding-top:60px}
