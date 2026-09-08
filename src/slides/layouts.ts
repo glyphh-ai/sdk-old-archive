@@ -50,7 +50,7 @@ const frag = (i: number, html: string, fx?: string): string => {
 
 const title: LayoutFn = (c, ctx) => {
   const logo = ctx.media(c.logo);
-  return `
+  return `${bgFill(c, ctx)}
 <div class="gp-frame center${enterCls(c)}">
   ${logo ? `<img class="gp-logoimg" src="${logo}" alt="" />` : ""}
   ${eyebrow(c.eyebrow)}
@@ -234,18 +234,24 @@ const code: LayoutFn = (c) => `
 
 const fullBleedImage: LayoutFn = (c, ctx) => {
   const bg = ctx.media(c.media ?? c.image);
+  const logo = ctx.media(c.logo);
   const fill = bg ? `background-image:url(${bg})` : "";
-  const hasText = s(c.title) || s(c.subtitle) || s(c.eyebrow);
+  const hasText = !!(s(c.title) || s(c.subtitle) || s(c.eyebrow) || logo);
   // No text → no scrim, no frame: the artwork carries the slide bare.
   // scrim:false forces the scrim off even with text (readable art).
   const scrim = hasText && c.scrim !== false ? `<div class="gp-scrim"></div>` : "";
   const kb = c.kenburns ? " gp-kenburns" : "";
+  // align:"center" centers the overlay stack (logo + line over art — the
+  // closing-slide shape an agent once had to BAKE INTO the artwork because
+  // no layout composed it; 2026-09-08).
+  const center = c.align === "center" ? " center" : "";
   return `
 <div class="gp-fill${kb}" style="${fill}"></div>
 ${scrim}
-${hasText ? `<div class="gp-frame${enterCls(c)}">
+${hasText ? `<div class="gp-frame${center}${enterCls(c)}">
+  ${logo ? `<img class="gp-logoimg" src="${logo}" alt="" />` : ""}
   ${eyebrow(c.eyebrow)}
-  <h1 class="gp-title">${esc(c.title)}</h1>
+  ${s(c.title) ? `<h1 class="gp-title">${esc(c.title)}</h1>` : ""}
   ${s(c.subtitle) ? `<p class="gp-sub">${esc(c.subtitle)}</p>` : ""}
 </div>` : ""}`;
 };
@@ -377,9 +383,20 @@ const team: LayoutFn = (c) => {
 </div>`;
 };
 
+/** Optional full-bleed background for the centered layouts (title/closing):
+ *  the art fills the frame, a scrim keeps the type readable (scrim:false to
+ *  run it bare). Empty string when the spec carries no media. */
+const bgFill = (c: Record<string, unknown>, ctx: RenderCtx): string => {
+  const bg = ctx.media(c.media ?? c.image);
+  if (!bg) return "";
+  const kb = c.kenburns ? " gp-kenburns" : "";
+  return `<div class="gp-fill${kb}" style="background-image:url(${bg})"></div>`
+    + (c.scrim !== false ? `<div class="gp-scrim"></div>` : "");
+};
+
 const closing: LayoutFn = (c, ctx) => {
   const logo = ctx.media(c.logo);
-  return `
+  return `${bgFill(c, ctx)}
 <div class="gp-frame center${enterCls(c)}">
   ${logo ? `<img class="gp-logoimg" src="${logo}" alt="" />` : rule()}
   <h1 class="gp-title lg">${esc(c.title ?? "Thank you")}</h1>
@@ -432,9 +449,9 @@ export const UNIVERSAL_FIELDS: FieldSchema[] = [
 
 export const SLIDE_LAYOUTS: Record<string, LayoutSpec> = {
   title: {
-    name: "title", summary: "Opening / cover slide: big centered title, optional logo, eyebrow + subtitle.",
+    name: "title", summary: "Opening / cover slide: big centered title, optional logo, eyebrow + subtitle. Optional full-bleed background art behind it all.",
     render: title,
-    schema: [f("title", "text", "The deck's headline.", true), f("subtitle", "text", "One supporting line."), f("eyebrow", "text", "Small label above the title (e.g. company or date)."), f("logo", "media", "Media-library asset id for a logo above the title, scaled to fit.")],
+    schema: [f("title", "text", "The deck's headline.", true), f("subtitle", "text", "One supporting line."), f("eyebrow", "text", "Small label above the title (e.g. company or date)."), f("logo", "media", "Media-library asset id for a logo above the title, scaled to fit."), f("media", "media", "Optional asset id for a full-bleed background image (a scrim keeps the type readable)."), f("scrim", "boolean", "false disables the background scrim."), f("kenburns", "boolean", "Slow Ken-Burns zoom on the background.")],
     sample: { layout: "title", eyebrow: "Q3 REVIEW", title: "Building the future of work", subtitle: "How we tripled activation in 90 days", enter: "rise" },
   },
   hero: {
@@ -552,9 +569,9 @@ export const SLIDE_LAYOUTS: Record<string, LayoutSpec> = {
     sample: { layout: "code", title: "Call the API", language: "TypeScript", code: "const deck = await client.officeSlides.get('q3.html');" },
   },
   "full-bleed-image": {
-    name: "full-bleed-image", summary: "Edge-to-edge background image. Text is OPTIONAL — with no title/subtitle the artwork runs bare (no scrim).",
+    name: "full-bleed-image", summary: "Edge-to-edge background image. Text is OPTIONAL — with no title/subtitle the artwork runs bare (no scrim). align:'center' + logo composes a centered logo-over-art slide.",
     render: fullBleedImage,
-    schema: [f("media", "media", "Media-library asset id for the background.", true), f("title", "text", "Overlaid headline (omit for a bare image slide)."), f("subtitle", "text", "Overlaid supporting line."), f("eyebrow", "text", "Small overlaid label."), f("scrim", "boolean", "false disables the text scrim."), f("kenburns", "boolean", "Slow Ken-Burns zoom on the image.")],
+    schema: [f("media", "media", "Media-library asset id for the background.", true), f("title", "text", "Overlaid headline (omit for a bare image slide)."), f("subtitle", "text", "Overlaid supporting line."), f("eyebrow", "text", "Small overlaid label."), f("logo", "media", "Logo asset id shown above the overlaid text."), f("align", "text", "'center' centers the overlaid logo/text stack (default top-left)."), f("scrim", "boolean", "false disables the text scrim."), f("kenburns", "boolean", "Slow Ken-Burns zoom on the image.")],
     sample: { layout: "full-bleed-image", media: "asset_bg", kenburns: true },
   },
   team: {
@@ -564,9 +581,9 @@ export const SLIDE_LAYOUTS: Record<string, LayoutSpec> = {
     sample: { layout: "team", title: "The team", members: [{ name: "Ada", role: "Engineering" }, { name: "Chris", role: "Product" }] },
   },
   closing: {
-    name: "closing", summary: "A closing / thank-you slide with an optional logo + contact line.",
+    name: "closing", summary: "A closing / thank-you slide: centered logo + line, with an optional full-bleed background image behind them.",
     render: closing,
-    schema: [f("title", "text", "Defaults to 'Thank you'."), f("subtitle", "text", "A closing line."), f("contact", "text", "Email / URL / handle."), f("logo", "media", "Logo asset id above the title (replaces the accent rule).")],
+    schema: [f("title", "text", "Defaults to 'Thank you'."), f("subtitle", "text", "A closing line."), f("contact", "text", "Email / URL / handle."), f("logo", "media", "Logo asset id above the title (replaces the accent rule)."), f("media", "media", "Optional asset id for a full-bleed background image (a scrim keeps the type readable)."), f("scrim", "boolean", "false disables the background scrim."), f("kenburns", "boolean", "Slow Ken-Burns zoom on the background.")],
     sample: { layout: "closing", title: "Let's build", contact: "hello@glyphh.ai", enter: "fade" },
   },
   custom: {
@@ -574,7 +591,7 @@ export const SLIDE_LAYOUTS: Record<string, LayoutSpec> = {
     summary: "FULLY CUSTOM slide: your own HTML + CSS + animations on the 1920×1080 stage. The CSS is scoped to this slide; @keyframes work. Use the gp-* classes for the theme's look, or go completely your own way.",
     render: custom,
     schema: [
-      f("html", "richtext", "Raw inner HTML for the slide. The stage is a fixed 1920×1080 canvas; position absolutely or use .gp-frame (inset:0, themed padding). Theme classes available: gp-title/gp-sub/gp-eyebrow/gp-bullets/gp-card/gp-frame + var(--slide-bg/fg/muted/accent/surface/border). Build steps: class=\"frag\" data-step=\"1\" (+ optional data-fx=\"up|zoom|…\") reveal on advance. NO <script>/<iframe> (stripped); position:fixed becomes absolute.", true),
+      f("html", "richtext", "Raw inner HTML for the slide. The stage is a fixed 1920×1080 canvas; position absolutely or use .gp-frame (inset:0, themed padding). Theme classes available: gp-title/gp-sub/gp-eyebrow/gp-bullets/gp-card/gp-frame + var(--slide-bg/fg/muted/accent/surface/border). MEDIA-LIBRARY ASSETS WORK HERE: embed with <img src=\"{{MEDIA:asset_id}}\"> or style=\"background-image:url({{MEDIA:asset_id}})\" — tokens resolve to the asset at render. Build steps: class=\"frag\" data-step=\"1\" (+ optional data-fx=\"up|zoom|…\") reveal on advance. NO <script>/<iframe> (stripped); position:fixed becomes absolute.", true),
       f("css", "richtext", "CSS for this slide only (auto-scoped — it can't leak). @keyframes pass through, so author any animation; animations tied to .slide.on replay each time the slide shows."),
     ],
     sample: { layout: "custom", html: "<div class=\"gp-frame center\"><h1 class=\"gp-title spin\">Custom</h1></div>", css: "@keyframes spin{to{transform:rotate(360deg)}} .spin{animation:spin 4s linear infinite}" },
@@ -582,7 +599,7 @@ export const SLIDE_LAYOUTS: Record<string, LayoutSpec> = {
   blank: {
     name: "blank", summary: "Escape hatch — raw slide HTML when no layout fits (still structure-locked). Prefer `custom`, which also takes CSS.",
     render: blank,
-    schema: [f("html", "richtext", "Raw inner HTML for the section.", true)],
+    schema: [f("html", "richtext", "Raw inner HTML for the section. Media-library assets embed via {{MEDIA:asset_id}} tokens (img src or background-image url), resolved at render.", true)],
     sample: { layout: "blank", html: "<div class=\"gp-frame center\"><h1 class=\"gp-title\">Custom</h1></div>" },
   },
 };
