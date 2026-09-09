@@ -129,6 +129,11 @@ export interface HarnessRunBody {
    *  (program-per-turn; server/docs/program-per-turn.md). P0: carried for
    *  attribution; the pod's envelope hooks consume it from P1 on. */
   loop?: string;
+  /** The loop's PROGRAM SOURCE (P3, desktop parity). Honored ONLY by a LOCAL
+   *  auth-off pod, which has no org store to read programs from — the desktop
+   *  fetches the code and hands it over. An authed cloud pod DROPS it (org
+   *  store is the only program truth there). */
+  loopProgram?: string;
   system?: string;
   permission?: HarnessPermission;
   history?: HarnessChatTurn[];
