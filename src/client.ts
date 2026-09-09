@@ -74,13 +74,11 @@ export interface RunTurnOptions {
    *  runs it directly; a desktop-relay turn overrides the machine's own loop
    *  model with it (so the caller's picker wins). Absent → the executor's default. */
   model?: string;
-  /** The agent LOOP (rotor) id this turn runs. DESKTOP TARGET ONLY: a desktop-relay
-   *  turn forwards this to attach.run, overriding the machine's own active loop so
-   *  the caller's pick (rover/memory/roles) wins. On the CLOUD target it is a no-op —
-   *  the harness run body (HarnessRunBody) carries no `loop`, and the cloud loop is
-   *  resolved server-side by the harness proxy from the org's memory rotor (delivered
-   *  to the pod as the `memory` policy, not a per-turn loop id). Absent → the
-   *  executor's active loop. */
+  /** The agent LOOP this turn runs. Honored on BOTH targets (program-per-turn
+   *  P0): a desktop-relay turn forwards it to attach.run, overriding the
+   *  machine's own active loop; a cloud turn carries it in the harness run body
+   *  so the pod can attribute — and, from P1, EXECUTE — the loop's program
+   *  (server/docs/program-per-turn.md). Absent → the executor's active loop. */
   loop?: string;
   permission?: string;
   images?: Array<{ mediaType: string; data: string }>;
@@ -452,6 +450,7 @@ export function createClient(opts: ClientOptions): Client {
         ...(ropts.subdir ? { subdir: ropts.subdir } : {}),
         ...(ropts.repo ? { repo: ropts.repo } : {}),
         ...(ropts.model ? { model: ropts.model } : {}),
+        ...(ropts.loop ? { loop: ropts.loop } : {}),
         ...(ropts.permission ? { permission: ropts.permission } : {}),
         ...(ropts.images && ropts.images.length ? { images: ropts.images } : {}),
         ...(ropts.memory ? { memory: ropts.memory } : {}),

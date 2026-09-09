@@ -125,6 +125,10 @@ export interface HarnessRunBody {
   repo?: string;
   sessionId?: string;
   model?: string;
+  /** The session's LOOP slug — the program that shapes this turn
+   *  (program-per-turn; server/docs/program-per-turn.md). P0: carried for
+   *  attribution; the pod's envelope hooks consume it from P1 on. */
+  loop?: string;
   system?: string;
   permission?: HarnessPermission;
   history?: HarnessChatTurn[];
