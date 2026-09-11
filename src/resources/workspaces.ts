@@ -37,4 +37,23 @@ export class WorkspacesClient {
   grants(): Promise<EffectiveGrants> {
     return this.http.get<EffectiveGrants>("/api/workspaces/grants");
   }
+
+  // ── role-level provider keys (org_admin) — override the org's vendor key ──
+  // Write-only: presence in, presence out. Removing one returns the role to
+  // the organization's provider key.
+
+  providerKeys(id: string): Promise<Array<{ providerSlug: string; updatedAt: string }>> {
+    return this.http.get<Array<{ providerSlug: string; updatedAt: string }>>(
+      `/api/workspaces/${encodeURIComponent(id)}/provider-keys`);
+  }
+
+  setProviderKey(id: string, providerSlug: string, key: string): Promise<{ providerSlug: string }> {
+    return this.http.put<{ providerSlug: string }>(
+      `/api/workspaces/${encodeURIComponent(id)}/provider-keys/${encodeURIComponent(providerSlug)}`, { key });
+  }
+
+  clearProviderKey(id: string, providerSlug: string): Promise<void> {
+    return this.http.del<void>(
+      `/api/workspaces/${encodeURIComponent(id)}/provider-keys/${encodeURIComponent(providerSlug)}`);
+  }
 }
