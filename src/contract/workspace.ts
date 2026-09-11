@@ -28,6 +28,7 @@ export interface Workspace {
   allowedProviders: string[];
   limitModels: boolean;
   allowedModels: string[];
+  autoExemptModels: string[];
   limitConnections: boolean;
   allowedConnections: string[];
   /** Per-connection tool scoping. Absent slug ⇒ all tools; present ⇒ only listed. */
@@ -57,6 +58,7 @@ export interface WorkspaceInput {
   allowedProviders?: string[];
   limitModels?: boolean;
   allowedModels?: string[];
+  autoExemptModels?: string[];
   limitConnections?: boolean;
   allowedConnections?: string[];
   allowedConnectionTools?: ConnectionToolGrants;

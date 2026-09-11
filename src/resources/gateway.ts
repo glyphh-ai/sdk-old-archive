@@ -16,6 +16,37 @@
 import type { AuthedHttp } from "../core/authed-http.js";
 import type { GatewayCompletion, GatewayCompletionInput, MessageTurn, MessageTurnInput, ToolUse } from "../contract/gateway.js";
 
+
+// ── gateway telemetry (org_admin) ────────────────────────────────────────────
+// The org's slice of the LiteLLM router's spend log. Metadata only — the
+// gateway never stores prompt or completion content, so none exists to read.
+
+export interface GatewayDay {
+  day: string;
+  requests: number;
+  promptTokens: number;
+  completionTokens: number;
+  spendUsd: number;
+  avgLatencyMs: number;
+  p95LatencyMs: number;
+}
+
+export interface GatewayBreakdownRow {
+  key: string;
+  requests: number;
+  promptTokens: number;
+  completionTokens: number;
+  spendUsd: number;
+  avgLatencyMs: number;
+}
+
+export interface GatewayMetrics {
+  configured: boolean;
+  days: GatewayDay[];
+  byModel: GatewayBreakdownRow[];
+  byProvider: GatewayBreakdownRow[];
+}
+
 export class GatewayClient {
   constructor(private readonly http: AuthedHttp) {}
 
@@ -181,5 +212,14 @@ export class GatewayClient {
   async text(input: GatewayCompletionInput): Promise<string> {
     const completion = await this.complete(input);
     return completion.choices?.[0]?.message?.content ?? "";
+  }
+
+  /** The org's gateway telemetry window (org_admin). `workspaceId` narrows to one role's traffic. */
+  metrics(opts: { days?: 7 | 30 | 90; workspaceId?: string } = {}): Promise<GatewayMetrics> {
+    const qs = new URLSearchParams();
+    if (opts.days) qs.set("days", String(opts.days));
+    if (opts.workspaceId) qs.set("workspaceId", opts.workspaceId);
+    const s = qs.toString();
+    return this.http.get<GatewayMetrics>(`/api/org/gateway/metrics${s ? `?${s}` : ""}`);
   }
 }
