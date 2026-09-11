@@ -231,7 +231,7 @@ export class GatewayClient {
   }
 
   /** The org's gateway telemetry window (org_admin). `workspaceId` narrows to one role's traffic. */
-  metrics(opts: { days?: 7 | 30 | 90; workspaceId?: string } = {}): Promise<GatewayMetrics> {
+  metrics(opts: { days?: 1 | 7 | 30 | 90; workspaceId?: string } = {}): Promise<GatewayMetrics> {
     const qs = new URLSearchParams();
     if (opts.days) qs.set("days", String(opts.days));
     if (opts.workspaceId) qs.set("workspaceId", opts.workspaceId);

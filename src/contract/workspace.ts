@@ -49,9 +49,11 @@ export interface Workspace {
   capPeriodDays: number | null;
   rateLimitCalls: number | null;
   rateLimitWindowSeconds: number | null;
-  /** Monthly gateway budget in USD (null = untracked) + the hard-limit toggle. */
+  /** Gateway budget in USD per period (null = untracked) + the hard-limit toggle. */
   budgetUsd: number | null;
   budgetHard: boolean;
+  /** 1 / 7 / 30 — the credit-cap calendar grammar. Null reads as monthly. */
+  budgetPeriodDays: number | null;
   /** Assigned members — present on the LIST read only. */
   memberCount?: number;
 }
@@ -81,6 +83,7 @@ export interface WorkspaceInput {
   rateLimitWindowSeconds?: number | null;
   budgetUsd?: number | null;
   budgetHard?: boolean;
+  budgetPeriodDays?: number | null;
 }
 
 /** A resolved grant: "all" (unlimited) or the exact allow-list. */
