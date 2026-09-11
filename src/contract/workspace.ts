@@ -49,6 +49,11 @@ export interface Workspace {
   capPeriodDays: number | null;
   rateLimitCalls: number | null;
   rateLimitWindowSeconds: number | null;
+  /** Monthly gateway budget in USD (null = untracked) + the hard-limit toggle. */
+  budgetUsd: number | null;
+  budgetHard: boolean;
+  /** Assigned members — present on the LIST read only. */
+  memberCount?: number;
 }
 
 /** Create/update payload — every field optional; base-role restrictions apply server-side. */
@@ -74,6 +79,8 @@ export interface WorkspaceInput {
   capPeriodDays?: number | null;
   rateLimitCalls?: number | null;
   rateLimitWindowSeconds?: number | null;
+  budgetUsd?: number | null;
+  budgetHard?: boolean;
 }
 
 /** A resolved grant: "all" (unlimited) or the exact allow-list. */

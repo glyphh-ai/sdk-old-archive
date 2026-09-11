@@ -45,6 +45,8 @@ export interface GatewayMetrics {
   days: GatewayDay[];
   byModel: GatewayBreakdownRow[];
   byProvider: GatewayBreakdownRow[];
+  /** Keyed by workspace (role) id — parsed from each key's alias. */
+  byRole: GatewayBreakdownRow[];
 }
 
 
