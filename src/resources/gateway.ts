@@ -47,6 +47,20 @@ export interface GatewayMetrics {
   byProvider: GatewayBreakdownRow[];
 }
 
+
+export interface GatewayKey {
+  id: string;
+  name: string;
+  workspaceId: string;
+  tokenHint: string;
+  expiresAt: string | null;
+  revokedAt: string | null;
+  createdBy: string | null;
+  createdAt: string;
+}
+
+export interface MintedGatewayKey { key: GatewayKey; token: string }
+
 export class GatewayClient {
   constructor(private readonly http: AuthedHttp) {}
 
@@ -221,5 +235,22 @@ export class GatewayClient {
     if (opts.workspaceId) qs.set("workspaceId", opts.workspaceId);
     const s = qs.toString();
     return this.http.get<GatewayMetrics>(`/api/org/gateway/metrics${s ? `?${s}` : ""}`);
+  }
+
+  // ── the keys the gateway hands out (org_admin) ─────────────────────────────
+  // Each key is bound to ONE role: the role fixes the model list and whose
+  // vendor credential burns underneath. The token rides the mint response
+  // ONCE; the registry stores name/hint/lifetime only.
+
+  keys(): Promise<GatewayKey[]> {
+    return this.http.get<GatewayKey[]>("/api/org/gateway/keys");
+  }
+
+  createKey(input: { name: string; workspaceId: string; days?: number }): Promise<MintedGatewayKey> {
+    return this.http.post<MintedGatewayKey>("/api/org/gateway/keys", input);
+  }
+
+  revokeKey(id: string): Promise<void> {
+    return this.http.del<void>(`/api/org/gateway/keys/${encodeURIComponent(id)}`);
   }
 }
