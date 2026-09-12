@@ -83,6 +83,35 @@ export class GatewayClient {
     return this.http.post<GatewayToken>("/api/gateway/token", {});
   }
 
+  // ── MEMBER SELF-SERVICE KEYS (his ruling, 2026-09-12): paid plan + the
+  // org admin's members_mint_keys switch. The key is scoped by the member's
+  // role exactly as the device token is. ─────────────────────────────────────
+
+  /** The caller's own keys, plus whether the doors are open (`allowed`). */
+  myKeys(): Promise<{ allowed: boolean; reason: string; keys: GatewayKey[] }> {
+    return this.http.get<{ allowed: boolean; reason: string; keys: GatewayKey[] }>("/api/gateway/my-keys");
+  }
+
+  /** Mint a personal key (shown once). E_ENTITLEMENT when the doors are shut. */
+  mintMyKey(name: string, days?: number): Promise<MintedGatewayKey> {
+    return this.http.post<MintedGatewayKey>("/api/gateway/my-keys", { name, ...(days ? { days } : {}) });
+  }
+
+  /** Revoke one of the caller's OWN keys — anyone else's answers not-found. */
+  revokeMyKey(id: string): Promise<void> {
+    return this.http.del<void>(`/api/gateway/my-keys/${id}`);
+  }
+
+  /** The org switch for member minting (org_admin). */
+  memberKeysEnabled(): Promise<{ enabled: boolean }> {
+    return this.http.get<{ enabled: boolean }>("/api/org/gateway/member-keys");
+  }
+
+  /** Flip it (org_admin). */
+  setMemberKeysEnabled(enabled: boolean): Promise<{ enabled: boolean }> {
+    return this.http.put<{ enabled: boolean }>("/api/org/gateway/member-keys", { enabled });
+  }
+
   /**
    * One metered completion. Refused (402) when the org is out of credits — this
    * is a prepaid system with no arrears, and there is no free local fallback, so
