@@ -85,7 +85,7 @@ export async function resolveModels(
   const { loop, token, server, overrides } = opts;
   let roles;
   try {
-    roles = await client.loops.roles(loop, overrides ?? {}, { context: opts.context ?? "local" });
+    roles = await client.tasks.roles(loop, overrides ?? {}, { context: opts.context ?? "local" });
   } catch {
     return undefined; // control plane doesn't know this loop / not reachable
   }

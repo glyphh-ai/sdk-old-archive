@@ -29,11 +29,13 @@ import { ProvidersClient } from "./resources/providers.js";
 import { AdminClient } from "./resources/admin.js";
 import { MarketingClient } from "./resources/marketing.js";
 import { LoopsClient } from "./resources/loops.js";
+import { TasksClient } from "./resources/tasks.js";
 import { ConnectionsClient } from "./resources/connections.js";
 import { UsageClient } from "./resources/usage.js";
 import { ApiKeysClient } from "./resources/api-keys.js";
 import { PlansClient } from "./resources/plans.js";
 import { OrgLoopsClient } from "./resources/org-loops.js";
+import { OrgLibraryClient } from "./resources/org-library.js";
 import { SessionsClient } from "./resources/sessions.js";
 import { FilesClient } from "./resources/files.js";
 import { OfficeSlidesClient, OfficeDocsClient, OfficeDriveClient, OfficeSheetsClient } from "./resources/office.js";
@@ -198,8 +200,12 @@ export interface Client {
   admin: AdminClient;
   /** Marketing link tracking + click analytics (super_admin). */
   marketing: MarketingClient;
-  /** The org's agent-loop library (members read; org_admin builds). */
+  /** The loops a member may drive — the governed CLI list. */
   loops: LoopsClient;
+  /** The org's TASK library (members read; org_admin builds). Formerly
+   *  `loops` — renamed 2026-09-12 so "loop" means one thing. Routes return
+   *  with the Build section. */
+  tasks: TasksClient;
   /** Connectors — Pipedream accounts + custom MCP servers (org_admin manages). */
   connections: ConnectionsClient;
   /** Usage rollups — credits consumed/saved by user, workspace, org. */
@@ -211,6 +217,9 @@ export interface Client {
   plans: PlansClient;
   /** The ORG's loop support list — which CLIs this organization runs. */
   orgLoops: OrgLoopsClient;
+  /** The ORG LIBRARY — promoted tasks/agents/skills: publish, review, role
+   *  access, installs. One library, keyed by kind. */
+  orgLibrary: OrgLibraryClient;
   /** Control-plane runtime sessions — provision/list/get/deprovision (data plane is `session()`). */
   sessions: SessionsClient;
   /** Saved FILE ARTIFACTS — the explicit deliverables an agent saves for the user (list/get/create/delete). */
@@ -344,11 +353,13 @@ export function createClient(opts: ClientOptions): Client {
     admin: new AdminClient(authed),
     marketing: new MarketingClient(authed),
     loops: new LoopsClient(authed),
+    tasks: new TasksClient(authed),
     connections: new ConnectionsClient(authed),
     usage: new UsageClient(authed),
     apiKeys: new ApiKeysClient(authed),
     plans: new PlansClient(authed),
     orgLoops: new OrgLoopsClient(authed),
+    orgLibrary: new OrgLibraryClient(authed),
     sessions: new SessionsClient(authed),
     files: new FilesClient(authed),
     officeSlides: new OfficeSlidesClient(authed),
