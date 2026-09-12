@@ -33,6 +33,7 @@ import { ConnectionsClient } from "./resources/connections.js";
 import { UsageClient } from "./resources/usage.js";
 import { ApiKeysClient } from "./resources/api-keys.js";
 import { PlansClient } from "./resources/plans.js";
+import { OrgLoopsClient } from "./resources/org-loops.js";
 import { SessionsClient } from "./resources/sessions.js";
 import { FilesClient } from "./resources/files.js";
 import { OfficeSlidesClient, OfficeDocsClient, OfficeDriveClient, OfficeSheetsClient } from "./resources/office.js";
@@ -208,6 +209,8 @@ export interface Client {
   /** THE licensing read — what this org's plan allows. Every surface gates
    *  here and nowhere else (see resources/plans.ts). */
   plans: PlansClient;
+  /** The ORG's loop support list — which CLIs this organization runs. */
+  orgLoops: OrgLoopsClient;
   /** Control-plane runtime sessions — provision/list/get/deprovision (data plane is `session()`). */
   sessions: SessionsClient;
   /** Saved FILE ARTIFACTS — the explicit deliverables an agent saves for the user (list/get/create/delete). */
@@ -345,6 +348,7 @@ export function createClient(opts: ClientOptions): Client {
     usage: new UsageClient(authed),
     apiKeys: new ApiKeysClient(authed),
     plans: new PlansClient(authed),
+    orgLoops: new OrgLoopsClient(authed),
     sessions: new SessionsClient(authed),
     files: new FilesClient(authed),
     officeSlides: new OfficeSlidesClient(authed),

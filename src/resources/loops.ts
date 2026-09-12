@@ -11,10 +11,22 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
-import type { Loop, LoopSummary, CreateLoopInput, UpdateLoopInput, ResolvedLoopRole } from "../contract/loops.js";
+import type { Loop, LoopSummary, CreateLoopInput, UpdateLoopInput, ResolvedLoopRole, AvailableLoop } from "../contract/loops.js";
 
 export class LoopsClient {
   constructor(private readonly http: AuthedHttp) {}
+
+  /**
+   * The CLI LOOPS the caller may actually use — the vendor catalog narrowed
+   * by the org's support list, then by the caller's role (governance plans
+   * only). Exactly one comes back flagged default.
+   *
+   * Distinct from the loop LIBRARY methods below: this is which CLI a member
+   * may drive, not which program they may run.
+   */
+  available(): Promise<AvailableLoop[]> {
+    return this.http.get<AvailableLoop[]>("/api/loops/available");
+  }
 
   list(): Promise<{ loops: LoopSummary[] }> {
     return this.http.get<{ loops: LoopSummary[] }>("/api/loops");

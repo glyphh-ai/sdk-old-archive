@@ -157,6 +157,9 @@ export type { UsageSummary, UsageDay, UsageDailyQuery, UsageByModelRow, UsageByM
 export { ApiKeysClient } from "./resources/api-keys.js";
 // THE licensing read — one place, everything checks it (resources/plans.ts).
 export { PlansClient, type PlanGates, type PlanCapability } from "./resources/plans.js";
+// LOOPS — the CLI pre-configs, governed by vendor.
+export { OrgLoopsClient } from "./resources/org-loops.js";
+export type { AvailableLoop, OrgLoop, LoopGrant, GatewayToken } from "./contract/loops.js";
 export type { ApiKey, ApiKeyInput, CreatedApiKey } from "./contract/api-keys.js";
 export { SessionsClient } from "./resources/sessions.js";
 export type {

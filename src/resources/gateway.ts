@@ -14,6 +14,7 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
+import type { GatewayToken } from "../contract/loops.js";
 import type { GatewayCompletion, GatewayCompletionInput, MessageTurn, MessageTurnInput, ToolUse } from "../contract/gateway.js";
 
 
@@ -65,6 +66,22 @@ export interface MintedGatewayKey { key: GatewayKey; token: string }
 
 export class GatewayClient {
   constructor(private readonly http: AuthedHttp) {}
+
+  /**
+   * THE TOKEN EXCHANGE — the caller's own gateway credential, for the
+   * environment a CLI subprocess starts in. Everything it may reach comes
+   * from the caller's ROLE, so there is nothing to pass and nothing to forge.
+   *
+   * IDEMPOTENT: the same credential every session. A client that minted per
+   * launch would leave live keys nobody can account for and split its own
+   * spend across them.
+   *
+   * Refuses with E_ENTITLEMENT when the plan doesn't carry the gateway, or
+   * its trial window has closed.
+   */
+  token(): Promise<GatewayToken> {
+    return this.http.post<GatewayToken>("/api/gateway/token", {});
+  }
 
   /**
    * One metered completion. Refused (402) when the org is out of credits — this
