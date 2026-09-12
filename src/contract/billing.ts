@@ -16,6 +16,9 @@ export interface Plan {
   monthlyCredits: number;
   maxSeats: number;
   sso: boolean;
+  /** Role governance — which tier carries it, so an upsell can name the real
+   *  plan rather than a hardcoded guess. */
+  governance?: boolean;
   /** True for the caller org's own PROVISIONED per-org (enterprise) plan — a real invoiced
    *  price + allowance, shown as the current plan rather than the "contact sales" card. */
   bespoke?: boolean;

@@ -32,6 +32,7 @@ import { LoopsClient } from "./resources/loops.js";
 import { ConnectionsClient } from "./resources/connections.js";
 import { UsageClient } from "./resources/usage.js";
 import { ApiKeysClient } from "./resources/api-keys.js";
+import { PlansClient } from "./resources/plans.js";
 import { SessionsClient } from "./resources/sessions.js";
 import { FilesClient } from "./resources/files.js";
 import { OfficeSlidesClient, OfficeDocsClient, OfficeDriveClient, OfficeSheetsClient } from "./resources/office.js";
@@ -204,6 +205,9 @@ export interface Client {
   usage: UsageClient;
   /** User-scoped `gy_ak_` API keys for headless SDK/CLI use + the desktop relay. */
   apiKeys: ApiKeysClient;
+  /** THE licensing read — what this org's plan allows. Every surface gates
+   *  here and nowhere else (see resources/plans.ts). */
+  plans: PlansClient;
   /** Control-plane runtime sessions — provision/list/get/deprovision (data plane is `session()`). */
   sessions: SessionsClient;
   /** Saved FILE ARTIFACTS — the explicit deliverables an agent saves for the user (list/get/create/delete). */
@@ -340,6 +344,7 @@ export function createClient(opts: ClientOptions): Client {
     connections: new ConnectionsClient(authed),
     usage: new UsageClient(authed),
     apiKeys: new ApiKeysClient(authed),
+    plans: new PlansClient(authed),
     sessions: new SessionsClient(authed),
     files: new FilesClient(authed),
     officeSlides: new OfficeSlidesClient(authed),

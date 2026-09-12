@@ -155,6 +155,8 @@ export type {
 export { UsageClient } from "./resources/usage.js";
 export type { UsageSummary, UsageDay, UsageDailyQuery, UsageByModelRow, UsageByModelQuery } from "./contract/usage.js";
 export { ApiKeysClient } from "./resources/api-keys.js";
+// THE licensing read — one place, everything checks it (resources/plans.ts).
+export { PlansClient, type PlanGates, type PlanCapability } from "./resources/plans.js";
 export type { ApiKey, ApiKeyInput, CreatedApiKey } from "./contract/api-keys.js";
 export { SessionsClient } from "./resources/sessions.js";
 export type {
