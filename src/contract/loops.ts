@@ -54,4 +54,7 @@ export interface GatewayToken {
   expiresAt: string | null;
   /** The models this credential may reach, per the caller's role. */
   models: string[];
+  /** False = the gateway lane is OFF for this org: keep the CLI on its own login;
+   *  the token still authenticates the server's /mcp. Absent = on (older servers). */
+  gateway?: boolean;
 }
