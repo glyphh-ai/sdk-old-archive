@@ -82,6 +82,9 @@ export interface PlanChange {
   effect: "upgrade" | "downgrade" | "checkout";
   /** Present only when effect === 'checkout': the hosted Checkout url to open. */
   url?: string;
+  /** Present when effect === 'checkout' and EMBEDDED was asked: the client
+   *  secret the in-app modal mounts — the same flow the credit top-up uses. */
+  clientSecret?: string;
 }
 
 /** One normalized Stripe invoice (money in USD cents; times in unix seconds). */
