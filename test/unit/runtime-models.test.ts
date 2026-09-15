@@ -2,7 +2,7 @@
  * @license Proprietary — © Glyphh. All rights reserved.
  *
  * runtime-models.test.ts — the governed SDK↔rrotor model bridge: resolveModels turns a
- * TASK's resolved slots (`tasks.roles` — the same call every picker reads) into gateway
+ * LOOP's resolved slots (`loops.roles` — the same call every picker reads) into gateway
  * endpoints (root url + provider + bearer + metered, `provider::` stripped), exposes the
  * primary slot for role aliasing, and switchModel audits every switch while updating the
  * in-process override the next resolve layers on.
@@ -17,7 +17,7 @@ import {
   clearSessionOverrides,
 } from "../../src/runtime/index.js";
 import type { Client } from "../../src/index.js";
-import type { ResolvedTaskRole } from "../../src/contract/tasks.js";
+import type { ResolvedLoopRole } from "../../src/contract/loops.js";
 
 const choice = (id: string) => ({
   id,
@@ -32,7 +32,7 @@ const choice = (id: string) => ({
 });
 
 /** One anthropic default slot + one openai-family coder slot. */
-function roles(): ResolvedTaskRole[] {
+function roles(): ResolvedLoopRole[] {
   return [
     {
       name: "default", label: "Model", description: "", modality: "chat", modelId: "anthropic::claude-sonnet-5",
@@ -47,7 +47,7 @@ function roles(): ResolvedTaskRole[] {
 
 /** A minimal Client stub: only the resources the bridge touches. */
 function fakeClient(
-  result: ResolvedTaskRole[] | Error,
+  result: ResolvedLoopRole[] | Error,
   record: ReturnType<typeof vi.fn> = vi.fn(async () => ({})),
 ): { client: Client; rolesFn: ReturnType<typeof vi.fn> } {
   const rolesFn = vi.fn(async () => {
@@ -55,7 +55,7 @@ function fakeClient(
     return result;
   });
   return {
-    client: { tasks: { roles: rolesFn }, sessions: { recordModelSwitch: record } } as unknown as Client,
+    client: { loops: { roles: rolesFn }, sessions: { recordModelSwitch: record } } as unknown as Client,
     rolesFn,
   };
 }

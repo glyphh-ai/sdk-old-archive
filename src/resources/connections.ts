@@ -147,20 +147,6 @@ export class ConnectionsClient {
     return connection;
   }
 
-  /** Enable/disable ANY connection in the org — org-shared or a member's own
-   *  (the org admin governs both; disabled rows leave every tool set). */
-  async setOrgConnectionEnabled(id: string, enabled: boolean): Promise<OrgPipedreamConnection> {
-    const { connection } = await this.http.patch<{ ok: boolean; connection: OrgPipedreamConnection }>(`/api/org/connections/${encodeURIComponent(id)}`, { enabled });
-    return connection;
-  }
-
-  /** Move a connection between ORG scope (everyone) and PERSONAL scope (the
-   *  caller's). Org-admin only. */
-  async setOrgConnectionScope(id: string, scope: "org" | "personal"): Promise<OrgPipedreamConnection> {
-    const { connection } = await this.http.patch<{ ok: boolean; connection: OrgPipedreamConnection }>(`/api/org/connections/${encodeURIComponent(id)}`, { scope });
-    return connection;
-  }
-
   // ── Personal (member-made) connections — the member's OWN Pipedream auth ──────
 
   /** The caller's personal Pipedream connections (best-effort synced from Pipedream). */
@@ -178,12 +164,6 @@ export class ConnectionsClient {
   /** Label one of the caller's OWN connections (e.g. "My work Gmail"). */
   async renamePersonalConnection(id: string, label: string): Promise<PersonalConnection> {
     const { connection } = await this.http.patch<{ ok: boolean; connection: PersonalConnection }>(`/api/connections/personal/${encodeURIComponent(id)}`, { label });
-    return connection;
-  }
-
-  /** Enable/disable one of the caller's OWN connections. */
-  async setPersonalConnectionEnabled(id: string, enabled: boolean): Promise<PersonalConnection> {
-    const { connection } = await this.http.patch<{ ok: boolean; connection: PersonalConnection }>(`/api/connections/personal/${encodeURIComponent(id)}`, { enabled });
     return connection;
   }
 

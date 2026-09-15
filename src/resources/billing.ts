@@ -43,13 +43,6 @@ export class BillingClient {
     return this.http.post<HostedUrl>("/api/billing/subscribe", { tier });
   }
 
-  /** Start an EMBEDDED Checkout for `tier` — the same in-app modal flow as the
-   *  credit top-up; returns the client secret to mount (his ask, 2026-09-13:
-   *  one Stripe surface for buying credits AND changing plan). */
-  subscribeEmbedded(tier: string): Promise<PlanChange> {
-    return this.http.post<PlanChange>("/api/billing/subscribe", { tier, embedded: true });
-  }
-
   /** Move the org's plan to `tier` (proration applied server-side); free orgs get a Checkout url. */
   changePlan(tier: string): Promise<PlanChange> {
     return this.http.post<PlanChange>("/api/billing/change-plan", { tier });
