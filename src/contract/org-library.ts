@@ -24,7 +24,8 @@ export interface OrgLibraryItem {
   /** Role-gated item (meaningful on admin reads). */
   restricted: boolean;
   /** The role grant list — what the Access editor pre-checks (admin reads). */
-  grantedWorkspaceIds: string[];
+  /** When restricted, the members the org made it available to. */
+  grantedUserIds: string[];
   /** The admin's kill-switch: disabled = invisible to members, installs kept. */
   enabled: boolean;
   /** How many members have it installed. */

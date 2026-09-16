@@ -44,8 +44,8 @@ export class OrgLibraryClient {
 
   /** Set one item's role access: the restricted flag + the full grant list,
    *  rebuilt wholesale (org_admin). */
-  setAccess(kind: OrgLibraryKind, id: string, restricted: boolean, workspaceIds: string[]): Promise<void> {
-    return this.http.post<void>(`/api/library/${kind}/${id}/access`, { restricted, workspaceIds });
+  setAccess(kind: OrgLibraryKind, id: string, restricted: boolean, userIds: string[]): Promise<void> {
+    return this.http.post<void>(`/api/library/${kind}/${id}/access`, { restricted, userIds });
   }
 
   /** The admin's kill-switch — off hides it from members, installs kept. */
