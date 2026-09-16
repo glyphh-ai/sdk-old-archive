@@ -89,4 +89,54 @@ export function registerGateway(reg: CommandRegistry): void {
       ctx.printJson(await ctx.client.gateway.turn(input));
     },
   });
+
+  reg.register({
+    path: "gateway my-keys",
+    summary: "your own API keys, plus whether member minting is open to you",
+    covers: ["gateway.myKeys"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.gateway.myKeys());
+    },
+  });
+
+  reg.register({
+    path: "gateway mint-key",
+    summary: "mint a personal API key (shown once) — paid plan + org switch",
+    usage: "gateway mint-key <name> [--days <n>]",
+    covers: ["gateway.mintMyKey"],
+    async run(ctx, args) {
+      const name = args.positional[0];
+      if (!name) throw new Error("usage: gateway mint-key <name> [--days <n>]");
+      const days = typeof args.flags.days === "string" ? Number(args.flags.days) : undefined;
+      ctx.printJson(await ctx.client.gateway.mintMyKey(name, days));
+    },
+  });
+
+  reg.register({
+    path: "gateway revoke-key",
+    summary: "revoke one of YOUR keys",
+    usage: "gateway revoke-key <id>",
+    covers: ["gateway.revokeMyKey"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: gateway revoke-key <id>");
+      await ctx.client.gateway.revokeMyKey(id);
+      ctx.printJson({ ok: true });
+    },
+  });
+
+  reg.register({
+    path: "gateway member-keys",
+    summary: "read or flip the org's member-minting switch (org_admin)",
+    usage: "gateway member-keys [on|off]",
+    covers: ["gateway.memberKeysEnabled", "gateway.setMemberKeysEnabled"],
+    async run(ctx, args) {
+      const state = args.positional[0];
+      if (state === "on" || state === "off") {
+        ctx.printJson(await ctx.client.gateway.setMemberKeysEnabled(state === "on"));
+      } else {
+        ctx.printJson(await ctx.client.gateway.memberKeysEnabled());
+      }
+    },
+  });
 }

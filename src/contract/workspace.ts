@@ -28,6 +28,7 @@ export interface Workspace {
   allowedProviders: string[];
   limitModels: boolean;
   allowedModels: string[];
+  autoExemptModels: string[];
   limitConnections: boolean;
   allowedConnections: string[];
   /** Per-connection tool scoping. Absent slug ⇒ all tools; present ⇒ only listed. */
@@ -48,6 +49,15 @@ export interface Workspace {
   capPeriodDays: number | null;
   rateLimitCalls: number | null;
   rateLimitWindowSeconds: number | null;
+  /** Gateway budget in USD per period (null = untracked) + the hard-limit toggle. */
+  budgetUsd: number | null;
+  budgetHard: boolean;
+  /** 1 / 7 / 30 — the credit-cap calendar grammar. Null reads as monthly. */
+  budgetPeriodDays: number | null;
+  /** Tokens per minute across the role's minted keys. Null = unlimited. */
+  tpmLimit: number | null;
+  /** Assigned members — present on the LIST read only. */
+  memberCount?: number;
 }
 
 /** Create/update payload — every field optional; base-role restrictions apply server-side. */
@@ -57,6 +67,7 @@ export interface WorkspaceInput {
   allowedProviders?: string[];
   limitModels?: boolean;
   allowedModels?: string[];
+  autoExemptModels?: string[];
   limitConnections?: boolean;
   allowedConnections?: string[];
   allowedConnectionTools?: ConnectionToolGrants;
@@ -72,6 +83,10 @@ export interface WorkspaceInput {
   capPeriodDays?: number | null;
   rateLimitCalls?: number | null;
   rateLimitWindowSeconds?: number | null;
+  budgetUsd?: number | null;
+  budgetHard?: boolean;
+  budgetPeriodDays?: number | null;
+  tpmLimit?: number | null;
 }
 
 /** A resolved grant: "all" (unlimited) or the exact allow-list. */

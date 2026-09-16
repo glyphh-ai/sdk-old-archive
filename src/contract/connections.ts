@@ -103,6 +103,8 @@ export interface PersonalConnection {
   name: string;
   label: string | null;
   healthy: boolean;
+  /** The governed on/off switch (healthy mirrors it for older clients). */
+  enabled: boolean;
 }
 
 /** The result of starting a personal Pipedream connect session (`url` === `connectUrl`). */
@@ -168,5 +170,7 @@ export interface OrgPipedreamConnection {
   name: string;
   icon: string | null;
   healthy: boolean;
+  /** The governed on/off switch (healthy mirrors it for older clients). */
+  enabled: boolean;
   createdAt: string;
 }

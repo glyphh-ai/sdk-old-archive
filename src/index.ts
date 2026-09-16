@@ -132,7 +132,8 @@ export type {
   MarketingStatsQuery,
 } from "./contract/marketing.js";
 export { LoopsClient } from "./resources/loops.js";
-export type { Loop, LoopSummary, LoopManifest, LoopRole, ResolvedLoopRole, CreateLoopInput, UpdateLoopInput } from "./contract/loops.js";
+export { TasksClient } from "./resources/tasks.js";
+export type { Task, TaskSummary, TaskManifest, TaskRole, ResolvedTaskRole, CreateTaskInput, UpdateTaskInput } from "./contract/tasks.js";
 export { ConnectionsClient } from "./resources/connections.js";
 export type {
   Connection,
@@ -155,6 +156,13 @@ export type {
 export { UsageClient } from "./resources/usage.js";
 export type { UsageSummary, UsageDay, UsageDailyQuery, UsageByModelRow, UsageByModelQuery } from "./contract/usage.js";
 export { ApiKeysClient } from "./resources/api-keys.js";
+// THE licensing read — one place, everything checks it (resources/plans.ts).
+export { PlansClient, type PlanGates, type PlanCapability } from "./resources/plans.js";
+// LOOPS — the CLI pre-configs, governed by vendor.
+export { OrgLoopsClient } from "./resources/org-loops.js";
+export { OrgLibraryClient } from "./resources/org-library.js";
+export type { OrgLibraryKind, OrgLibraryItem, OrgLibraryPending, OrgLibraryPromoteInput, OrgLibraryPromoteResult } from "./contract/org-library.js";
+export type { Loop, OrgLoop, LoopGrant, GatewayToken } from "./contract/loops.js";
 export type { ApiKey, ApiKeyInput, CreatedApiKey } from "./contract/api-keys.js";
 export { SessionsClient } from "./resources/sessions.js";
 export type {
@@ -268,6 +276,7 @@ export type {
 export { RotorConfigClient } from "./resources/rotor-config.js";
 export type { RotorRole, RotorCatalogEntry } from "./contract/rotors.js";
 export { OrgModelsClient } from "./resources/org-models.js";
+export type { GatewayMetrics, GatewayDay, GatewayBreakdownRow } from "./resources/gateway.js";
 export { ModelsClient } from "./resources/models.js";
 export { AgentsClient } from "./resources/agents.js";
 export type {

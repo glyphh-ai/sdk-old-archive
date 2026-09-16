@@ -16,6 +16,9 @@ export interface Plan {
   monthlyCredits: number;
   maxSeats: number;
   sso: boolean;
+  /** Role governance — which tier carries it, so an upsell can name the real
+   *  plan rather than a hardcoded guess. */
+  governance?: boolean;
   /** True for the caller org's own PROVISIONED per-org (enterprise) plan — a real invoiced
    *  price + allowance, shown as the current plan rather than the "contact sales" card. */
   bespoke?: boolean;
@@ -79,6 +82,9 @@ export interface PlanChange {
   effect: "upgrade" | "downgrade" | "checkout";
   /** Present only when effect === 'checkout': the hosted Checkout url to open. */
   url?: string;
+  /** Present when effect === 'checkout' and EMBEDDED was asked: the client
+   *  secret the in-app modal mounts — the same flow the credit top-up uses. */
+  clientSecret?: string;
 }
 
 /** One normalized Stripe invoice (money in USD cents; times in unix seconds). */
