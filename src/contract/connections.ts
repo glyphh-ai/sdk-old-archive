@@ -37,6 +37,10 @@ export interface ConnectorApp {
   id: string;
   name: string;
   icon: string | null;
+  /** Pipedream's blurb for the app (empty under governance, where the org's list carries none). */
+  description?: string;
+  /** Pipedream's categories for the app. */
+  categories?: string[];
 }
 
 /** One tool/action a connector app exposes. */
