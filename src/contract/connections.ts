@@ -105,6 +105,12 @@ export interface PersonalConnection {
   healthy: boolean;
   /** The governed on/off switch (healthy mirrors it for older clients). */
   enabled: boolean;
+  /** True once an account is authorized (a shared org connection is always connected). */
+  connected?: boolean;
+  /** An org connection (admin-added) rather than the member's own record. */
+  org?: boolean;
+  /** A shared org account every member rides; nothing for the member to connect. */
+  shared?: boolean;
 }
 
 /** The result of starting a personal Pipedream connect session (`url` === `connectUrl`). */
