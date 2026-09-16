@@ -35,6 +35,11 @@ export class ConnectionsClient {
     return this.http.get<{ apps: ConnectorApp[]; next?: string; total?: number }>(`/api/connectors/apps${qs ? `?${qs}` : ""}`);
   }
 
+  /** The most connected apps across the server, by install count. */
+  popular(limit = 6): Promise<{ apps: Array<ConnectorApp & { installs: number }> }> {
+    return this.http.get<{ apps: Array<ConnectorApp & { installs: number }> }>(`/api/connectors/popular?limit=${limit}`);
+  }
+
   /** The directory by category: name, count, and a few featured apps each. */
   categories(): Promise<{ categories: Array<{ name: string; count: number; apps: ConnectorApp[] }> }> {
     return this.http.get<{ categories: Array<{ name: string; count: number; apps: ConnectorApp[] }> }>("/api/connectors/categories");
