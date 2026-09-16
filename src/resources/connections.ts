@@ -25,12 +25,13 @@ export class ConnectionsClient {
    * picker). Best-effort server-side: an unconfigured or slow catalog yields an
    * empty list rather than an error. `limit` defaults to 24 (server-clamped 1..100).
    */
-  apps(input: { search?: string; limit?: number } = {}): Promise<{ apps: ConnectorApp[] }> {
+  apps(input: { search?: string; limit?: number; after?: string } = {}): Promise<{ apps: ConnectorApp[]; next?: string }> {
     const params = new URLSearchParams();
     if (input.search?.trim()) params.set("search", input.search.trim());
     if (input.limit != null) params.set("limit", String(input.limit));
+    if (input.after) params.set("after", input.after);
     const qs = params.toString();
-    return this.http.get<{ apps: ConnectorApp[] }>(`/api/connectors/apps${qs ? `?${qs}` : ""}`);
+    return this.http.get<{ apps: ConnectorApp[]; next?: string }>(`/api/connectors/apps${qs ? `?${qs}` : ""}`);
   }
 
   /** Install a custom MCP server (org_admin). `headers` are sent once, then encrypted. */
