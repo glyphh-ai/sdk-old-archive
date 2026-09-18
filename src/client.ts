@@ -23,6 +23,7 @@ import { MembershipsClient } from "./resources/memberships.js";
 import { InvitesClient } from "./resources/invites.js";
 import { WorkspacesClient } from "./resources/workspaces.js";
 import { BillingClient } from "./resources/billing.js";
+import { ReleasesClient } from "./resources/releases.js";
 import { CatalogClient } from "./resources/catalog.js";
 import { VoiceClient } from "./resources/voice.js";
 import { ProvidersClient } from "./resources/providers.js";
@@ -186,6 +187,8 @@ export interface Client {
   workspaces: WorkspacesClient;
   /** Billing — plans, subscription, credit balance, Stripe checkout/portal. */
   billing: BillingClient;
+  /** Desktop builds — the release list and signed download URLs. */
+  releases: ReleasesClient;
   /** Runtime image SKUs (§7b) — the org's picker, current image, and change requests. */
   runtimeImages: RuntimeImagesClient;
   /** App-server image SKUs — the size picker for deploying an app to its own server. */
@@ -345,6 +348,7 @@ export function createClient(opts: ClientOptions): Client {
     invites: new InvitesClient(http, authed),
     workspaces: new WorkspacesClient(authed),
     billing: new BillingClient(authed),
+    releases: new ReleasesClient(authed),
     runtimeImages: new RuntimeImagesClient(authed),
     appServers: new AppServersClient(authed),
     catalog: new CatalogClient(authed),
