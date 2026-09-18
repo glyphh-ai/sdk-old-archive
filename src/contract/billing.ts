@@ -119,3 +119,17 @@ export interface TopupCheckout {
 export interface BillingConfig {
   publishableKey: string | null;
 }
+
+/** What the org owes next. The billing date is anchored at subscription
+ *  creation and a seat change never moves it. */
+export interface UpcomingInvoice {
+  hasUpcoming: boolean;
+  amountDue?: number;
+  subtotal?: number;
+  currency?: string;
+  dueAt?: number;
+  periodStart?: number | null;
+  periodEnd?: number | null;
+  prorations?: number;
+  lines?: Array<{ description: string; amount: number; quantity: number; proration: boolean }>;
+}

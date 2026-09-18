@@ -10,6 +10,7 @@ import type { AuthedHttp } from "../core/authed-http.js";
 import type {
   Plan, Subscription, Balance, HostedUrl,
   CreditsBreakdown, AutotopupConfig, AutotopupInput, PlanChange, Invoice, TopupInput, TopupCheckout, BillingConfig,
+  UpcomingInvoice,
 } from "../contract/billing.js";
 
 export class BillingClient {
@@ -21,6 +22,11 @@ export class BillingClient {
 
   status(): Promise<Subscription> {
     return this.http.get<Subscription>("/api/billing/status");
+  }
+
+  /** The next invoice: what it will be and when it lands. */
+  upcoming(): Promise<UpcomingInvoice> {
+    return this.http.get<UpcomingInvoice>("/api/billing/upcoming");
   }
 
   /** Force a reconcile from Stripe (self-heals a missed webhook) and return the
