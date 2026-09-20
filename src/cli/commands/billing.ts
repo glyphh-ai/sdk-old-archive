@@ -37,7 +37,7 @@ export function registerBilling(reg: CommandRegistry): void {
 
   reg.register({
     path: "billing budget",
-    summary: "your own budget this period: your organization's limit plus what Glyphh funds for connector calls",
+    summary: "your own budget this period: your organization's limit plus what runs through Glyphh",
     covers: ["billing.myBudget"],
     async run(ctx) {
       ctx.printJson(await ctx.client.billing.myBudget());

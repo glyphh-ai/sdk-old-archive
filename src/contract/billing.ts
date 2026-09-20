@@ -57,8 +57,8 @@ export interface Balance {
 /**
  * The caller's own budget: what their organization lets them spend
  * (limitUsd, from their key, their team, or the organization's cap; null = no
- * limit set) plus what Glyphh funds for connector calls (poolUsd). spentUsd is
- * this month's spend on their key, connector calls included.
+ * limit set) plus what runs through Glyphh (poolUsd). spentUsd is
+ * this month's spend on their key, calls through Glyphh included.
  */
 export interface MemberBudget {
   limitUsd: number | null;

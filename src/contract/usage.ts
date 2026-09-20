@@ -4,7 +4,7 @@
  * contract/usage.ts — usage rollups. Everything flows user → workspace → org from
  * one spend log (LiteLLM's), so a summary at any level is a sum of the same rows.
  * Money is DOLLARS: `usd` is what the window cost, split by source — Pipedream
- * connector calls (the org's budget) and provider calls (the org's own dollars on
+ * calls through Glyphh (the org's budget) and provider calls (the org's own dollars on
  * its gateway keys).
  */
 
