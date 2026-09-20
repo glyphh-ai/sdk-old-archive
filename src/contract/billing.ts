@@ -67,6 +67,8 @@ export interface MemberBudget {
   poolUsd: number;
   poolSpentUsd: number;
   poolRemainingUsd: number;
+  /** "team" when the org admin handed this member's team a monthly share; "org" when they draw on the org's pool. */
+  poolSource: "team" | "org";
   planUsd: number;
   fundsUsd: number;
   periodStart: string;
