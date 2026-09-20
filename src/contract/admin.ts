@@ -4,9 +4,10 @@
  * contract/admin.ts — the super_admin platform-console wire shapes. These mirror
  * the server's admin endpoints, which back the admin pages that read snake_case
  * fields directly, so (unlike the camelCase billing/catalog contracts) the admin
- * shapes are snake_case — the SDK is a faithful typed passthrough. Credits are
- * micro-credits here (the pages divide by 1e6); the daily token buckets are
- * camelCase to match the chart series the Usage page consumes.
+ * shapes are snake_case — the SDK is a faithful typed passthrough. Money is
+ * dollars (Pipedream budget spend from the spend log; plan prices in USD cents);
+ * the daily token buckets are camelCase to match the chart series the Usage
+ * page consumes.
  */
 
 export interface AdminStats {
@@ -21,10 +22,10 @@ export interface AdminOrgListItem {
   tier: string;
   billing_status: string;
   member_count: number;
-  /** Micro-credits ever granted or purchased (every lot's total). */
-  credits_purchased: number;
-  /** Micro-credits consumed by metered spend. */
-  credits_spent: number;
+  /** Dollars ever added on top of the plan pool (purchases + admin grants). */
+  funds_usd: number;
+  /** Pipedream dollars spent all-time. */
+  spent_usd: number;
 }
 export interface AdminOrgsPage {
   orgs: AdminOrgListItem[];
@@ -41,7 +42,8 @@ export interface AdminOrgMember {
 export interface AdminOrgDetail extends AdminOrgListItem {
   max_seats: number;
   created_at: string;
-  credits: { balance: number; used: number }; // micro-credits (balance + total consumed)
+  /** The org's Pipedream budget this period, in dollars. */
+  budget: { remaining_usd: number; spent_usd: number };
   members: AdminOrgMember[];
 }
 export interface AdminOrgPatch {
@@ -87,8 +89,7 @@ export interface AdminUserPatch {
 export interface AdminPlan {
   tier: string;
   display_name: string;
-  monthly_usd_cents: number; // per-seat price
-  included_credits: number; // micro-credits per seat per month
+  monthly_usd_cents: number; // per-seat price — also the monthly Pipedream pool, dollar for dollar
   max_seats: number;
   active: boolean;
   /** NULL for a global catalog plan; the org id for a bespoke per-org plan. */
@@ -103,7 +104,6 @@ export interface AdminPlan {
 export interface AdminPlanUpdate {
   display_name?: string;
   monthly_usd_cents?: number;
-  included_credits?: number;
   max_seats?: number;
   active?: boolean;
   /** Gateway requests/minute; null clears the limit (unlimited). */
@@ -126,7 +126,6 @@ export interface AdminPlanCreate {
   tier: string;
   display_name: string;
   monthly_usd_cents: number;
-  included_credits: number;
   max_seats: number;
   rate_limit_rpm?: number | null;
   active?: boolean;
@@ -135,13 +134,12 @@ export interface AdminPlanCreate {
 /**
  * A per-org bespoke (enterprise) plan. Unlike the snake_case global-plan shapes above,
  * the org-plan write payloads are camelCase — they mirror the server's org-plan
- * endpoints (which take camelCase directly). `monthlyCredits` is the per-seat
- * micro-credit allowance; `monthlyUsdCents` is the per-seat price.
+ * endpoints (which take camelCase directly). `monthlyUsdCents` is the per-seat
+ * price — the plan's monthly Pipedream pool is that price, dollar for dollar.
  */
 export interface AdminOrgPlanInput {
   maxSeats: number;
   monthlyUsdCents: number;
-  monthlyCredits: number;
   displayName: string;
   /** The specific Stripe price the org is billed on (enterprise is provisioned/invoiced). */
   stripePriceId?: string;
@@ -150,7 +148,6 @@ export interface AdminOrgPlanInput {
 export interface AdminOrgPlanPatch {
   maxSeats?: number;
   monthlyUsdCents?: number;
-  monthlyCredits?: number;
   displayName?: string;
   stripePriceId?: string;
 }
@@ -164,8 +161,6 @@ export interface AdminModel {
   modality: string;
   /** Unit the rates are quoted in: mtok | image | second | mchar | minute. */
   rate_unit: string;
-  input_credits_per_mtok: number | null; // micro-credits/MTok; null = not per-token priced
-  output_credits_per_mtok: number | null;
   /** Total tokens the model holds; what the gateway fits requests to. Null = unrecorded. */
   context_window: number | null;
   /** Largest single completion. Null = unrecorded. */
@@ -188,8 +183,6 @@ export interface AdminModelUpdate {
   default_on?: boolean;
   modality?: string;
   rate_unit?: string;
-  input_credits_per_mtok?: number | null;
-  output_credits_per_mtok?: number | null;
   context_window?: number | null;
   max_output_tokens?: number | null;
   long_context_threshold?: number | null;
@@ -238,12 +231,12 @@ export interface AdminUsageByUser {
   email: string;
   name: string;
   requests: number;
-  credits: number; // micro-credits
+  usd: number; // dollars
   tokens: number;
 }
 export interface AdminUsageDay {
   day: string; // YYYY-MM-DD
-  credits: number; // micro-credits
+  usd: number; // dollars
   requests: number;
   inputTokens: number;
   outputTokens: number;
@@ -277,7 +270,7 @@ export interface AdminUsageByRuntime {
   orgs: number;
   users: number;
   requests: number;
-  credits: number; // micro-credits
+  usd: number; // dollars
   inputTokens: number;
   outputTokens: number;
 }
@@ -292,15 +285,10 @@ export interface AdminRuntimeUsageQuery {
   orgId?: string | undefined;
 }
 
-/** The admin REVENUE rollup: real Stripe cash + the credit-lot money math. */
+/** The admin REVENUE rollup: real Stripe cash. */
 export interface AdminRevenue {
   /** Collected cash in the window (succeeded charges − refunds); null = Stripe unconfigured. */
   stripe: { totalUsdCents: number; byDay: Array<{ day: string; usdCents: number }> } | null;
-  /** Micro-credits ADDED in the window, by lot kind (purchase | grant | admin). */
-  lotsInWindow: Record<string, number>;
-  /** Micro-credits BURNED all-time, by lot kind — exact (total − remaining);
-   *  a windowed burn split is not reconstructable (no per-debit journal). */
-  consumedAllTime: Record<string, number>;
 }
 
 /** Common list query for the paginated/searchable admin tables. */

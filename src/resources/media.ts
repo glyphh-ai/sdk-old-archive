@@ -67,7 +67,7 @@ export class MediaClient {
     return this.http.del<void>(`/api/media/${encodeURIComponent(id)}`);
   }
 
-  /** Start a generation job (202). Enforced + credit-debited server-side. */
+  /** Start a generation job (202). Enforced + spend-logged (dollars) server-side. */
   generate(input: MediaGenerateInput): Promise<{ job: MediaJob; outputKind: MediaKind }> {
     return this.http.post<{ job: MediaJob; outputKind: MediaKind }>("/api/media/generate", input);
   }

@@ -1,9 +1,9 @@
 /**
  * @license Proprietary — © Glyphh. All rights reserved.
  *
- * contract/billing.ts — plans, the org's subscription state, and its prepaid credit
- * balance. Credits are exposed as whole-credit numbers (the server keeps micro-credit
- * precision internally). Money is USD cents.
+ * contract/billing.ts — plans, the org's subscription state, and its Pipedream
+ * budget. Money is dollars: the plan pool (the plan price, dollar for dollar),
+ * purchased funds and admin grants are all USD. Stripe amounts stay USD cents.
  */
 
 export interface Plan {
@@ -13,15 +13,18 @@ export interface Plan {
   /** The TRUE active Stripe price amount (cents) for this tier, when resolvable —
    *  falls back to monthlyUsdCents. Prefer this for display. */
   activeUsdCents?: number;
-  monthlyCredits: number;
+  /** The monthly Pipedream budget the plan funds, in dollars — the plan price,
+   *  dollar for dollar (free = $1). */
+  poolUsdPerMonth: number;
   maxSeats: number;
   sso: boolean;
   /** Role governance — which tier carries it, so an upsell can name the real
    *  plan rather than a hardcoded guess. */
   governance?: boolean;
   /** True for the caller org's own PROVISIONED per-org (enterprise) plan — a real invoiced
-   *  price + allowance, shown as the current plan rather than the "contact sales" card. */
+   *  price + pool, shown as the current plan rather than the "contact sales" card. */
   bespoke?: boolean;
+  active?: boolean;
 }
 
 export interface Subscription {
@@ -35,9 +38,20 @@ export interface Subscription {
   runtimeImage?: { key: string; region: string; monthlyCredits: number } | null;
 }
 
+/**
+ * The org's Pipedream budget for the current period, in dollars.
+ *   planUsd      — what the plan funds this month (its price, dollar for dollar)
+ *   fundsUsd     — purchased funds + admin grants on top of the plan
+ *   spentUsd     — Pipedream connector spend so far this period
+ *   remainingUsd — planUsd + fundsUsd − spentUsd
+ */
 export interface Balance {
-  /** Whole credits remaining across non-expired lots. */
-  credits: number;
+  planUsd: number;
+  fundsUsd: number;
+  spentUsd: number;
+  remainingUsd: number;
+  periodStart: string;
+  periodEnd: string;
 }
 
 /** A Stripe-hosted URL (Checkout or Customer Portal). */
@@ -45,33 +59,18 @@ export interface HostedUrl {
   url: string;
 }
 
-/**
- * The org's credit balance broken down by lot kind, in MICRO-credits (1 credit = 1e6)
- * so the values compare directly against the auto-top-up threshold.
- *   balance   — every non-expired lot (grants + purchases + admin)
- *   allowance — the plan's per-seat monthly allowance
- *   grants    — the expiring subscription/free grant lots
- *   purchases — the non-expiring top-up lots
- */
-export interface CreditsBreakdown {
-  balance: number;
-  allowance: number;
-  grants: number;
-  purchases: number;
-}
-
-/** The org's auto-top-up rule (micro-credits). */
+/** The org's auto-reload rule, in dollars. */
 export interface AutotopupConfig {
   enabled: boolean;
-  thresholdCredits: number; // fire an auto-top-up at/below this balance (micro-credits)
-  topupCredits: number; // micro-credits to purchase per fire
+  thresholdUsd: number; // reload when the remaining budget falls to/below this
+  topupUsd: number; // dollars to add per reload
 }
 
-/** The input to configure auto-top-up. */
+/** The input to configure auto-reload (dollars). */
 export interface AutotopupInput {
   enabled: boolean;
-  thresholdCredits: number;
-  topupCredits: number;
+  thresholdUsd: number;
+  topupUsd: number;
 }
 
 /** The outcome of a change-plan call. */
@@ -83,7 +82,7 @@ export interface PlanChange {
   /** Present only when effect === 'checkout': the hosted Checkout url to open. */
   url?: string;
   /** Present when effect === 'checkout' and EMBEDDED was asked: the client
-   *  secret the in-app modal mounts — the same flow the credit top-up uses. */
+   *  secret the in-app modal mounts — the same flow Add funds uses. */
   clientSecret?: string;
 }
 
@@ -101,14 +100,14 @@ export interface Invoice {
   periodEnd: number | null;
 }
 
-/** The input to buy a credit top-up (micro-credits). `embedded` asks for an
+/** The input to add funds (whole dollars, minimum 5). `embedded` asks for an
  *  Embedded Checkout client secret instead of a hosted url. */
 export interface TopupInput {
-  credits: number;
+  usd: number;
   embedded?: boolean;
 }
 
-/** A started top-up: hosted url OR embedded client secret, per the request. */
+/** A started Add-funds checkout: hosted url OR embedded client secret, per the request. */
 export interface TopupCheckout {
   url?: string;
   clientSecret?: string;

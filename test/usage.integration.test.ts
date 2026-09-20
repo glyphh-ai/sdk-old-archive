@@ -21,15 +21,15 @@ async function signIn(): Promise<Client> {
 describe("@glyphh/sdk — usage", () => {
   it("a new user's usage rolls up to zero with the summary shape", async () => {
     const mine = await (await signIn()).usage.mine();
-    expect(mine.credits).toBe(0);
-    expect(mine.creditsSaved).toBe(0);
+    expect(mine.usd).toBe(0);
+    expect(mine.bySource.pipedream).toBe(0);
     expect(mine.bySource).toEqual({ fly: 0, pipedream: 0, provider: 0 });
     expect(mine.events).toBe(0);
   });
 
   it("the org rollup is available to the org_admin", async () => {
     const org = await (await signIn()).usage.org();
-    expect(org.credits).toBe(0);
+    expect(org.usd).toBe(0);
     expect(typeof org.events).toBe("number");
   });
 });

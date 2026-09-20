@@ -6,7 +6,7 @@
  * A landing visitor has no session. It mints a self-verifying GUEST token
  * (`POST /api/auth/guest`) and chats through the SAME gateway every authed turn
  * uses (`POST /api/gateway/guest/v1/messages`) — the server forces the model to
- * Mistral, rate-limits + credit-caps the caller's IP, and meters the turn like any
+ * Mistral, rate-limits + budget-caps the caller's IP, and meters the turn like any
  * other. This client is the thin app-side entrypoint: mint a token, then send a
  * guest turn carrying it.
  *

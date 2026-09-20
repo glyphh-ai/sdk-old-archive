@@ -104,15 +104,15 @@ export function registerAdmin(reg: CommandRegistry): void {
     },
   });
   reg.register({
-    path: "admin org credits",
-    summary: "grant credits to an org",
-    usage: "admin org credits <id> <credits> [--note <text>]",
-    covers: ["admin.grantCredits"],
+    path: "admin org funds",
+    summary: "add dollars to an org's Pipedream budget (admin grant)",
+    usage: "admin org funds <id> <usd> [--note <text>]",
+    covers: ["admin.grantFunds"],
     async run(ctx, args) {
-      const [id, credits] = args.positional;
-      const n = Number(credits);
-      if (!id || !Number.isFinite(n)) throw new Error("usage: admin org credits <id> <credits> [--note ..]");
-      ctx.printJson(await ctx.client.admin.grantCredits(id, n, flagStr(args, "note")));
+      const [id, usd] = args.positional;
+      const n = Number(usd);
+      if (!id || !Number.isFinite(n) || n <= 0) throw new Error("usage: admin org funds <id> <usd> [--note ..]");
+      ctx.printJson(await ctx.client.admin.grantFunds(id, n, flagStr(args, "note")));
     },
   });
 
@@ -190,16 +190,15 @@ export function registerAdmin(reg: CommandRegistry): void {
   });
   reg.register({
     path: "admin plan update",
-    summary: "edit a plan (price/credits/seats/active)",
-    usage: "admin plan update <tier> [--name <n>] [--cents <usd_cents>] [--credits <micro>] [--seats <n>] [--active true|false]",
+    summary: "edit a plan (price/seats/active — the price is the monthly pool)",
+    usage: "admin plan update <tier> [--name <n>] [--cents <usd_cents>] [--seats <n>] [--active true|false]",
     covers: ["admin.updatePlan"],
     async run(ctx, args) {
       const tier = args.positional[0];
-      if (!tier) throw new Error("usage: admin plan update <tier> [--name ..] [--cents ..] [--credits ..] [--seats ..] [--active ..]");
+      if (!tier) throw new Error("usage: admin plan update <tier> [--name ..] [--cents ..] [--seats ..] [--active ..]");
       const patch: AdminPlanUpdate = {};
       const name = flagStr(args, "name"); if (name !== undefined) patch.display_name = name;
       const cents = flagNum(args, "cents"); if (cents !== undefined) patch.monthly_usd_cents = cents;
-      const credits = flagNum(args, "credits"); if (credits !== undefined) patch.included_credits = credits;
       const seats = flagNum(args, "seats"); if (seats !== undefined) patch.max_seats = seats;
       const active = flagBool(args, "active"); if (active !== undefined) patch.active = active;
       ctx.printJson(await ctx.client.admin.updatePlan(tier, patch));
@@ -209,17 +208,16 @@ export function registerAdmin(reg: CommandRegistry): void {
   reg.register({
     path: "admin plan create",
     summary: "create a NEW global tier (super_admin)",
-    usage: "admin plan create <tier> --name <displayName> --cents <usd_cents> --credits <micro> --seats <n> [--rpm <n>] [--active true|false]",
+    usage: "admin plan create <tier> --name <displayName> --cents <usd_cents> --seats <n> [--rpm <n>] [--active true|false]",
     covers: ["admin.createPlan"],
     async run(ctx, args) {
       const tier = args.positional[0];
       const name = flagStr(args, "name");
-      if (!tier || !name) throw new Error("usage: admin plan create <tier> --name <displayName> --cents .. --credits .. --seats ..");
+      if (!tier || !name) throw new Error("usage: admin plan create <tier> --name <displayName> --cents .. --seats ..");
       const input: AdminPlanCreate = {
         tier,
         display_name: name,
         monthly_usd_cents: flagNum(args, "cents") ?? 0,
-        included_credits: flagNum(args, "credits") ?? 0,
         max_seats: flagNum(args, "seats") ?? 1,
       };
       const rpm = flagNum(args, "rpm"); if (rpm !== undefined) input.rate_limit_rpm = rpm;
@@ -289,32 +287,30 @@ export function registerAdmin(reg: CommandRegistry): void {
   reg.register({
     path: "admin org-plan set",
     summary: "create/replace an org's bespoke plan (super_admin)",
-    usage: "admin org-plan set <orgId> --seats <n> --cents <usd_cents> --credits <micro> --name <displayName>",
+    usage: "admin org-plan set <orgId> --seats <n> --cents <usd_cents> --name <displayName>",
     covers: ["admin.setOrgPlan"],
     async run(ctx, args) {
       const orgId = args.positional[0];
       const seats = flagNum(args, "seats");
       const cents = flagNum(args, "cents");
-      const credits = flagNum(args, "credits");
       const name = flagStr(args, "name");
-      if (!orgId || seats === undefined || cents === undefined || credits === undefined || !name) {
-        throw new Error("usage: admin org-plan set <orgId> --seats <n> --cents <usd_cents> --credits <micro> --name <displayName>");
+      if (!orgId || seats === undefined || cents === undefined || !name) {
+        throw new Error("usage: admin org-plan set <orgId> --seats <n> --cents <usd_cents> --name <displayName>");
       }
-      ctx.printJson(await ctx.client.admin.setOrgPlan(orgId, { maxSeats: seats, monthlyUsdCents: cents, monthlyCredits: credits, displayName: name }));
+      ctx.printJson(await ctx.client.admin.setOrgPlan(orgId, { maxSeats: seats, monthlyUsdCents: cents, displayName: name }));
     },
   });
   reg.register({
     path: "admin org-plan update",
     summary: "edit an org's bespoke plan (super_admin)",
-    usage: "admin org-plan update <orgId> [--seats <n>] [--cents <usd_cents>] [--credits <micro>] [--name <displayName>]",
+    usage: "admin org-plan update <orgId> [--seats <n>] [--cents <usd_cents>] [--name <displayName>]",
     covers: ["admin.updateOrgPlan"],
     async run(ctx, args) {
       const orgId = args.positional[0];
-      if (!orgId) throw new Error("usage: admin org-plan update <orgId> [--seats ..] [--cents ..] [--credits ..] [--name ..]");
+      if (!orgId) throw new Error("usage: admin org-plan update <orgId> [--seats ..] [--cents ..] [--name ..]");
       const patch: AdminOrgPlanPatch = {};
       const seats = flagNum(args, "seats"); if (seats !== undefined) patch.maxSeats = seats;
       const cents = flagNum(args, "cents"); if (cents !== undefined) patch.monthlyUsdCents = cents;
-      const credits = flagNum(args, "credits"); if (credits !== undefined) patch.monthlyCredits = credits;
       const name = flagStr(args, "name"); if (name !== undefined) patch.displayName = name;
       ctx.printJson(await ctx.client.admin.updateOrgPlan(orgId, patch));
     },
@@ -332,7 +328,7 @@ export function registerAdmin(reg: CommandRegistry): void {
   });
   reg.register({
     path: "admin models",
-    summary: "list catalog models + rates (super_admin)",
+    summary: "list catalog models (super_admin)",
     covers: ["admin.models"],
     async run(ctx) {
       ctx.printJson(await ctx.client.admin.models());
@@ -340,16 +336,14 @@ export function registerAdmin(reg: CommandRegistry): void {
   });
   reg.register({
     path: "admin model update",
-    summary: "edit a model (name/rates/active); rate 'null' clears pricing",
-    usage: "admin model update <provider> <model> [--name <n>] [--in <micro|null>] [--out <micro|null>] [--active true|false]",
+    summary: "edit a model (name/active)",
+    usage: "admin model update <provider> <model> [--name <n>] [--active true|false]",
     covers: ["admin.updateModel"],
     async run(ctx, args) {
       const [provider, model] = args.positional;
-      if (!provider || !model) throw new Error("usage: admin model update <provider> <model> [--name ..] [--in ..] [--out ..] [--active ..]");
+      if (!provider || !model) throw new Error("usage: admin model update <provider> <model> [--name ..] [--active ..]");
       const patch: AdminModelUpdate = {};
       const name = flagStr(args, "name"); if (name !== undefined) patch.display_name = name;
-      const inFlag = flagStr(args, "in"); if (inFlag !== undefined) patch.input_credits_per_mtok = inFlag === "null" ? null : Number(inFlag);
-      const outFlag = flagStr(args, "out"); if (outFlag !== undefined) patch.output_credits_per_mtok = outFlag === "null" ? null : Number(outFlag);
       const active = flagBool(args, "active"); if (active !== undefined) patch.active = active;
       ctx.printJson(await ctx.client.admin.updateModel(provider, model, patch));
     },

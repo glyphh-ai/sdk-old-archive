@@ -2,44 +2,22 @@
  * @license Proprietary — © Glyphh. All rights reserved.
  *
  * contract/usage.ts — usage rollups. Everything flows user → workspace → org from
- * one append-only ledger, so a summary at any level is a sum of the same rows.
- * Credits are whole credits; `creditsSaved` is the shadow price of zero-cost usage
- * (local / open-weight / custom MCP).
+ * one spend log (LiteLLM's), so a summary at any level is a sum of the same rows.
+ * Money is DOLLARS: `usd` is what the window cost, split by source — Pipedream
+ * connector calls (the org's budget) and provider calls (the org's own dollars on
+ * its gateway keys).
  */
 
 export interface UsageSummary {
-  /** Credits consumed in the window. */
-  credits: number;
-  /** Shadow price of zero-cost usage ("credits saved"). */
-  creditsSaved: number;
-  /** Credit breakdown by source. */
+  /** Dollars spent in the window. */
+  usd: number;
+  /** Dollar breakdown by source. */
   bySource: {
-    fly: number;
     pipedream: number;
     provider: number;
   };
-  /** Number of ledger events. */
+  /** Number of spend-log events. */
   events: number;
-}
-
-/** One day of the org usage series (credits in micro-credits; only days with usage). */
-/**
- * The caller's own SPEND ALLOWANCE — whole credits. What a non-admin member sees in
- * place of the org plan: the credit cap their org admin set on their workspace, what
- * they've spent in the current window, and the interval it resets on. Reported by the
- * same code path that ENFORCES the cap, so the number shown is the number enforced.
- */
-export interface CreditAllocation {
-  /** True when the workspace has no cap — spend is unlimited (cap/remaining are 0). */
-  uncapped: boolean;
-  capCredits: number;
-  spentCredits: number;
-  remainingCredits: number;
-  /** The admin-set interval: 1 (daily) | 7 (weekly) | 30 (monthly). */
-  periodDays: number;
-  windowStart: string;
-  windowEnd: string;
-  workspaceName: string;
 }
 
 /** A reporting window for {@link UsageClient.summary}; both bounds ISO or YYYY-MM-DD. */
@@ -48,9 +26,10 @@ export interface UsageSummaryQuery {
   to?: string;
 }
 
+/** One day of the org usage series (dollars; only days with usage). */
 export interface UsageDay {
   day: string; // YYYY-MM-DD
-  credits: number; // micro-credits
+  usd: number; // dollars
   requests: number;
   inputTokens: number;
   outputTokens: number;
@@ -67,10 +46,10 @@ export interface UsageDailyQuery {
   userId?: string;
 }
 
-/** One model's usage rollup (charged credits in micro-credits). */
+/** One model's usage rollup (dollars). */
 export interface UsageByModelRow {
   model: string;
-  credits: number; // micro-credits
+  usd: number; // dollars
   requests: number;
   inputTokens: number;
   outputTokens: number;
@@ -87,12 +66,12 @@ export interface UsageByModelQuery {
 /** The stack dimension for the day × group series. */
 export type UsageSeriesGroupBy = "model" | "source" | "user";
 
-/** One (day, group) cell of the usage chart (charged credits in micro-credits). */
+/** One (day, group) cell of the usage chart (dollars). */
 export interface UsageSeriesPoint {
   day: string;
   /** The group's value: a model id, a source, or a user id ("(none)" when unattributed). */
   key: string;
-  credits: number; // micro-credits
+  usd: number; // dollars
   requests: number;
   inputTokens: number;
   outputTokens: number;

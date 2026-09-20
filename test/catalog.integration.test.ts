@@ -23,10 +23,9 @@ describe("@glyphh/sdk — catalog", () => {
     const models = await (await signIn()).catalog.models();
     const opus = models.find((m) => m.id === "anthropic::claude-opus-4-8");
     expect(opus).toBeTruthy();
-    // 313 = the seeded Opus input rate after the 2026-07-27 margin rebase (server
-    // d765a7e rebased every model ~0.75x: 417 → 313). The server's own catalog tests
-    // assert the same number; this file is the SDK's single source for it.
-    expect(opus!.inputCreditsPerMTok).toBe(313);
+    // The vendor's list price in dollars per 1M input tokens — informational,
+    // never a bill. The server's own catalog tests assert the same number.
+    expect(opus!.inputUsdPerMTok).toBe(5);
     expect(opus!.providerSlug).toBe("anthropic");
   });
 

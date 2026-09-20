@@ -40,6 +40,9 @@ export interface PlanGates {
   sso: boolean;
   /** The plan's requests-per-minute CEILING; a role narrows under it. 0 = unset. */
   rpm: number;
+  /** Dollars left in the org's Pipedream budget this period (plan pool +
+   *  funds − spent). The only thing Glyphh funds; LLM calls never touch it. */
+  poolRemainingUsd: number;
 }
 
 /** Every capability name a caller may ask about — a closed set, so a typo is
@@ -50,7 +53,7 @@ export type PlanCapability = "governance" | "sso" | "gateway";
  *  the read fails, so an offline or erroring client degrades to LOCKED
  *  rather than accidentally showing paid surfaces as usable. */
 const CLOSED: PlanGates = {
-  gatewayAllowed: false, trialEndsAt: null, governance: false, sso: false, rpm: 0,
+  gatewayAllowed: false, trialEndsAt: null, governance: false, sso: false, rpm: 0, poolRemainingUsd: 0,
 };
 
 /** How long a gates read stays fresh. Short on purpose: a plan change must

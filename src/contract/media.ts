@@ -3,7 +3,7 @@
  *
  * contract/media.ts — GLYPHH IMAGE / VIDEO / SOUNDS wire shapes. Assets are
  * the org's media library (bytes in R2, presigned up and down); JOBS are the
- * only path that generates — enforced, modality-priced, credit-debited.
+ * only path that generates — enforced, modality-priced, spend-logged in dollars.
  */
 
 export type MediaKind = "image" | "video" | "audio" | "voice" | "avatar" | "recording" | "script";
@@ -59,7 +59,8 @@ export interface MediaJob {
   status: "queued" | "running" | "succeeded" | "failed";
   model: string;
   params: Record<string, unknown>;
-  creditsCharged: number;
+  /** What the job cost, in dollars (from the spend log). */
+  usdCharged: number;
   assetId: string | null;
   error: string | null;
   updatedAt: string;

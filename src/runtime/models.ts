@@ -10,7 +10,7 @@
  * `resolveModels` layers on, so opus→haiku→opus is both live and fully auditable.
  *
  * The gateway is untouched: it already meters proxied calls WITH the model server-side,
- * so credit attribution needs no change here.
+ * so spend attribution needs no change here.
  */
 
 import type { Client } from "../client.js";

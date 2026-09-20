@@ -22,7 +22,7 @@ function fakeClient(over: Record<string, unknown> = {}): Client {
     skills: { get: vi.fn() },
     models: { available: vi.fn(async () => [
       { id: "anthropic::claude-sonnet-5", name: "Sonnet", providerSlug: "anthropic", kind: "proxied",
-        inputCreditsPerMTok: 3, outputCreditsPerMTok: 15, source: "proxy",
+        inputUsdPerMTok: 3, outputUsdPerMTok: 15, source: "proxy",
         contextWindow: 200000, maxOutputTokens: 64000 },
     ]) },
     connections: { runTool: vi.fn(async () => ({ result: { ret: "tool-ok" } })) },

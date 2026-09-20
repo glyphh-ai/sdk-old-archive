@@ -185,7 +185,7 @@ export interface Client {
   invites: InvitesClient;
   /** Workspaces — governance (models/connections/apps/limits) + member assignment. */
   workspaces: WorkspacesClient;
-  /** Billing — plans, subscription, credit balance, Stripe checkout/portal. */
+  /** Billing — plans, subscription, the Pipedream budget, Stripe checkout/portal. */
   billing: BillingClient;
   /** Desktop builds — the release list and signed download URLs. */
   releases: ReleasesClient;
@@ -211,7 +211,7 @@ export interface Client {
   tasks: TasksClient;
   /** Connectors — Pipedream accounts + custom MCP servers (org_admin manages). */
   connections: ConnectionsClient;
-  /** Usage rollups — credits consumed/saved by user, workspace, org. */
+  /** Usage rollups — dollars spent by user, workspace, org. */
   usage: UsageClient;
   /** User-scoped `gy_ak_` API keys for headless SDK/CLI use + the desktop relay. */
   apiKeys: ApiKeysClient;

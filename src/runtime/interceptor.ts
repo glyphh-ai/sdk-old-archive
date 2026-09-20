@@ -21,7 +21,7 @@
  * SECURITY. It binds 127.0.0.1 on an ephemeral port and mints a per-process bearer
  * that the caller must present as `x-api-key`/`authorization`. Any local process can
  * reach a loopback port, so without that check the machine's other software could
- * spend the user's credits through it.
+ * spend the org's dollars through it.
  */
 
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
@@ -47,10 +47,10 @@ export interface InterceptorOptions {
   onError?: (error: Error) => void;
   /**
    * Per-turn usage, from a trailing `glyphh_usage` frame the gateway appends to
-   * the SSE stream. Credits are the server's computed price; tokens are real.
+   * the SSE stream. `usd` is the server's computed price in dollars; tokens are real.
    * The frame is stripped here so the Agent SDK never sees a non-Anthropic event.
    */
-  onUsage?: (usage: { creditsMicro: number; inputTokens: number; outputTokens: number }, runId?: string) => void;
+  onUsage?: (usage: { usd: number; inputTokens: number; outputTokens: number }, runId?: string) => void;
 }
 
 export interface Interceptor {
@@ -87,7 +87,7 @@ function anthError(type: string, message: string): unknown {
  * Serve one `local::…` turn from the machine's own llama-server: ensure the
  * model (download once, spawn once, health-checked singleton), translate
  * Anthropic → OpenAI, relay, translate back — streaming or not. Usage reports
- * with ZERO credits: local compute is the user's own.
+ * at ZERO dollars: local compute is the user's own.
  */
 async function handleLocal(body: AnthropicRequest, modelId: string, res: ServerResponse, opts: InterceptorOptions, runId?: string): Promise<void> {
   const specId = modelId.slice(LOCAL_PREFIX.length);
@@ -130,7 +130,7 @@ async function handleLocal(body: AnthropicRequest, modelId: string, res: ServerR
   if (!streaming) {
     const json = (await upstream.json()) as Parameters<typeof toAnthropicResponse>[0];
     const usage = (json as { usage?: { prompt_tokens?: number; completion_tokens?: number } }).usage;
-    try { opts.onUsage?.({ creditsMicro: 0, inputTokens: usage?.prompt_tokens ?? 0, outputTokens: usage?.completion_tokens ?? 0 }, runId); } catch { /* listener */ }
+    try { opts.onUsage?.({ usd: 0, inputTokens: usage?.prompt_tokens ?? 0, outputTokens: usage?.completion_tokens ?? 0 }, runId); } catch { /* listener */ }
     send(res, 200, toAnthropicResponse(json, modelId));
     return;
   }
@@ -152,7 +152,7 @@ async function handleLocal(body: AnthropicRequest, modelId: string, res: ServerR
     res.write(translator.end());
     res.end();
     const usage = translator.usage();
-    try { opts.onUsage?.({ creditsMicro: 0, inputTokens: usage.inputTokens, outputTokens: usage.outputTokens }, runId); } catch { /* listener */ }
+    try { opts.onUsage?.({ usd: 0, inputTokens: usage.inputTokens, outputTokens: usage.outputTokens }, runId); } catch { /* listener */ }
   }
 }
 
@@ -198,7 +198,7 @@ export async function startInterceptor(opts: InterceptorOptions): Promise<Interc
     // LOCAL models never leave the machine: `local::…` routes to a llama-server
     // this process owns (downloaded + spawned on first use), translated to and
     // from OpenAI chat-completions right here. No gateway, no internet, no
-    // credits — the compute the user owns.
+    // dollars — the compute the user owns.
     let parsedBody: AnthropicRequest | null = null;
     try { parsedBody = JSON.parse(body) as AnthropicRequest; } catch { /* not JSON — the gateway will reject it */ }
     // Concurrent runs share this one interceptor — the caller tags each
@@ -240,7 +240,7 @@ export async function startInterceptor(opts: InterceptorOptions): Promise<Interc
     // Forward the stream, but hold back a trailing `glyphh_usage` frame the
     // gateway appends after Anthropic's message_stop. Everything from that
     // marker on is ours: strip it so the Agent SDK sees only Anthropic events,
-    // and report the credits it carries. A small carry buffer covers the marker
+    // and report the dollars it carries. A small carry buffer covers the marker
     // being split across chunk boundaries.
     const reader = upstream.body.getReader();
     const decoder = new TextDecoder();

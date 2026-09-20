@@ -10,7 +10,7 @@
  *   delta     streamed answer text; append
  *   tool      a tool began / finished (denied/failed/preview on done)
  *   progress  live token accounting
- *   credits   running metered price (pod v1 never emits it; vocabulary kept)
+ *   credits   running Pipedream spend in dollars (pod v1 never emits it; vocabulary kept)
  *   approval  PAUSES the run — answer { id, allow } to resume (or the pod's
  *             approval timeout denies)
  *   ask       PAUSES the run — answer { id, answers } (or the pod's ask
@@ -54,7 +54,7 @@ export type HarnessFrame =
       preview?: string;
     }
   | { type: "progress"; inTokens: number; outTokens: number }
-  | { type: "credits"; creditsMicro: number }
+  | { type: "credits"; usd: number }
   | { type: "approval"; id: string; kind: HarnessActionKind; title: string; detail: string }
   | { type: "ask"; id: string; questions: HarnessAskQuestion[] }
   | { type: "setup"; phase: string; [k: string]: unknown }

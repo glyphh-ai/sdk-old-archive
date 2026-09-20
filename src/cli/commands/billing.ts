@@ -1,7 +1,7 @@
 /**
  * @license Proprietary — © Glyphh. All rights reserved.
  *
- * commands/billing.ts — plans, subscription status, credit balance, and the Stripe
+ * commands/billing.ts — plans, subscription status, the Pipedream budget, and the Stripe
  * checkout/portal handoff (prints the URL to open).
  */
 
@@ -10,7 +10,7 @@ import type { CommandRegistry } from "../registry.js";
 export function registerBilling(reg: CommandRegistry): void {
   reg.register({
     path: "billing plans",
-    summary: "list plans (tier, price, monthly credits, seats)",
+    summary: "list plans (tier, price, monthly pool, seats)",
     covers: ["billing.plans"],
     async run(ctx) {
       ctx.printJson(await ctx.client.billing.plans());
@@ -37,19 +37,10 @@ export function registerBilling(reg: CommandRegistry): void {
 
   reg.register({
     path: "billing balance",
-    summary: "the org's credit balance",
+    summary: "the org's Pipedream budget this period (plan pool, funds, spent, remaining — dollars)",
     covers: ["billing.balance"],
     async run(ctx) {
-      ctx.print(`${(await ctx.client.billing.balance()).credits} credits`);
-    },
-  });
-
-  reg.register({
-    path: "billing credits",
-    summary: "the org's credit breakdown (balance/allowance/grants/purchases, micro-credits)",
-    covers: ["billing.credits"],
-    async run(ctx) {
-      ctx.printJson(await ctx.client.billing.credits());
+      ctx.printJson(await ctx.client.billing.balance());
     },
   });
 
@@ -76,19 +67,19 @@ export function registerBilling(reg: CommandRegistry): void {
 
   reg.register({
     path: "billing topup",
-    summary: "buy a credit top-up (micro-credits); prints the Stripe Checkout URL",
-    usage: "billing topup <micro-credits>",
+    summary: "add funds to the Pipedream budget (whole dollars, min 5); prints the Stripe Checkout URL",
+    usage: "billing topup <usd>",
     covers: ["billing.topup"],
     async run(ctx, args) {
-      const credits = Number(args.positional[0]);
-      if (!Number.isFinite(credits) || credits <= 0) throw new Error("usage: billing topup <micro-credits>");
-      ctx.print((await ctx.client.billing.topup({ credits })).url ?? "(no checkout url)");
+      const usd = Number(args.positional[0]);
+      if (!Number.isFinite(usd) || usd < 5) throw new Error("usage: billing topup <usd> (minimum 5)");
+      ctx.print((await ctx.client.billing.topup({ usd })).url ?? "(no checkout url)");
     },
   });
 
   reg.register({
     path: "billing autotopup",
-    summary: "the org's auto-top-up rule",
+    summary: "the org's auto-reload rule (dollars)",
     covers: ["billing.autotopup"],
     async run(ctx) {
       ctx.printJson(await ctx.client.billing.autotopup());
@@ -97,19 +88,19 @@ export function registerBilling(reg: CommandRegistry): void {
 
   reg.register({
     path: "billing autotopup set",
-    summary: "configure auto-top-up (micro-credits)",
-    usage: "billing autotopup set <on|off> <thresholdMicro> <topupMicro>",
+    summary: "configure auto-reload (dollars)",
+    usage: "billing autotopup set <on|off> <thresholdUsd> <topupUsd>",
     covers: ["billing.setAutotopup"],
     async run(ctx, args) {
       const [state, threshold, topup] = args.positional;
-      if (!state || (state !== "on" && state !== "off")) throw new Error("usage: billing autotopup set <on|off> <thresholdMicro> <topupMicro>");
+      if (!state || (state !== "on" && state !== "off")) throw new Error("usage: billing autotopup set <on|off> <thresholdUsd> <topupUsd>");
       const enabled = state === "on";
-      const thresholdCredits = Number(threshold ?? 0);
-      const topupCredits = Number(topup ?? 0);
-      if (enabled && (!(thresholdCredits > 0) || !(topupCredits > 0))) {
-        throw new Error("thresholdMicro and topupMicro must be positive when enabling");
+      const thresholdUsd = Number(threshold ?? 0);
+      const topupUsd = Number(topup ?? 0);
+      if (enabled && (!(thresholdUsd > 0) || !(topupUsd > 0))) {
+        throw new Error("thresholdUsd and topupUsd must be positive when enabling");
       }
-      ctx.printJson(await ctx.client.billing.setAutotopup({ enabled, thresholdCredits, topupCredits }));
+      ctx.printJson(await ctx.client.billing.setAutotopup({ enabled, thresholdUsd, topupUsd }));
     },
   });
 

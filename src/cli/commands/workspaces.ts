@@ -53,8 +53,8 @@ function inputFromFlags(args: CliArgs): WorkspaceInput {
   const tools = toolGrants(flagStr(args, "allowed-tools"));
   if (tools) input.allowedConnectionTools = tools;
   if ("allow-custom-mcp" in args.flags) input.allowCustomMcp = Boolean(args.flags["allow-custom-mcp"]);
-  const cap = numOrNull(flagStr(args, "credits-cap"));
-  if (cap !== undefined) input.creditsCap = cap;
+  const budget = numOrNull(flagStr(args, "budget-usd"));
+  if (budget !== undefined) input.budgetUsd = budget;
   return input;
 }
 
@@ -82,7 +82,7 @@ export function registerWorkspaces(reg: CommandRegistry): void {
   reg.register({
     path: "ws update",
     summary: "update a workspace's governance",
-    usage: "ws update <id> [--name ..] [--limit-models] [--allowed-models a,b] [--allowed-tools '{\"slack\":[\"send_message\"]}'] [--credits-cap N|null]",
+    usage: "ws update <id> [--name ..] [--limit-models] [--allowed-models a,b] [--allowed-tools '{\"slack\":[\"send_message\"]}'] [--budget-usd N|null]",
     covers: ["workspaces.update"],
     async run(ctx, args) {
       const id = args.positional[0];

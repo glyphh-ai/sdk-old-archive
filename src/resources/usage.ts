@@ -8,7 +8,7 @@
 import type { AuthedHttp } from "../core/authed-http.js";
 import type {
   UsageDailyQuery, UsageDay, UsageSummary, UsageByModelRow, UsageByModelQuery,
-  CreditAllocation, UsageSummaryQuery, UsageSeriesQuery, UsageSeriesPoint,
+  UsageSummaryQuery, UsageSeriesQuery, UsageSeriesPoint,
 } from "../contract/usage.js";
 
 export class UsageClient {
@@ -17,15 +17,6 @@ export class UsageClient {
   /** The caller's own usage. */
   mine(): Promise<UsageSummary> {
     return this.http.get<UsageSummary>("/api/usage/mine");
-  }
-
-  /**
-   * The caller's SPEND ALLOWANCE — the workspace credit cap their org admin set, what
-   * they've spent this window, and the interval it resets on. This is what a non-admin
-   * member's dashboard shows instead of the org plan.
-   */
-  allocation(): Promise<CreditAllocation> {
-    return this.http.get<CreditAllocation>("/api/me/allocation");
   }
 
   /**
@@ -54,7 +45,7 @@ export class UsageClient {
 
   /**
    * Day × group series for the stacked usage chart — every (day, model|source|user)
-   * pair with its charged micro-credits, requests, and tokens. Role-scoped like
+   * pair with its dollars, requests, and tokens. Role-scoped like
    * `daily`; `groupBy: "user"` is org_admin only.
    */
   series(query: UsageSeriesQuery): Promise<{ points: UsageSeriesPoint[] }> {
@@ -80,7 +71,7 @@ export class UsageClient {
   /**
    * Usage attributed BY MODEL. Org-scoped: an org_admin sees the whole org (and may
    * pass `userId` to drill into one member); a member sees only their own. Amounts
-   * are micro-credits. `from`/`to` are YYYY-MM-DD (all time when omitted).
+   * are dollars. `from`/`to` are YYYY-MM-DD (all time when omitted).
    */
   byModel(query: UsageByModelQuery = {}): Promise<UsageByModelRow[]> {
     const qs = new URLSearchParams();

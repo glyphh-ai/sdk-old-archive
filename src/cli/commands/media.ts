@@ -100,7 +100,7 @@ export function registerMedia(reg: CommandRegistry): void {
 
   reg.register({
     path: "media generate",
-    summary: "generate with any media model (image/video/speech/music/sfx) — costs credits",
+    summary: "generate with any media model (image/video/speech/music/sfx) — costs dollars",
     usage: "media generate <model> <prompt…> [--size 1024x1024|16:9] [--seconds <n>] [--voice <id>] [--image-url <u>] [--title <t>] [--no-wait]",
     covers: ["media.generate", "media.waitForJob"],
     async run(ctx, args) {
@@ -129,7 +129,7 @@ export function registerMedia(reg: CommandRegistry): void {
 
   reg.register({
     path: "media jobs",
-    summary: "recent generation jobs (status, model, credits charged)",
+    summary: "recent generation jobs (status, model, dollars charged)",
     usage: "media jobs [--id <jobId>]",
     covers: ["media.jobs", "media.job"],
     async run(ctx, args) {

@@ -1,7 +1,7 @@
 /**
  * @license Proprietary — © Glyphh. All rights reserved.
  *
- * commands/usage.ts — usage rollups (credits consumed/saved) at the user, workspace,
+ * commands/usage.ts — usage rollups (dollars, by source) at the user, workspace,
  * and org level.
  */
 
@@ -11,19 +11,10 @@ import { flagStr } from "../args.js";
 export function registerUsage(reg: CommandRegistry): void {
   reg.register({
     path: "usage mine",
-    summary: "your usage (credits consumed/saved)",
+    summary: "your usage (dollars, by source)",
     covers: ["usage.mine"],
     async run(ctx) {
       ctx.printJson(await ctx.client.usage.mine());
-    },
-  });
-
-  reg.register({
-    path: "usage allocation",
-    summary: "your spend allowance — workspace cap, spend so far, and reset interval",
-    covers: ["usage.allocation"],
-    async run(ctx) {
-      ctx.printJson(await ctx.client.usage.allocation());
     },
   });
 

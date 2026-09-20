@@ -58,7 +58,7 @@ function clientWith(turns: Array<Partial<{ text: string; toolUses: unknown[]; st
       available: vi.fn(async () => [
         {
           id: "anthropic::claude-sonnet-5", name: "Sonnet", providerSlug: "anthropic", kind: "proxied",
-          inputCreditsPerMTok: 3, outputCreditsPerMTok: 15, source: "proxy",
+          inputUsdPerMTok: 3, outputUsdPerMTok: 15, source: "proxy",
           contextWindow: window, maxOutputTokens: 64000,
         },
       ]),

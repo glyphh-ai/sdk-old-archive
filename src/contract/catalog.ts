@@ -2,9 +2,10 @@
  * @license Proprietary — © Glyphh. All rights reserved.
  *
  * contract/catalog.ts — the provider/model catalog. Glyphh (super_admin) releases
- * providers + models + credit pricing; an org enables a subset and may attach a BYOK
- * key (write-only — never returned). Workspaces filter within the org's catalog.
- * Pricing is exposed as whole credits per 1M tokens.
+ * providers + models; an org enables a subset and may attach a BYOK key (write-only
+ * — never returned). Workspaces filter within the org's catalog. The list price
+ * on a row is INFORMATIONAL — the vendor's dollars per 1M tokens — never a bill:
+ * LLM calls are the org's own dollars on its gateway keys.
  */
 
 export type ProviderKind = "proxied" | "open_weight";
@@ -28,7 +29,7 @@ export interface Provider {
 
 /** What a model produces. Drives picker/loop-slot filtering + how it's metered. */
 export type Modality = "chat" | "image" | "video" | "speech" | "transcription" | "music" | "audio" | "dubbing";
-/** The unit the credit rates are quoted in. 'mtok'/'mchar' bill per million,
+/** The unit the list prices are quoted in. 'mtok'/'mchar' bill per million,
  *  'kchar' per thousand, the rest per single unit. */
 export type RateUnit = "mtok" | "image" | "second" | "mchar" | "minute" | "kchar" | "hour" | "generation";
 
@@ -42,11 +43,12 @@ export interface Model {
   modality: Modality;
   /** Unit the rates below are quoted in (mtok/image/second/mchar/minute). */
   rateUnit: RateUnit;
-  /** Credits per input unit (per rateUnit). Chat: per 1M input tokens. */
-  inputCreditsPerMTok: number;
-  /** Credits per output unit. Chat: per 1M output tokens. Image: per image.
-   *  Video: per second. */
-  outputCreditsPerMTok: number;
+  /** The vendor's list price per input unit, in dollars (per rateUnit). Chat:
+   *  per 1M input tokens. Informational. */
+  inputUsdPerMTok: number;
+  /** The vendor's list price per output unit, in dollars. Chat: per 1M output
+   *  tokens. Image: per image. Video: per second. Informational. */
+  outputUsdPerMTok: number;
   /** Total tokens the model accepts. Null = unrecorded, not enforced. */
   contextWindow: number | null;
   /** Largest single completion. Null = unrecorded. */
@@ -73,7 +75,7 @@ export interface ProviderCreate {
   kind: ProviderKind;
 }
 
-/** super_admin: release a model + its credit pricing. */
+/** super_admin: release a model (+ its informational list price). */
 export interface ModelCreate {
   contextWindow?: number | null;
   maxOutputTokens?: number | null;
@@ -86,20 +88,21 @@ export interface ModelCreate {
   /** Defaults to 'chat' / 'mtok' when omitted. */
   modality?: Modality;
   rateUnit?: RateUnit;
-  inputCreditsPerMTok: number;
-  outputCreditsPerMTok: number;
+  /** Vendor list price, dollars per unit — informational; omit when unknown. */
+  inputUsdPerMTok?: number;
+  outputUsdPerMTok?: number;
   /** Live per-org default: orgs with no explicit override follow this. Omit → false (opt-in). */
   defaultOn?: boolean;
 }
 
-/** super_admin: update a model's pricing / availability. */
+/** super_admin: update a model's list price / availability. */
 export interface ModelPricing {
   contextWindow?: number | null;
   maxOutputTokens?: number | null;
   /** Null clears the alias; omit to keep it. */
   alias?: string | null;
-  inputCreditsPerMTok?: number;
-  outputCreditsPerMTok?: number;
+  inputUsdPerMTok?: number;
+  outputUsdPerMTok?: number;
   modality?: Modality;
   rateUnit?: RateUnit;
   active?: boolean;

@@ -34,9 +34,9 @@ describe("@glyphh/sdk — workspaces", () => {
     expect(created.allowedModels).toEqual(["anthropic::opus"]);
     expect(created.isBase).toBe(false);
 
-    const updated = await client.workspaces.update(created.id, { allowCustomMcp: false, creditsCap: 5000 });
+    const updated = await client.workspaces.update(created.id, { allowCustomMcp: false, budgetUsd: 50 });
     expect(updated.allowCustomMcp).toBe(false);
-    expect(updated.creditsCap).toBe(5000);
+    expect(updated.budgetUsd).toBe(50);
 
     await client.workspaces.delete(created.id);
     expect((await client.workspaces.list()).some((w) => w.id === created.id)).toBe(false);

@@ -26,8 +26,8 @@ const choice = (id: string) => ({
   modality: "chat",
   contextWindow: null,
   maxOutputTokens: null,
-  inputCreditsPerMTok: 1,
-  outputCreditsPerMTok: 1,
+  inputUsdPerMTok: 1,
+  outputUsdPerMTok: 1,
   isPlatformDefault: false,
 });
 

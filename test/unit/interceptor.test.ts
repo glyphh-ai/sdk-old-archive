@@ -147,7 +147,7 @@ describe("interceptor", () => {
     const anthropic =
       'event: message_start\ndata: {"type":"message_start"}\n\n' +
       'event: message_stop\ndata: {"type":"message_stop"}\n\n';
-    const usage = 'event: glyphh_usage\ndata: {"creditsMicro":4200,"inputTokens":1500,"outputTokens":300}\n\n';
+    const usage = 'event: glyphh_usage\ndata: {"usd":0.0042,"inputTokens":1500,"outputTokens":300}\n\n';
     const onUsage = vi.fn();
     const up = sseChunks([anthropic + usage]);
     running = await startInterceptor({ client: await clientWith(up.fetch, "t"), onUsage });
@@ -162,14 +162,14 @@ describe("interceptor", () => {
     // break its parser.
     expect(seen).toBe(anthropic);
     expect(seen).not.toContain("glyphh_usage");
-    expect(onUsage).toHaveBeenCalledWith({ creditsMicro: 4200, inputTokens: 1500, outputTokens: 300 }, undefined);
+    expect(onUsage).toHaveBeenCalledWith({ usd: 0.0042, inputTokens: 1500, outputTokens: 300 }, undefined);
   });
 
   it("attributes usage to the run named in the x-glyphh-run header", async () => {
     // Concurrent runs share one interceptor — each subprocess tags its own
     // requests, and the usage callback carries that tag back.
     const anthropic = 'event: message_stop\ndata: {"type":"message_stop"}\n\n';
-    const usage = 'event: glyphh_usage\ndata: {"creditsMicro":9,"inputTokens":4,"outputTokens":2}\n\n';
+    const usage = 'event: glyphh_usage\ndata: {"usd":0.09,"inputTokens":4,"outputTokens":2}\n\n';
     const onUsage = vi.fn();
     const up = sseChunks([anthropic + usage]);
     running = await startInterceptor({ client: await clientWith(up.fetch, "t"), onUsage });
@@ -179,7 +179,7 @@ describe("interceptor", () => {
       headers: { "x-api-key": running.apiKey, "x-glyphh-run": "run-abc12" },
       body: JSON.stringify({ stream: true }),
     })).text();
-    expect(onUsage).toHaveBeenCalledWith({ creditsMicro: 9, inputTokens: 4, outputTokens: 2 }, "run-abc12");
+    expect(onUsage).toHaveBeenCalledWith({ usd: 0.09, inputTokens: 4, outputTokens: 2 }, "run-abc12");
   });
 
   it("strips the frame even when its marker is split across chunks", async () => {
@@ -188,7 +188,7 @@ describe("interceptor", () => {
     const onUsage = vi.fn();
     const up = sseChunks([
       'event: message_stop\ndata: {"type":"message_stop"}\n\nevent: gly',
-      'phh_usage\ndata: {"creditsMicro":7,"inputTokens":2,"outputTokens":1}\n\n',
+      'phh_usage\ndata: {"usd":0.07,"inputTokens":2,"outputTokens":1}\n\n',
     ]);
     running = await startInterceptor({ client: await clientWith(up.fetch, "t"), onUsage });
 
@@ -201,7 +201,7 @@ describe("interceptor", () => {
     expect(seen).toBe('event: message_stop\ndata: {"type":"message_stop"}\n\n');
     expect(seen).not.toContain("glyphh_usage");
     expect(seen).not.toContain("event: gly");   // the split half must not leak either
-    expect(onUsage).toHaveBeenCalledWith({ creditsMicro: 7, inputTokens: 2, outputTokens: 1 }, undefined);
+    expect(onUsage).toHaveBeenCalledWith({ usd: 0.07, inputTokens: 2, outputTokens: 1 }, undefined);
   });
 
   it("forwards a stream with no usage frame unchanged", async () => {

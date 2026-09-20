@@ -129,8 +129,8 @@ export interface ResolvedTaskRole {
     modality: string;
     contextWindow: number | null;
     maxOutputTokens: number | null;
-    inputCreditsPerMTok: number;
-    outputCreditsPerMTok: number;
+    inputUsdPerMTok: number;
+    outputUsdPerMTok: number;
     isPlatformDefault: boolean;
     /** The gateway can serve this model right now (routable + keyed). Absent on
      *  older servers = assume ready. Rover pools and auto-binding skip false. */

@@ -5,7 +5,7 @@
  *
  * This is the only way a client reaches a model. Provider keys stay server-side
  * (write-only, decrypted for the upstream call alone), so the call ORIGINATES on
- * the server: that is what makes the workspace allow-list, credit accounting, and
+ * the server: that is what makes the workspace allow-list, spend logging, and
  * the model-governance audit true at execution time rather than advisory.
  *
  * `complete()` is the single-shot, text-in/text-out path — history folding,
@@ -113,7 +113,7 @@ export class GatewayClient {
   }
 
   /**
-   * One metered completion. Refused (402) when the org is out of credits — this
+   * One metered completion. Refused (402) when the org's key is over budget — this
    * is a prepaid system with no arrears, and there is no free local fallback, so
    * callers should surface that rather than silently degrading.
    */

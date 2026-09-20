@@ -63,7 +63,7 @@ export class AdminClient {
   orgs(query: AdminListQuery = {}): Promise<AdminOrgsPage> {
     return this.http.get<AdminOrgsPage>(withQuery("/api/admin/orgs", { q: query.q, page: query.page, limit: query.limit, parent: query.parent }));
   }
-  /** Create a brand-new organization (standalone; base workspace + free credits). */
+  /** Create a brand-new organization (standalone; base workspace + the free plan's pool). */
   createOrg(input: AdminCreateOrg): Promise<AdminOrgListItem> {
     return this.http.post<AdminOrgListItem>("/api/admin/orgs", input);
   }
@@ -79,9 +79,10 @@ export class AdminClient {
   unlockOrg(id: string): Promise<{ ok: boolean }> {
     return this.http.post<{ ok: boolean }>(`/api/admin/orgs/${encodeURIComponent(id)}/unlock`);
   }
-  /** Grant whole credits to an org (never expires). Returns the new balance (micro). */
-  grantCredits(id: string, credits: number, note?: string): Promise<{ balance: number }> {
-    return this.http.post<{ balance: number }>(`/api/admin/orgs/${encodeURIComponent(id)}/credits`, note ? { credits, note } : { credits });
+  /** Add dollars to an org's Pipedream budget (an admin grant; never expires).
+   *  Returns the budget's new remaining dollars. */
+  grantFunds(id: string, usd: number, note?: string): Promise<{ remainingUsd: number }> {
+    return this.http.post<{ remainingUsd: number }>(`/api/admin/orgs/${encodeURIComponent(id)}/funds`, note ? { usd, note } : { usd });
   }
   /** Mint a seat-gated invite INTO `id` on the org's behalf (the super-admin Members tab). */
   inviteOrgMember(id: string, email: string, role?: "org_admin" | "admin" | "user"): Promise<{ acceptUrl: string }> {
@@ -139,7 +140,7 @@ export class AdminClient {
   removeProviderKey(id: string): Promise<void> {
     return this.http.del<void>(`/api/admin/providers/keys/${encodeURIComponent(id)}`);
   }
-  /** Create/replace an org's bespoke (enterprise) plan — custom seat cap + per-seat price + allowance. */
+  /** Create/replace an org's bespoke (enterprise) plan — custom seat cap + per-seat price (its pool). */
   setOrgPlan(orgId: string, input: AdminOrgPlanInput): Promise<{ plan: AdminPlan }> {
     return this.http.post<{ plan: AdminPlan }>(`/api/admin/orgs/${encodeURIComponent(orgId)}/plan`, input);
   }
@@ -257,7 +258,7 @@ export class AdminClient {
       }),
     );
   }
-  /** REAL revenue for a window: Stripe collected cash + the credit-lot math. */
+  /** REAL revenue for a window: Stripe collected cash. */
   revenue(query: { from: string; to: string; orgId?: string }): Promise<AdminRevenue> {
     return this.http.get<AdminRevenue>(withQuery("/api/admin/revenue", { from: query.from, to: query.to, orgId: query.orgId }));
   }

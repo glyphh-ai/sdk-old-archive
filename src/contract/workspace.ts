@@ -45,14 +45,12 @@ export interface Workspace {
 
   allowCustomMcp: boolean;
 
-  creditsCap: number | null;
-  capPeriodDays: number | null;
   rateLimitCalls: number | null;
   rateLimitWindowSeconds: number | null;
   /** Gateway budget in USD per period (null = untracked) + the hard-limit toggle. */
   budgetUsd: number | null;
   budgetHard: boolean;
-  /** 1 / 7 / 30 — the credit-cap calendar grammar. Null reads as monthly. */
+  /** 1 / 7 / 30 — calendar-aligned periods. Null reads as monthly. */
   budgetPeriodDays: number | null;
   /** Tokens per minute across the role's minted keys. Null = unlimited. */
   tpmLimit: number | null;
@@ -79,8 +77,6 @@ export interface WorkspaceInput {
   limitAppHosting?: boolean;
   allowedHosting?: string[];
   allowCustomMcp?: boolean;
-  creditsCap?: number | null;
-  capPeriodDays?: number | null;
   rateLimitCalls?: number | null;
   rateLimitWindowSeconds?: number | null;
   budgetUsd?: number | null;
@@ -102,8 +98,6 @@ export interface EffectiveGrants {
   apps: Grant;
   hosting: Grant;
   allowCustomMcp: boolean;
-  creditsCap: number | null;
-  capPeriodDays: number | null;
   rateLimitCalls: number | null;
   rateLimitWindowSeconds: number | null;
 }

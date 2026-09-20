@@ -23,8 +23,8 @@ export interface OrgModel {
   kind: string; // "proxied" | "open_weight"
   /** chat | image | video | speech | transcription. */
   modality: string;
-  inputCreditsPerMTok: number;
-  outputCreditsPerMTok: number;
+  inputUsdPerMTok: number;
+  outputUsdPerMTok: number;
   /**
    * Total tokens the model accepts (prompt + completion). Null when the catalog has
    * not recorded it — callers must NOT invent a ceiling, since a wrong one fails
@@ -57,8 +57,8 @@ export interface AvailableModel {
   kind: string;
   /** chat | image | video | speech | transcription — for picker/slot filtering. */
   modality: string;
-  inputCreditsPerMTok: number;
-  outputCreditsPerMTok: number;
+  inputUsdPerMTok: number;
+  outputUsdPerMTok: number;
   /**
    * Total tokens the model accepts (prompt + completion). Null when the catalog has
    * not recorded it — callers must NOT invent a ceiling, since a wrong one fails

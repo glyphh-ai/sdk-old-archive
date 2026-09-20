@@ -27,7 +27,7 @@ function recorder() {
 describe("AdminClient catalog mutations", () => {
   it("createModel POSTs the catalog wire shape to /api/admin/models", async () => {
     const { calls, client } = recorder();
-    const input = { id: "acme::m1", providerSlug: "acme", name: "M1", kind: "proxied" as const, inputCreditsPerMTok: 3, outputCreditsPerMTok: 6 };
+    const input = { id: "acme::m1", providerSlug: "acme", name: "M1", kind: "proxied" as const, inputUsdPerMTok: 3, outputUsdPerMTok: 6 };
     await client.createModel(input);
     expect(calls).toEqual([{ method: "POST", path: "/api/admin/models", body: input }]);
   });
@@ -48,7 +48,7 @@ describe("AdminClient catalog mutations", () => {
 describe("AdminClient per-org bespoke plans", () => {
   it("setOrgPlan POSTs the camelCase input to /api/admin/orgs/:orgId/plan", async () => {
     const { calls, client } = recorder();
-    const input = { maxSeats: 50, monthlyUsdCents: 9900, monthlyCredits: 1_000_000, displayName: "Globex Enterprise" };
+    const input = { maxSeats: 50, monthlyUsdCents: 9900, displayName: "Globex Enterprise" };
     await client.setOrgPlan("org-9", input);
     expect(calls).toEqual([{ method: "POST", path: "/api/admin/orgs/org-9/plan", body: input }]);
   });

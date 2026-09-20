@@ -25,7 +25,7 @@ export function registerCatalog(reg: CommandRegistry): void {
 
   reg.register({
     path: "catalog models",
-    summary: "list models (+ credit pricing)",
+    summary: "list models (+ vendor list price, $/1M tokens)",
     covers: ["catalog.models"],
     async run(ctx) {
       ctx.printJson(await ctx.client.catalog.models());
@@ -107,17 +107,19 @@ export function registerCatalog(reg: CommandRegistry): void {
 
   reg.register({
     path: "admin model",
-    summary: "release a model + pricing (super_admin)",
-    usage: "admin model <id> --provider <slug> --name <name> --in <credits/unit> --out <credits/unit> [--kind ...] [--modality chat|image|video|speech|transcription] [--rate-unit mtok|image|second|mchar|minute]",
+    summary: "release a model (super_admin); --in/--out are the vendor's list price in dollars per unit",
+    usage: "admin model <id> --provider <slug> --name <name> [--in <usd/unit>] [--out <usd/unit>] [--kind ...] [--modality chat|image|video|speech|transcription] [--rate-unit mtok|image|second|mchar|minute]",
     covers: ["admin.createModel"],
     async run(ctx, args) {
       const id = args.positional[0];
       const providerSlug = flagStr(args, "provider");
       const name = flagStr(args, "name");
-      const input = Number(flagStr(args, "in"));
-      const output = Number(flagStr(args, "out"));
+      const inRaw = flagStr(args, "in");
+      const outRaw = flagStr(args, "out");
+      const input = inRaw === undefined ? undefined : Number(inRaw);
+      const output = outRaw === undefined ? undefined : Number(outRaw);
       if (!id || !providerSlug || !name || Number.isNaN(input) || Number.isNaN(output)) {
-        throw new Error("usage: admin model <id> --provider <slug> --name <name> --in <n> --out <n>");
+        throw new Error("usage: admin model <id> --provider <slug> --name <name> [--in <usd>] [--out <usd>]");
       }
       const modality = flagStr(args, "modality") as Modality | undefined;
       const rateUnit = flagStr(args, "rate-unit") as RateUnit | undefined;
@@ -125,7 +127,8 @@ export function registerCatalog(reg: CommandRegistry): void {
         await ctx.client.admin.createModel({
           id, providerSlug, name, kind: kind(flagStr(args, "kind")),
           ...(modality ? { modality } : {}), ...(rateUnit ? { rateUnit } : {}),
-          inputCreditsPerMTok: input, outputCreditsPerMTok: output,
+          ...(input !== undefined ? { inputUsdPerMTok: input } : {}),
+          ...(output !== undefined ? { outputUsdPerMTok: output } : {}),
         }),
       );
     },
@@ -133,17 +136,17 @@ export function registerCatalog(reg: CommandRegistry): void {
 
   reg.register({
     path: "admin pricing",
-    summary: "update a model's pricing (super_admin)",
+    summary: "update a model's list price / availability (super_admin; dollars per unit)",
     usage: "admin pricing <modelId> [--in <n>] [--out <n>] [--active true|false]",
     covers: ["admin.setModelPricing"],
     async run(ctx, args) {
       const id = args.positional[0];
       if (!id) throw new Error("usage: admin pricing <modelId> [--in n] [--out n] [--active true|false]");
-      const pricing: { inputCreditsPerMTok?: number; outputCreditsPerMTok?: number; active?: boolean; modality?: Modality; rateUnit?: RateUnit } = {};
+      const pricing: { inputUsdPerMTok?: number; outputUsdPerMTok?: number; active?: boolean; modality?: Modality; rateUnit?: RateUnit } = {};
       const inFlag = flagStr(args, "in");
       const outFlag = flagStr(args, "out");
-      if (inFlag !== undefined) pricing.inputCreditsPerMTok = Number(inFlag);
-      if (outFlag !== undefined) pricing.outputCreditsPerMTok = Number(outFlag);
+      if (inFlag !== undefined) pricing.inputUsdPerMTok = Number(inFlag);
+      if (outFlag !== undefined) pricing.outputUsdPerMTok = Number(outFlag);
       const mod = flagStr(args, "modality");
       const ru = flagStr(args, "rate-unit");
       if (mod !== undefined) pricing.modality = mod as Modality;

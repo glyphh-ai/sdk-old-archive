@@ -30,7 +30,7 @@ describe("@glyphh/sdk — model governance", () => {
     expect(opus!.providerEnabled).toBe(true); // providers are default-ON (proxy + meter)
     expect(opus!.hasByokKey).toBe(false); // …and default-ON never means an inherited key
     expect(typeof opus!.supported).toBe("boolean");
-    expect(opus!.inputCreditsPerMTok).toBe(313); // seeded rate, rebased ~0.75x in server d765a7e
+    expect(opus!.inputUsdPerMTok).toBe(5); // the vendor's list price, $/1M input tokens (informational)
   });
 
   it("available() resolves the effective set and narrows to the explicit supported set", async () => {
