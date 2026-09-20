@@ -40,7 +40,7 @@ export interface PlanGates {
   sso: boolean;
   /** The plan's requests-per-minute CEILING; a role narrows under it. 0 = unset. */
   rpm: number;
-  /** Dollars left in the org's Pipedream budget this period (plan pool +
+  /** Dollars left in the org's budget this period (plan pool +
    *  funds − spent). The only thing Glyphh funds; LLM calls never touch it. */
   poolRemainingUsd: number;
 }

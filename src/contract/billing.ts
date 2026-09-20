@@ -13,7 +13,7 @@ export interface Plan {
   /** The TRUE active Stripe price amount (cents) for this tier, when resolvable —
    *  falls back to monthlyUsdCents. Prefer this for display. */
   activeUsdCents?: number;
-  /** The monthly Pipedream budget the plan funds, in dollars — the plan price,
+  /** The monthly budget the plan funds, in dollars — the plan price,
    *  dollar for dollar (free = $1). */
   poolUsdPerMonth: number;
   maxSeats: number;
@@ -39,7 +39,7 @@ export interface Subscription {
 }
 
 /**
- * The org's Pipedream budget for the current period, in dollars.
+ * The org's budget for the current period, in dollars.
  *   planUsd      — what the plan funds this month (its price, dollar for dollar)
  *   fundsUsd     — purchased funds + admin grants on top of the plan
  *   spentUsd     — Pipedream connector spend so far this period

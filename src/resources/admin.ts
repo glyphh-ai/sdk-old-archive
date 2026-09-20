@@ -79,7 +79,7 @@ export class AdminClient {
   unlockOrg(id: string): Promise<{ ok: boolean }> {
     return this.http.post<{ ok: boolean }>(`/api/admin/orgs/${encodeURIComponent(id)}/unlock`);
   }
-  /** Add dollars to an org's Pipedream budget (an admin grant; never expires).
+  /** Add dollars to an org's budget (an admin grant; never expires).
    *  Returns the budget's new remaining dollars. */
   grantFunds(id: string, usd: number, note?: string): Promise<{ remainingUsd: number }> {
     return this.http.post<{ remainingUsd: number }>(`/api/admin/orgs/${encodeURIComponent(id)}/funds`, note ? { usd, note } : { usd });

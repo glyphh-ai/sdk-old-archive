@@ -185,7 +185,7 @@ export interface Client {
   invites: InvitesClient;
   /** Workspaces — governance (models/connections/apps/limits) + member assignment. */
   workspaces: WorkspacesClient;
-  /** Billing — plans, subscription, the Pipedream budget, Stripe checkout/portal. */
+  /** Billing — plans, subscription, the budget, Stripe checkout/portal. */
   billing: BillingClient;
   /** Desktop builds — the release list and signed download URLs. */
   releases: ReleasesClient;

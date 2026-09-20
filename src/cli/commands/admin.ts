@@ -105,7 +105,7 @@ export function registerAdmin(reg: CommandRegistry): void {
   });
   reg.register({
     path: "admin org funds",
-    summary: "add dollars to an org's Pipedream budget (admin grant)",
+    summary: "add dollars to an org's budget (admin grant)",
     usage: "admin org funds <id> <usd> [--note <text>]",
     covers: ["admin.grantFunds"],
     async run(ctx, args) {

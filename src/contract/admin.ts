@@ -5,7 +5,7 @@
  * the server's admin endpoints, which back the admin pages that read snake_case
  * fields directly, so (unlike the camelCase billing/catalog contracts) the admin
  * shapes are snake_case — the SDK is a faithful typed passthrough. Money is
- * dollars (Pipedream budget spend from the spend log; plan prices in USD cents);
+ * dollars (Budget spend from the spend log; plan prices in USD cents);
  * the daily token buckets are camelCase to match the chart series the Usage
  * page consumes.
  */
@@ -42,7 +42,7 @@ export interface AdminOrgMember {
 export interface AdminOrgDetail extends AdminOrgListItem {
   max_seats: number;
   created_at: string;
-  /** The org's Pipedream budget this period, in dollars. */
+  /** The org's budget this period, in dollars. */
   budget: { remaining_usd: number; spent_usd: number };
   members: AdminOrgMember[];
 }
@@ -89,7 +89,7 @@ export interface AdminUserPatch {
 export interface AdminPlan {
   tier: string;
   display_name: string;
-  monthly_usd_cents: number; // per-seat price — also the monthly Pipedream pool, dollar for dollar
+  monthly_usd_cents: number; // per-seat price — also the monthly pool, dollar for dollar
   max_seats: number;
   active: boolean;
   /** NULL for a global catalog plan; the org id for a bespoke per-org plan. */
@@ -135,7 +135,7 @@ export interface AdminPlanCreate {
  * A per-org bespoke (enterprise) plan. Unlike the snake_case global-plan shapes above,
  * the org-plan write payloads are camelCase — they mirror the server's org-plan
  * endpoints (which take camelCase directly). `monthlyUsdCents` is the per-seat
- * price — the plan's monthly Pipedream pool is that price, dollar for dollar.
+ * price — the plan's monthly pool is that price, dollar for dollar.
  */
 export interface AdminOrgPlanInput {
   maxSeats: number;

@@ -1,7 +1,7 @@
 /**
  * @license Proprietary — © Glyphh. All rights reserved.
  *
- * resources/billing.ts — plans, the org's subscription + Pipedream budget, and the
+ * resources/billing.ts — plans, the org's subscription + Budget, and the
  * Stripe-hosted checkout/portal handoff. Subscribe/portal are org_admin (server-
  * enforced) and require the server's Stripe config (else a not-found error).
  */
@@ -35,7 +35,7 @@ export class BillingClient {
     return this.http.post<Subscription>("/api/billing/reconcile");
   }
 
-  /** The org's Pipedream budget this period — plan pool, funds, spent, remaining (dollars). */
+  /** The org's budget this period — plan pool, funds, spent, remaining (dollars). */
   balance(): Promise<Balance> {
     return this.http.get<Balance>("/api/billing/balance");
   }
@@ -57,7 +57,7 @@ export class BillingClient {
     return this.http.post<PlanChange>("/api/billing/change-plan", { tier });
   }
 
-  /** Add funds to the Pipedream budget — hosted Checkout URL or embedded
+  /** Add funds to the budget — hosted Checkout URL or embedded
    *  client secret. `usd` is whole dollars (minimum 5). */
   topup(input: TopupInput): Promise<TopupCheckout> {
     return this.http.post<TopupCheckout>("/api/billing/topup", input);

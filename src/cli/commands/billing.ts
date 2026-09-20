@@ -1,7 +1,7 @@
 /**
  * @license Proprietary — © Glyphh. All rights reserved.
  *
- * commands/billing.ts — plans, subscription status, the Pipedream budget, and the Stripe
+ * commands/billing.ts — plans, subscription status, the budget, and the Stripe
  * checkout/portal handoff (prints the URL to open).
  */
 
@@ -37,7 +37,7 @@ export function registerBilling(reg: CommandRegistry): void {
 
   reg.register({
     path: "billing balance",
-    summary: "the org's Pipedream budget this period (plan pool, funds, spent, remaining — dollars)",
+    summary: "the org's budget this period (plan pool, funds, spent, remaining — dollars)",
     covers: ["billing.balance"],
     async run(ctx) {
       ctx.printJson(await ctx.client.billing.balance());
@@ -67,7 +67,7 @@ export function registerBilling(reg: CommandRegistry): void {
 
   reg.register({
     path: "billing topup",
-    summary: "add funds to the Pipedream budget (whole dollars, min 5); prints the Stripe Checkout URL",
+    summary: "add funds to the budget (whole dollars, min 5); prints the Stripe Checkout URL",
     usage: "billing topup <usd>",
     covers: ["billing.topup"],
     async run(ctx, args) {
