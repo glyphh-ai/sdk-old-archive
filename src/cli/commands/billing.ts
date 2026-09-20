@@ -36,6 +36,15 @@ export function registerBilling(reg: CommandRegistry): void {
   });
 
   reg.register({
+    path: "billing budget",
+    summary: "your own budget this period: your organization's limit plus what Glyphh funds for connector calls",
+    covers: ["billing.myBudget"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.billing.myBudget());
+    },
+  });
+
+  reg.register({
     path: "billing balance",
     summary: "the org's budget this period (plan pool, funds, spent, remaining — dollars)",
     covers: ["billing.balance"],

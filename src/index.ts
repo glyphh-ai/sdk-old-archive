@@ -65,7 +65,7 @@ export { InvitesClient } from "./resources/invites.js";
 export { WorkspacesClient } from "./resources/workspaces.js";
 export type { Workspace, WorkspaceInput, EffectiveGrants, Grant } from "./contract/workspace.js";
 export { BillingClient } from "./resources/billing.js";
-export type { Plan, Subscription, Balance, HostedUrl, UpcomingInvoice } from "./contract/billing.js";
+export type { Plan, Subscription, Balance, MemberBudget, HostedUrl, UpcomingInvoice } from "./contract/billing.js";
 export { ReleasesClient } from "./resources/releases.js";
 export type { Release, ReleaseAsset, ReleaseAssetUrl } from "./contract/releases.js";
 export { RuntimeImagesClient } from "./resources/runtime-images.js";

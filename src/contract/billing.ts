@@ -54,6 +54,25 @@ export interface Balance {
   periodEnd: string;
 }
 
+/**
+ * The caller's own budget: what their organization lets them spend
+ * (limitUsd, from their key, their team, or the organization's cap; null = no
+ * limit set) plus what Glyphh funds for connector calls (poolUsd). spentUsd is
+ * this month's spend on their key, connector calls included.
+ */
+export interface MemberBudget {
+  limitUsd: number | null;
+  limitSource: "member" | "team" | "organization" | null;
+  spentUsd: number;
+  poolUsd: number;
+  poolSpentUsd: number;
+  poolRemainingUsd: number;
+  planUsd: number;
+  fundsUsd: number;
+  periodStart: string;
+  periodEnd: string;
+}
+
 /** A Stripe-hosted URL (Checkout or Customer Portal). */
 export interface HostedUrl {
   url: string;

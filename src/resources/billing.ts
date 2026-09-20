@@ -8,7 +8,7 @@
 
 import type { AuthedHttp } from "../core/authed-http.js";
 import type {
-  Plan, Subscription, Balance, HostedUrl,
+  Plan, Subscription, Balance, MemberBudget, HostedUrl,
   AutotopupConfig, AutotopupInput, PlanChange, Invoice, TopupInput, TopupCheckout, BillingConfig,
   UpcomingInvoice,
 } from "../contract/billing.js";
@@ -38,6 +38,11 @@ export class BillingClient {
   /** The org's budget this period — plan pool, funds, spent, remaining (dollars). */
   balance(): Promise<Balance> {
     return this.http.get<Balance>("/api/billing/balance");
+  }
+
+  /** The caller's own budget this period: their organization's limit plus what Glyphh funds. */
+  myBudget(): Promise<MemberBudget> {
+    return this.http.get<MemberBudget>("/api/me/budget");
   }
 
   /** Start a Stripe Checkout for `tier` — returns the hosted URL to open. */
