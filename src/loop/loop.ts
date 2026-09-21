@@ -298,6 +298,34 @@ export class GlyphhLoop {
     return true;
   }
 
+  /** The tool names a chat's toolset carries — empty before its first turn
+   *  (the servers are lent on the first run). */
+  toolNames(chatId: string): string[] {
+    return this.chats.get(chatId)?.tools?.map((t) => t.name) ?? [];
+  }
+
+  /** Compact NOW (a host's /compact): the model summarizes the conversation so
+   *  far and the chat continues from the summary. Idle chats only. */
+  async compactNow(chatId: string, emit?: LoopEmit): Promise<{ ok: boolean; error?: string }> {
+    const c = this.chats.get(chatId);
+    if (!c || !c.model || c.messages.length < 2) return { ok: false, error: "nothing to compact yet — run a turn first" };
+    if (c.running) return { ok: false, error: BUSY_MESSAGE };
+    const creds = await this.deps.gateway().catch(() => null);
+    if (!creds) return { ok: false, error: GATEWAY_OFF_MESSAGE };
+    const baseUrl = (this.deps.baseUrlFor ? await this.deps.baseUrlFor(creds, { folder: c.workdir }).catch(() => null) : null) ?? creds.baseUrl;
+    if (emit) c.emit = emit;
+    c.runId = `${chatId}:compact:${Date.now()}`;
+    c.running = true;
+    try {
+      await this.compact(c, { baseUrl, token: creds.token }, new AbortController().signal);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    } finally {
+      c.running = false;
+    }
+  }
+
   setPermission(chatId: string, permission: LoopPermission): boolean {
     const c = this.chats.get(chatId);
     if (!c) return false;

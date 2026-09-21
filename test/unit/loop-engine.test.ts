@@ -186,6 +186,25 @@ describe("GlyphhLoop", () => {
     expect((wire.bodies[0]!.system as Array<{ text: string }>)[0]!.text).toContain("mcp_tool_search finds");
   });
 
+  it("toolNames lists the toolset after a turn, and compactNow folds the conversation into a summary", async () => {
+    const wire = fakeWire([
+      { text: "hi there", stop: "end_turn" },
+      { text: "SUMMARY: greeted", stop: "end_turn" },
+    ]);
+    const loop = new GlyphhLoop({ gateway, fetch: wire.fetchLike });
+    expect(loop.toolNames("c")).toEqual([]);
+    expect((await loop.compactNow("c")).ok).toBe(false);
+    await collect(loop, { chatId: "c", text: "hello", model: "m" });
+    expect(loop.toolNames("c")).toContain("bash");
+    const events: LoopEvent[] = [];
+    const r = await loop.compactNow("c", (ev) => events.push(ev));
+    expect(r).toEqual({ ok: true });
+    expect(events.some((e) => e.type === "delta" && e.delta.includes("compacted"))).toBe(true);
+    // The summary request went to the gateway with the chat's model.
+    expect(wire.bodies[1]!.model).toBe("m");
+    expect(String((wire.bodies[1]!.messages as Array<{ content: string }>)[0]!.content)).toContain("user: hello");
+  });
+
   it("a busy chat refuses a second turn; forgetAll drops every chat", async () => {
     const wire = fakeWire([{ text: "…", stop: "end_turn" }]);
     const slow = async (url: string, init: RequestInit): Promise<Response> => { await new Promise((r) => setTimeout(r, 50)); return wire.fetchLike(url, init); };
