@@ -26,13 +26,28 @@ export interface AttachHostOptions {
   /** Host identity sent in the hello frame (e.g. "glyphh-cli"). */
   app: string;
   version?: string;
-  /** The capability table: method name → executor. Sent as `capabilities`. */
-  handlers: Record<string, AttachHandler>;
+  /** A human name for the machine (hostname); the console's Connected Devices shows it. */
+  name?: string;
+  /** The capability table: method name → executor. Sent as `capabilities`.
+   *  A function is read on every hello, so a host that registers handlers
+   *  after the socket opened can `refreshHello()` and advertise them. */
+  handlers: Record<string, AttachHandler> | (() => Record<string, AttachHandler>);
+  /** Injected for tests; defaults to the global WebSocket. */
+  WebSocketImpl?: typeof WebSocket;
+  /** Called when the socket drops, so a host can tear down what rode it (ptys, watchers). */
+  onDown?: () => void;
 }
 
 export interface AttachHost {
   /** True while the outbound socket is open. */
   attached(): boolean;
+  /** Send an unsolicited frame up the socket: run frames, pty output, panel
+   *  frames. Dropped (returns false) while the socket is down. */
+  push(channel: string, data: unknown): boolean;
+  /** Re-advertise the capability table. Auth can open the socket before a
+   *  host has registered every handler; the first hello then lists a partial
+   *  table and the server refuses the missing methods until told otherwise. */
+  refreshHello(): void;
   /** Tear down (sign-out / quit). Idempotent. */
   stop(): void;
 }
@@ -48,6 +63,11 @@ export function startAttachHost(opts: AttachHostOptions): AttachHost {
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   let backoff = 1000;
   let stopped = false;
+
+  const table = (): Record<string, AttachHandler> => (typeof opts.handlers === "function" ? opts.handlers() : opts.handlers);
+  const hello = (socket: WebSocket): void => {
+    socket.send(JSON.stringify({ t: "hello", app: opts.app, version: opts.version ?? "0", ...(opts.name ? { name: opts.name } : {}), capabilities: Object.keys(table()) }));
+  };
 
   const wsUrl = async (): Promise<string> => {
     const base = opts.server.replace(/^http/, "ws").replace(/\/+$/, "");
@@ -73,19 +93,12 @@ export function startAttachHost(opts: AttachHostOptions): AttachHost {
       scheduleReconnect(); // signed out / token unavailable — retry later
       return;
     }
-    const socket = new WebSocket(url);
+    const socket = new (opts.WebSocketImpl ?? WebSocket)(url);
     ws = socket;
 
     socket.addEventListener("open", () => {
       backoff = 1000;
-      socket.send(
-        JSON.stringify({
-          t: "hello",
-          app: opts.app,
-          version: opts.version ?? "0",
-          capabilities: Object.keys(opts.handlers),
-        }),
-      );
+      hello(socket);
     });
 
     socket.addEventListener("message", (ev: MessageEvent) => {
@@ -105,7 +118,7 @@ export function startAttachHost(opts: AttachHostOptions): AttachHost {
       }
       if (frame.t !== "req" || typeof frame.id !== "string" || typeof frame.method !== "string") return;
       const { id, method, params } = frame;
-      const handler = opts.handlers[method];
+      const handler = table()[method];
       void (async () => {
         try {
           if (!handler) throw new Error(`unknown method: ${method}`);
@@ -119,6 +132,7 @@ export function startAttachHost(opts: AttachHostOptions): AttachHost {
 
     const drop = (): void => {
       if (ws === socket) ws = null;
+      try { opts.onDown?.(); } catch { /* a listener's failure is its own */ }
       scheduleReconnect();
     };
     socket.addEventListener("close", drop);
@@ -134,8 +148,14 @@ export function startAttachHost(opts: AttachHostOptions): AttachHost {
 
   void connect();
 
+  const open = (): boolean => !!ws && ws.readyState === 1;
   return {
-    attached: () => ws?.readyState === WebSocket.OPEN,
+    attached: open,
+    push: (channel, data) => {
+      if (!ws || !open()) return false;
+      try { ws.send(JSON.stringify({ t: "push", channel, data })); return true; } catch { return false; }
+    },
+    refreshHello: () => { if (ws && open()) { try { hello(ws); } catch { /* the reconnect will say hello again */ } } },
     stop: () => {
       stopped = true;
       if (reconnectTimer) {
