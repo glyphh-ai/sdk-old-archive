@@ -14,10 +14,10 @@ export {
   type LoopDeps, type LoopEmit, type LoopEvent, type LoopGateway, type LoopMcpServer, type LoopTurn,
 } from "./loop.js";
 export {
-  gate, toolKind, seedFromChat, shouldCompact, safeToolName, toolTitle, preview, systemPrompt,
+  gate, toolKind, readsByName, seedFromChat, shouldCompact, safeToolName, toolTitle, preview, systemPrompt,
   COMPACT_AT_TOKENS, MAX_TOOL_ROUNDS, MAX_TOKENS_OUT,
   type Gate, type LoopHost, type LoopMessage, type LoopPermission, type PromptExtras, type SeedTurn, type ToolKind,
 } from "./core.js";
 export { BUILTIN_TOOLS, runBuiltin, globToRegExp, type ToolDef } from "./tools.js";
 export { streamMessage, assembleStream, sseEvents, type AssembledMessage, type ContentBlock, type MessageParam, type MessagesBody, type ToolSpec } from "./messages.js";
-export { McpHttpClient, resultText, type McpCallResult, type McpToolInfo } from "./mcp.js";
+export { McpHttpClient, resultText, type McpCallResult, type McpToolAnnotations, type McpToolInfo } from "./mcp.js";

@@ -8,7 +8,9 @@
  * are read for the reply whose id matches.
  */
 
-export interface McpToolInfo { name: string; description?: string; inputSchema?: Record<string, unknown> }
+/** MCP tool annotations (2025-03-26): a server's own word on what a tool does. */
+export interface McpToolAnnotations { readOnlyHint?: boolean; destructiveHint?: boolean; idempotentHint?: boolean; openWorldHint?: boolean; title?: string }
+export interface McpToolInfo { name: string; description?: string; inputSchema?: Record<string, unknown>; annotations?: McpToolAnnotations }
 export interface McpContentPart { type: string; text?: string; [k: string]: unknown }
 export interface McpCallResult { content: McpContentPart[]; isError: boolean }
 

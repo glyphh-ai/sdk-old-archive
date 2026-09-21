@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { gate, toolKind, seedFromChat, shouldCompact, safeToolName, toolTitle, preview, systemPrompt } from "../../src/loop/core.js";
+import { gate, toolKind, readsByName, seedFromChat, shouldCompact, safeToolName, toolTitle, preview, systemPrompt } from "../../src/loop/core.js";
 
 describe("the permission gate", () => {
   it("classifies the built-ins and treats anything else as a connected tool", () => {
@@ -47,5 +47,18 @@ describe("small helpers", () => {
     expect(preview("a   b\n\nc", 5)).toBe("a b c");
     expect(systemPrompt("/w", { hasLocalMcp: true, hasGateway: false })).toContain("Working folder: /w");
     expect(systemPrompt("/w", { hasLocalMcp: false, hasGateway: false })).not.toContain("glyphh_*");
+  });
+});
+
+describe("lent tools that only read", () => {
+  it("reads by name: listings, searches, status — never calls, opens, sends", () => {
+    for (const n of ["panels_list", "panels_available", "glyphh_connections", "mcp_tool_search", "glyphh_facts_search", "get_thread", "list_files", "health"]) expect(readsByName(n)).toBe(true);
+    for (const n of ["mcp_tool_call", "panels_open", "rpa_goto", "send_email", "glyphh_facts_write", "create_task", "run_bash"]) expect(readsByName(n)).toBe(false);
+  });
+  it("a read-only lent tool is a READ kind, so no mode ever asks for it", () => {
+    expect(toolKind("panels_list", true)).toBe("read");
+    expect(toolKind("panels_open", false)).toBe("mcp");
+    expect(gate("default" as never, "read")).toBe("allow");
+    expect(gate("plan", "read")).toBe("allow");
   });
 });

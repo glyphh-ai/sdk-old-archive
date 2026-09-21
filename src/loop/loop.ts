@@ -23,7 +23,7 @@
 
 import { homedir } from "node:os";
 import {
-  gate, toolKind, seedFromChat, shouldCompact, safeToolName, toolTitle, preview, systemPrompt,
+  gate, toolKind, readsByName, seedFromChat, shouldCompact, safeToolName, toolTitle, preview, systemPrompt,
   MAX_TOKENS_OUT, MAX_TOOL_ROUNDS, type LoopHost, type LoopPermission, type SeedTurn,
 } from "./core.js";
 import { BUILTIN_TOOLS, runBuiltin } from "./tools.js";
@@ -44,6 +44,9 @@ export interface LoopMcpServer {
   headers?: Record<string, string>;
   /** The word the tool descriptions fall back to ("Glyphh tool x", "connection tool y"). */
   tag: string;
+  /** Which of this server's tools only read (never ask). Default: the server's
+   *  readOnlyHint annotation, else the name (core.ts readsByName). */
+  readOnly?: (tool: string) => boolean;
 }
 
 export interface LoopDeps {
@@ -85,7 +88,7 @@ export interface LoopTurn {
   history?: SeedTurn[];
 }
 
-interface McpTool { client: McpHttpClient; realName: string }
+interface McpTool { client: McpHttpClient; realName: string; readOnly: boolean }
 
 interface LoopChat {
   chatId: string;
@@ -139,7 +142,8 @@ export class GlyphhLoop {
         for (const t of listed) {
           const name = safeToolName(t.name);
           if (defs.some((d) => d.name === name) || BUILTIN_TOOLS.some((b) => b.name === name)) continue;
-          c.mcp.set(name, { client, realName: t.name });
+          const readOnly = s.readOnly ? s.readOnly(t.name) : (t.annotations?.readOnlyHint === true || (t.annotations?.readOnlyHint !== false && readsByName(t.name)));
+          c.mcp.set(name, { client, realName: t.name, readOnly });
           defs.push({ name, description: (t.description ?? `${s.tag} tool ${t.name}`).slice(0, 1000), input_schema: t.inputSchema ?? { type: "object", properties: {} } });
         }
         if (s.tag === "Glyphh") c.hasLocalMcp = true;
@@ -257,7 +261,7 @@ export class GlyphhLoop {
         const results: ToolResultBlock[] = [];
         for (const use of uses) {
           if (signal.aborted) break;
-          const kind = toolKind(use.name);
+          const kind = toolKind(use.name, c.mcp.get(use.name)?.readOnly === true);
           const title = toolTitle(use.name, use.input);
           let verdict = gate(c.permission, kind);
           if (verdict === "ask") {

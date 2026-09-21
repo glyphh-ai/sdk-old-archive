@@ -174,8 +174,9 @@ describe("GlyphhLoop", () => {
       gateway, fetch: wire.fetchLike,
       mcpServers: async () => [{ name: "gateway", url: "https://gw/mcp", headers: { authorization: "Bearer k" }, tag: "connection" }],
     });
-    // auto: a connected tool would otherwise park on an approval (the ask path is covered above)
-    const events = await collect(loop, { chatId: "c", text: "find gmail", model: "m", permission: "auto" });
+    // default mode: a SEARCH is a read by name, so it runs without an approval
+    const events = await collect(loop, { chatId: "c", text: "find gmail", model: "m", permission: "ask" });
+    expect(events.some((e) => e.type === "approval")).toBe(false);
     const tools = (wire.bodies[0]!.tools as Array<{ name: string }>).map((t) => t.name);
     expect(tools).toContain("read_file");
     expect(tools).toContain("mcp_tool_search");

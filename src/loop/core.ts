@@ -15,12 +15,24 @@ export const BUILTIN_READ = new Set(["read_file", "list_dir", "glob", "grep"]);
 export const BUILTIN_EDIT = new Set(["write_file", "edit_file"]);
 export const BUILTIN_EXEC = new Set(["bash"]);
 
-/** What a tool does to the machine, which is what the permission words govern. */
-export function toolKind(name: string): ToolKind {
+/** What a tool does to the machine, which is what the permission words govern.
+ *  A lent tool the server marks read-only (or that reads by its name) is a
+ *  READ: it never asks, in any mode — the other CLIs' users never confirm a
+ *  listing, and neither do ours (his report, 2026-09-21). */
+export function toolKind(name: string, readOnly = false): ToolKind {
   if (BUILTIN_READ.has(name)) return "read";
   if (BUILTIN_EDIT.has(name)) return "edit";
   if (BUILTIN_EXEC.has(name)) return "exec";
-  return "mcp";
+  return readOnly ? "read" : "mcp";
+}
+
+/** A lent tool whose NAME says it only reads: list/get/search/status and kin.
+ *  Used when the server sent no annotations. Anything that could write —
+ *  call, run, open, create, send, delete — stays a governed tool. */
+const READ_VERBS = /(^|_)(list|lists|get|search|read|find|show|describe|status|available|health|info|count|query|fetch|lookup|check|connections|stats|history|preview|inspect)(_|$)/i;
+export function readsByName(name: string): boolean {
+  if (/(^|_)(call|run|exec|open|create|send|delete|remove|write|update|set|put|post|install|start|stop|kill|move|rename|copy|upload|publish|deploy)(_|$)/i.test(name)) return false;
+  return READ_VERBS.test(name);
 }
 
 /** Glyphh's ONE permission vocabulary, projected onto the loop's own tools:
