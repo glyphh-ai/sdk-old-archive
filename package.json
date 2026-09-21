@@ -43,6 +43,11 @@
       "import": "./dist/machine.js",
       "require": "./dist/machine.cjs"
     },
+    "./loop": {
+      "types": "./dist/loop.d.ts",
+      "import": "./dist/loop.js",
+      "require": "./dist/loop.cjs"
+    },
     "./slides": {
       "types": "./dist/slides.d.ts",
       "react-native": "./dist/slides.js",
