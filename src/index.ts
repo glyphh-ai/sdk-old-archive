@@ -318,6 +318,11 @@ export type {
   ToolUse,
   GuestToken,
   GuestTurnInput,
+  BridgeLane,
+  BridgePermission,
+  RoutingRow,
+  OrgRouting,
+  BridgeUsageEvent,
 } from "./contract/gateway.js";
 export type {
   OrgModel,

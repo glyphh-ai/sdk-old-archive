@@ -8,7 +8,7 @@
 import { readFileSync } from "node:fs";
 import type { CommandRegistry } from "../registry.js";
 import { flagStr } from "../args.js";
-import type { MessageTurnInput, MessageTool } from "../../contract/gateway.js";
+import type { MessageTurnInput, MessageTool, RoutingRow } from "../../contract/gateway.js";
 
 export function registerGateway(reg: CommandRegistry): void {
   reg.register({
@@ -122,6 +122,46 @@ export function registerGateway(reg: CommandRegistry): void {
       if (!id) throw new Error("usage: gateway revoke-key <id>");
       await ctx.client.gateway.revokeMyKey(id);
       ctx.printJson({ ok: true });
+    },
+  });
+
+  reg.register({
+    path: "gateway routing",
+    summary: "the org's Bridge Mode routing table: which lane each model takes",
+    usage: "gateway routing",
+    covers: ["gateway.routing"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.gateway.routing());
+    },
+  });
+
+  reg.register({
+    path: "gateway set-routing",
+    summary: "replace the org's routing table from a JSON file of rows (org_admin)",
+    usage: "gateway set-routing <rows.json>",
+    covers: ["gateway.setRouting"],
+    async run(ctx, args) {
+      const file = args.positional[0];
+      if (!file) throw new Error("usage: gateway set-routing <rows.json>");
+      const rows = JSON.parse(readFileSync(file, "utf-8")) as RoutingRow[];
+      ctx.printJson(await ctx.client.gateway.setRouting(rows));
+    },
+  });
+
+  reg.register({
+    path: "gateway bridge-usage",
+    summary: "record one account-lane turn the bridge ran on your own CLI login",
+    usage: "gateway bridge-usage <conversation> <model> <inputTokens> <outputTokens> [--cache-read <n>] [--cache-write <n>] [--ms <n>]",
+    covers: ["gateway.reportBridgeUsage"],
+    async run(ctx, args) {
+      const [conversation, model, inp, out] = args.positional;
+      if (!conversation || !model || !inp || !out) throw new Error("usage: gateway bridge-usage <conversation> <model> <inputTokens> <outputTokens> [--cache-read <n>] [--cache-write <n>] [--ms <n>]");
+      ctx.printJson(await ctx.client.gateway.reportBridgeUsage({
+        conversation, model, inputTokens: Number(inp), outputTokens: Number(out),
+        ...(args.flags["cache-read"] ? { cacheReadTokens: Number(args.flags["cache-read"]) } : {}),
+        ...(args.flags["cache-write"] ? { cacheWriteTokens: Number(args.flags["cache-write"]) } : {}),
+        ...(args.flags.ms ? { durationMs: Number(args.flags.ms) } : {}),
+      }));
     },
   });
 
