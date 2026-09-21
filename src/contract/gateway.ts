@@ -134,7 +134,7 @@ export interface RoutingRow {
   chatOnly?: boolean;
 }
 
-export interface OrgRouting { rows: RoutingRow[]; updatedAt: string }
+export interface OrgRouting { rows: RoutingRow[]; updatedAt: string; /** False on a plan without Bridge Mode: rows are empty and writes are refused. */ allowed?: boolean }
 
 /** One account-lane turn the bridge ran on the member's own CLI login. */
 export interface BridgeUsageEvent {

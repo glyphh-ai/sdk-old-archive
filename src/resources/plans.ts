@@ -43,11 +43,15 @@ export interface PlanGates {
   /** Dollars left in the org's budget this period (plan pool +
    *  funds − spent). The only thing Glyphh funds; LLM calls never touch it. */
   poolRemainingUsd: number;
+  /** Bridge Mode for Claude Desktop is on this plan (Pro and above). */
+  bridgeAllowed?: boolean;
+  /** The org requires Bridge Mode: the desktop is the bridge TUI and nothing else. */
+  forceBridge?: boolean;
 }
 
 /** Every capability name a caller may ask about — a closed set, so a typo is
  *  a compile error rather than a silently-false gate. */
-export type PlanCapability = "governance" | "sso" | "gateway";
+export type PlanCapability = "governance" | "sso" | "gateway" | "bridge";
 
 /** The gates of an org with no plan at all: nothing but the floor. Used when
  *  the read fails, so an offline or erroring client degrades to LOCKED
@@ -95,6 +99,7 @@ export class PlansClient {
     const g = await this.gates();
     if (capability === "governance") return g.governance;
     if (capability === "sso") return g.sso;
+    if (capability === "bridge") return g.bridgeAllowed === true;
     return g.gatewayAllowed;
   }
 
