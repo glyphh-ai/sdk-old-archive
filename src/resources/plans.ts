@@ -30,6 +30,10 @@ import type { AuthedHttp } from "../core/authed-http.js";
 export interface PlanGates {
   /** The gateway is usable (false once a trial window has closed). */
   gatewayAllowed: boolean;
+  /** Every turn MUST ride the gateway (the org's Require Gateway switch, or the
+   *  server forcing it). With the gateway allowed but not required a member
+   *  picks each turn's lane — gateway or the CLI's own login — in the model picker. */
+  gatewayRequired?: boolean;
   /** When the gateway trial ends, ISO — null when the plan has no trial. */
   trialEndsAt: string | null;
   /** ROLE governance: may this org differentiate BETWEEN members — role
