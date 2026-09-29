@@ -17,10 +17,4 @@ export class ModelsClient {
   available(): Promise<AvailableModel[]> {
     return this.http.get<AvailableModel[]>("/api/models/available");
   }
-
-  /** THE OWN-LOGIN LANE'S LIST: what a loop reaches on the CLI's own login,
-   *  outside the org's gateway allow-list. Empty when the org requires the gateway. */
-  direct(): Promise<AvailableModel[]> {
-    return this.http.get<AvailableModel[]>("/api/models/direct");
-  }
 }

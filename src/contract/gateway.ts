@@ -114,35 +114,3 @@ export interface MessageTurn {
   /** The raw assistant content blocks, to append verbatim to the conversation. */
   content: unknown[];
 }
-
-// ── BRIDGE MODE (2026-09-21; app/docs/BRIDGE-MODE.md) ──────────────────────────
-
-/** Which lane a Claude Desktop turn takes behind the member's local bridge. */
-export type BridgeLane = "gateway" | "account";
-export type BridgePermission = "read-only" | "plan" | "edits" | "auto";
-
-/** One row of the org admin's routing table: first match wins, "*" is the default,
- *  a trailing "*" matches a prefix. */
-export interface RoutingRow {
-  model: string;
-  lane: BridgeLane;
-  /** Gateway lane: the gateway model or alias to run instead of the name asked for. */
-  target?: string;
-  /** Account lane: the CLI's permission mode for the turn. */
-  permission?: BridgePermission;
-  /** Account lane: tools off, text only. */
-  chatOnly?: boolean;
-}
-
-export interface OrgRouting { rows: RoutingRow[]; updatedAt: string; /** False on a plan without Bridge Mode: rows are empty and writes are refused. */ allowed?: boolean }
-
-/** One account-lane turn the bridge ran on the member's own CLI login. */
-export interface BridgeUsageEvent {
-  conversation: string;
-  model: string;
-  inputTokens: number;
-  outputTokens: number;
-  cacheReadTokens?: number;
-  cacheWriteTokens?: number;
-  durationMs?: number;
-}

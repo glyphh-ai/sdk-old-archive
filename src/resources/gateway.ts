@@ -16,9 +16,6 @@
 import type { AuthedHttp } from "../core/authed-http.js";
 import type { GatewayToken } from "../contract/loops.js";
 import type { GatewayCompletion, GatewayCompletionInput, MessageTurn, MessageTurnInput, ToolUse,
-  BridgeUsageEvent,
-  OrgRouting,
-  RoutingRow,
 } from "../contract/gateway.js";
 
 
@@ -104,23 +101,6 @@ export class GatewayClient {
   /** Revoke one of the caller's OWN keys — anyone else's answers not-found. */
   revokeMyKey(id: string): Promise<void> {
     return this.http.del<void>(`/api/gateway/my-keys/${id}`);
-  }
-
-  // ── BRIDGE MODE (2026-09-21): the org's routing table and the account lane's usage ──
-
-  /** The org's routing table, as any member of the org (the bridge reads it as the member). */
-  routing(): Promise<OrgRouting> {
-    return this.http.get<OrgRouting>("/api/gateway/org-routing");
-  }
-
-  /** Replace the org's routing table (org_admin). */
-  setRouting(rows: RoutingRow[]): Promise<{ rows: RoutingRow[] }> {
-    return this.http.put<{ rows: RoutingRow[] }>("/api/gateway/org-routing", { rows });
-  }
-
-  /** Record one account-lane turn so Usage shows both lanes side by side. */
-  reportBridgeUsage(event: BridgeUsageEvent): Promise<{ requestId: string }> {
-    return this.http.post<{ requestId: string }>("/api/gateway/usage/bridge", event);
   }
 
   /** The org switch for member minting (org_admin). */

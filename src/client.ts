@@ -29,13 +29,11 @@ import { VoiceClient } from "./resources/voice.js";
 import { ProvidersClient } from "./resources/providers.js";
 import { AdminClient } from "./resources/admin.js";
 import { MarketingClient } from "./resources/marketing.js";
-import { LoopsClient } from "./resources/loops.js";
 import { TasksClient } from "./resources/tasks.js";
 import { ConnectionsClient } from "./resources/connections.js";
 import { UsageClient } from "./resources/usage.js";
 import { ApiKeysClient } from "./resources/api-keys.js";
 import { PlansClient } from "./resources/plans.js";
-import { OrgLoopsClient } from "./resources/org-loops.js";
 import { OrgLibraryClient } from "./resources/org-library.js";
 import { SessionsClient } from "./resources/sessions.js";
 import { FilesClient } from "./resources/files.js";
@@ -203,8 +201,6 @@ export interface Client {
   admin: AdminClient;
   /** Marketing link tracking + click analytics (super_admin). */
   marketing: MarketingClient;
-  /** The loops a member may drive — the governed CLI list. */
-  loops: LoopsClient;
   /** The org's TASK library (members read; org_admin builds). Formerly
    *  `loops` — renamed 2026-09-12 so "loop" means one thing. Routes return
    *  with the Build section. */
@@ -219,7 +215,6 @@ export interface Client {
    *  here and nowhere else (see resources/plans.ts). */
   plans: PlansClient;
   /** The ORG's loop support list — which CLIs this organization runs. */
-  orgLoops: OrgLoopsClient;
   /** The ORG LIBRARY — promoted tasks/agents/skills: publish, review, role
    *  access, installs. One library, keyed by kind. */
   orgLibrary: OrgLibraryClient;
@@ -356,13 +351,11 @@ export function createClient(opts: ClientOptions): Client {
     providers: new ProvidersClient(authed),
     admin: new AdminClient(authed),
     marketing: new MarketingClient(authed),
-    loops: new LoopsClient(authed),
     tasks: new TasksClient(authed),
     connections: new ConnectionsClient(authed),
     usage: new UsageClient(authed),
     apiKeys: new ApiKeysClient(authed),
     plans: new PlansClient(authed),
-    orgLoops: new OrgLoopsClient(authed),
     orgLibrary: new OrgLibraryClient(authed),
     sessions: new SessionsClient(authed),
     files: new FilesClient(authed),

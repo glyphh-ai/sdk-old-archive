@@ -47,6 +47,8 @@ describe("small helpers", () => {
     expect(preview("a   b\n\nc", 5)).toBe("a b c");
     expect(systemPrompt("/w", { hasLocalMcp: true, hasGateway: false })).toContain("Working folder: /w");
     expect(systemPrompt("/w", { hasLocalMcp: false, hasGateway: false })).not.toContain("glyphh_*");
+    expect(systemPrompt("/w", { hasLocalMcp: true, hasGateway: false })).toContain("never ask whether Glyphh is running");
+    expect(systemPrompt("/w", { hasLocalMcp: false, hasGateway: false })).toContain("Something happened only when a tool result says it did");
   });
 });
 

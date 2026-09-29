@@ -17,6 +17,8 @@ export type OtherBlock = { type: string; [k: string]: unknown };
 export type ContentBlock = TextBlock | ToolUseBlock | OtherBlock;
 export type ToolResultBlock = { type: "tool_result"; tool_use_id: string; content: string; is_error?: boolean };
 export type TextParam = { type: "text"; text: string; cache_control?: { type: "ephemeral" } };
+/** An image the host read for the user (a paste, a drop, a screenshot). */
+export type ImageParam = { type: "image"; source: { type: "base64"; media_type: string; data: string } };
 export interface MessageParam { role: "user" | "assistant"; content: string | Array<ContentBlock | ToolResultBlock> }
 export interface ToolSpec { name: string; description: string; input_schema: Record<string, unknown> }
 

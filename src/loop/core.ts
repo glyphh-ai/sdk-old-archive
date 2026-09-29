@@ -84,6 +84,11 @@ export function seedFromChat(turns: readonly SeedTurn[], currentPrompt: string):
 /** One line for the tool card: the argument that names the work. */
 export function toolTitle(name: string, input: unknown): string {
   const o = (input && typeof input === "object" ? input : {}) as Record<string, unknown>;
+  // A delegation reads as one: who took it, and what for.
+  if (name === "spawn_agent" && typeof o.agent === "string") {
+    const task = typeof o.task === "string" ? o.task.replace(/\s+/g, " ").trim() : "";
+    return `${o.agent} · ${task}`.slice(0, 120);
+  }
   const first = ["command", "path", "pattern", "query", "name", "url", "tool_name"].map((k) => o[k]).find((v) => typeof v === "string" && v) as string | undefined;
   return first ? `${name} ${first}`.slice(0, 120) : name;
 }
@@ -97,7 +102,13 @@ export function preview(text: string, cap = 240): string {
  *  "the app" or "the terminal" is in front of the user. */
 export type LoopHost = "desktop" | "terminal";
 
-export interface PromptExtras { hasLocalMcp: boolean; hasGateway: boolean; host?: LoopHost }
+export interface PromptExtras {
+  hasLocalMcp: boolean; hasGateway: boolean; host?: LoopHost;
+  /** find_tools / call_tool are on the belt (catalog.ts). */
+  finder?: boolean;
+  /** The skills index (catalog.skillsIndex), or "". */
+  skills?: string;
+}
 
 export function systemPrompt(workdir: string, extras: PromptExtras): string {
   const host = extras.host ?? "desktop";
@@ -105,13 +116,19 @@ export function systemPrompt(workdir: string, extras: PromptExtras): string {
     host === "terminal"
       ? "You are Glyphh, the user's agent loop, running on the user's own machine and rendered in their terminal."
       : "You are Glyphh, the user's agent loop running inside the Glyphh desktop app.",
-    `Working folder: ${workdir}. Paths you read or write resolve against it.`,
+    `Working folder: ${workdir}. It is this session's whole world: paths resolve against it, file tools refuse anything outside it, and the shell can write only inside it. Never try to work around that — if the task needs another folder, say so and ask the user to change the session's folder.`,
     "Use the tools for anything that touches files, the shell or the user's connected apps; never pretend to have run something.",
     "Prefer small, verifiable steps: read before you edit, run the tests you touched, and say what you did in plain words.",
     extras.hasLocalMcp ? "The glyphh_* tools reach the Glyphh app itself: panels, memory, tasks and the user's workspace." : "",
-    extras.hasGateway ? "mcp_tool_search finds a connected app's tools (Gmail, Drive, GitHub and 3,500 more); mcp_tool_call runs one by the name search returned." : "",
+    // His report, 2026-09-29: the agent asked the user whether Glyphh was running, and said "Done! It's open" before any result came back.
+    extras.hasLocalMcp && host === "desktop" ? "You are inside the app the user is looking at, so never ask whether Glyphh is running. A panel is open only when panels_open says so; to show a page, open the browser with its url in one call (panels_open app 'browser' with url)." : "",
+    "Something happened only when a tool result says it did. Never tell the user an outcome before its result, and when a result is an error, say so plainly.",
+    extras.finder
+      ? `Your listed tools are only the everyday ones. find_tools searches everything else${extras.hasLocalMcp ? " on this machine (Glyphh's tasks, schedules, memory, installed apps and more)" : ""}${extras.hasGateway ? " and in the user's connected accounts (Gmail, Drive, GitHub and thousands more)" : ""}; call_tool runs what it finds. Search before saying something cannot be done.`
+      : "",
     host === "terminal"
       ? "When a step needs the user's permission the terminal asks them; a denied step is not a failure of yours, report it and continue."
       : "When a step needs the user's permission the app asks them; a denied step is not a failure of yours, report it and continue.",
+    extras.skills ?? "",
   ].filter(Boolean).join("\n");
 }
