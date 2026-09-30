@@ -21,7 +21,7 @@
  * Pure: the ranking, the map and the specs are tested apart from the engine.
  */
 
-import type { ToolSpec } from "./messages.js";
+import type { ImageParam, ToolSpec } from "./messages.js";
 
 export const FIND_TOOL = "find_tools";
 export const CALL_TOOL = "call_tool";
@@ -35,7 +35,7 @@ export interface LoopCatalogEntry {
   family: string;
   /** Runs without an approval in Ask mode. */
   readOnly?: boolean;
-  run(args: Record<string, unknown>, signal?: AbortSignal): Promise<{ text: string; failed: boolean }>;
+  run(args: Record<string, unknown>, signal?: AbortSignal): Promise<{ text: string; failed: boolean; images?: ImageParam[] }>;
 }
 
 /** A skill the loop may read before doing the kind of work it covers. */

@@ -8,6 +8,8 @@
  * are read for the reply whose id matches.
  */
 
+import type { ImageParam } from "./messages.js";
+
 /** MCP tool annotations (2025-03-26): a server's own word on what a tool does. */
 export interface McpToolAnnotations { readOnlyHint?: boolean; destructiveHint?: boolean; idempotentHint?: boolean; openWorldHint?: boolean; title?: string }
 export interface McpToolInfo { name: string; description?: string; inputSchema?: Record<string, unknown>; annotations?: McpToolAnnotations }
@@ -153,4 +155,25 @@ export class McpHttpClient {
 /** The text of a tool result, one line per text part. */
 export function resultText(r: McpCallResult): string {
   return r.content.map((b) => (b.type === "text" ? b.text ?? "" : `[${b.type}]`)).join("\n") || "(no output)";
+}
+
+/** A tool result's IMAGE parts, as images the model can see. */
+export function resultImages(r: McpCallResult): ImageParam[] {
+  return r.content
+    .filter((b) => b.type === "image" && typeof b.data === "string" && typeof b.mimeType === "string")
+    .map((b) => ({ type: "image" as const, source: { type: "base64" as const, media_type: String(b.mimeType), data: String(b.data) } }));
+}
+
+/** THE MODEL NEVER READS BASE64 (his audit, 2026-09-29: one screenshot, sent
+ *  as a 200,000-character data URL in a tool's text, was a 96,667-token call
+ *  that cost $1.23 and showed the model nothing). Any data:image URL in a
+ *  result's text comes out as an image; the text keeps a marker. */
+const DATA_IMAGE = /data:(image\/(?:png|jpeg|gif|webp));base64,([A-Za-z0-9+/=]{64,})/g;
+export function splitDataImages(text: string): { text: string; images: ImageParam[] } {
+  const images: ImageParam[] = [];
+  const out = text.replace(DATA_IMAGE, (_m, mediaType: string, data: string) => {
+    images.push({ type: "image", source: { type: "base64", media_type: mediaType, data } });
+    return "[image]";
+  });
+  return { text: out, images };
 }

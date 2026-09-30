@@ -27,7 +27,7 @@ import {
   MAX_TOKENS_OUT, MAX_TOOL_ROUNDS, type LoopHost, type LoopPermission, type PromptExtras, type SeedTurn,
 } from "./core.js";
 import { BUILTIN_TOOLS, runBuiltin, type ShellLauncher, type ToolDetail } from "./tools.js";
-import { McpHttpClient, resultText } from "./mcp.js";
+import { McpHttpClient, resultImages, resultText, splitDataImages } from "./mcp.js";
 import { CALL_TOOL, FIND_TOOL, callToolSpec, familyOf, findToolSpec, searchCatalog, skillsIndex, type LoopCatalogEntry, type LoopSkill } from "./catalog.js";
 import {
   streamMessage, isTextBlock, isToolUseBlock,
@@ -238,6 +238,28 @@ interface LoopChat {
 /** How many tools may run at once, and how many agents one run may start.
  *  Both are about the person's bill and their patience, not correctness. */
 const MAX_PARALLEL_TOOLS = 4;
+
+/** What a tool run hands back to the model: its text, and any images it produced. */
+type ToolRun = { text: string; failed: boolean; detail?: ToolDetail; images?: ImageParam[] };
+
+/** A tool result's text, at most this long (~25k tokens): one result can no
+ *  longer turn a prompt into a dollar-a-call (his audit, 2026-09-29). */
+export const TOOL_RESULT_CHARS = 100_000;
+/** Images per result, and the vendor's per-image ceiling (base64 characters). */
+const TOOL_RESULT_IMAGES = 4;
+const IMAGE_B64_MAX = 5_000_000;
+
+/** The tool_result content: text without any base64 in it (a data:image URL
+ *  becomes an image block), capped with a note, plus the result's images. */
+export function toolResultContent(r: { text: string; images?: ImageParam[] }): string | Array<TextParam | ImageParam> {
+  const split = splitDataImages(r.text);
+  const over = split.text.length - TOOL_RESULT_CHARS;
+  const text = over > 0
+    ? `${split.text.slice(0, TOOL_RESULT_CHARS)}\n\n[truncated: ${over.toLocaleString("en-US")} more characters. Ask for a narrower read: a line range, a search, or a smaller page.]`
+    : split.text;
+  const images = [...(r.images ?? []), ...split.images].filter((im) => im.source.data.length <= IMAGE_B64_MAX).slice(0, TOOL_RESULT_IMAGES);
+  return images.length ? [{ type: "text", text: text || "(image)" }, ...images] : text;
+}
 /** How much of a lent tool's arguments and result the HOST sees per step. */
 const TOOL_IO_CAP = 8_000;
 const MAX_SPAWN_PER_RUN = 8;
@@ -308,7 +330,7 @@ export class GlyphhLoop {
               ...(t.inputSchema ? { inputSchema: t.inputSchema as Record<string, unknown> } : {}),
               run: async (args, signal) => {
                 const out = await client.callTool(t.name, args, signal);
-                return { text: resultText(out), failed: out.isError };
+                return { text: resultText(out), failed: out.isError, images: resultImages(out) };
               },
             });
             continue;
@@ -393,7 +415,7 @@ export class GlyphhLoop {
   }
 
   /** call_tool: a catalog tool, a belt tool named through it, or a connected account's. */
-  private async callTool(c: LoopChat, input: unknown, signal: AbortSignal): Promise<{ text: string; failed: boolean; detail?: ToolDetail }> {
+  private async callTool(c: LoopChat, input: unknown, signal: AbortSignal): Promise<ToolRun> {
     const { name, args } = GlyphhLoop.callTarget(input);
     if (!name) return { text: "call_tool needs the tool's exact name from find_tools", failed: true };
     const entry = c.catalog.find((e) => e.name === name);
@@ -405,7 +427,7 @@ export class GlyphhLoop {
     if (c.accounts?.call) {
       try {
         const r = await c.accounts.call.client.callTool(c.accounts.call.realName, { tool_name: name, arguments: args }, signal);
-        return { text: resultText(r), failed: r.isError };
+        return { text: resultText(r), failed: r.isError, images: resultImages(r) };
       } catch (err) {
         return { text: err instanceof Error ? err.message : String(err), failed: true };
       }
@@ -464,7 +486,7 @@ export class GlyphhLoop {
     };
   }
 
-  private async runTool(c: LoopChat, name: string, input: unknown, signal: AbortSignal): Promise<{ text: string; failed: boolean; detail?: ToolDetail }> {
+  private async runTool(c: LoopChat, name: string, input: unknown, signal: AbortSignal): Promise<ToolRun> {
     if (name === GlyphhLoop.SPAWN_TOOL) return this.spawn(c, input, signal);
     if (name === FIND_TOOL) return this.findTools(c, input, signal);
     if (name === CALL_TOOL) return this.callTool(c, input, signal);
@@ -473,7 +495,7 @@ export class GlyphhLoop {
     if (!m) return { text: `unknown tool ${name}`, failed: true };
     try {
       const r = await m.client.callTool(m.realName, (input && typeof input === "object" ? input : {}) as Record<string, unknown>, signal);
-      return { text: resultText(r), failed: r.isError };
+      return { text: resultText(r), failed: r.isError, images: resultImages(r) };
     } catch (err) {
       return { text: err instanceof Error ? err.message : String(err), failed: true };
     }
@@ -669,11 +691,11 @@ export class GlyphhLoop {
       // made every fan-out a queue, which is most of what makes a swarm worth
       // having. Bounded by MAX_PARALLEL_TOOLS, and the results go back to the
       // model in the order it asked, whatever order they finish in.
-      const ran = new Map<string, { text: string; failed: boolean }>();
+      const ran = new Map<string, ToolRun>();
       const allowed = planned.filter((x) => x.allowed);
       for (const x of allowed) this.send(c, { type: "tool", phase: "start", name: x.use.name, title: x.title });
       await inPool(allowed, MAX_PARALLEL_TOOLS, async (x) => {
-        const r: { text: string; failed: boolean; detail?: ToolDetail } = signal.aborted
+        const r: ToolRun = signal.aborted
           ? { text: "The run was stopped before this step.", failed: true }
           : await this.runTool(c, x.use.name, x.use.input, signal);
         // A built-in says what it did as a detail; anything else shows the
@@ -697,7 +719,7 @@ export class GlyphhLoop {
               content: c.permission === "plan" ? "Not run: plan mode reads only. Describe the change instead." : "The user declined this step.",
             };
           }
-          return { type: "tool_result", tool_use_id: x.use.id, is_error: r.failed, content: r.text.slice(0, 200_000) };
+          return { type: "tool_result", tool_use_id: x.use.id, is_error: r.failed, content: toolResultContent(r) };
         }),
       });
       if (shouldCompact(final.usage.input_tokens)) await this.compact(c, wire, signal);
