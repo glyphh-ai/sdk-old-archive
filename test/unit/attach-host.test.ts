@@ -67,6 +67,29 @@ describe("startAttachHost", () => {
     host.stop();
   });
 
+  it("names its granted folders in every hello, and stops for good when the org refuses it", async () => {
+    let folders = ["/Users/ada/code"];
+    const refused: string[] = [];
+    const dropped: number[] = [];
+    const host = startAttachHost({ client, server: "https://api.glyphh.test", app: "glyphh-cli", handlers: {}, WebSocketImpl: FakeSocket as never, folders: () => folders, onRefused: (r) => refused.push(r), onDown: () => dropped.push(1) });
+    await tick();
+    const sock = FakeSocket.last!;
+    sock.open();
+    expect(sock.frames()[0]).toMatchObject({ t: "hello", folders: ["/Users/ada/code"] });
+    folders = ["/Users/ada/code", "/Users/ada/notes"];
+    host.refreshHello();
+    expect(sock.frames().at(-1)).toMatchObject({ folders: ["/Users/ada/code", "/Users/ada/notes"] });
+
+    sock.readyState = 3;
+    sock.fire("close", { code: 4403, reason: "remote control is off for your organization" });
+    expect(refused).toEqual(["remote control is off for your organization"]);
+    expect(dropped).toEqual([1]);
+    expect(host.attached()).toBe(false);
+    await new Promise((r) => setTimeout(r, 1100));
+    expect(FakeSocket.last, "no reconnect after a refusal").toBe(sock);
+    host.stop();
+  });
+
   it("stop is idempotent and ends reconnection", async () => {
     const host = startAttachHost({ client, server: "http://127.0.0.1:1", app: "t", handlers: {}, WebSocketImpl: FakeSocket as never });
     await tick();

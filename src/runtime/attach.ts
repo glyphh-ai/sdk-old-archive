@@ -12,6 +12,12 @@
  * side initiates, authenticates with the signed-in user's own token (as a
  * query parameter — Node's native WebSocket cannot set upgrade headers), and
  * sign-out stops it.
+ *
+ * REMOTE CONTROL (2026-09-30): a host attaches only while its member has remote
+ * control on, and names the FOLDERS it grants in every hello; the server keeps
+ * remote turns and browsing inside them. An org whose admin turned remote
+ * control off refuses the socket with 4403 — the host stops for good and says
+ * why (`onRefused`) instead of retrying forever.
  */
 
 import type { Client } from "../client.js";
@@ -36,6 +42,12 @@ export interface AttachHostOptions {
   WebSocketImpl?: typeof WebSocket;
   /** Called when the socket drops, so a host can tear down what rode it (ptys, watchers). */
   onDown?: () => void;
+  /** The folders this machine grants remote control (absolute paths). Read on
+   *  every hello, so a changed grant is re-sent with `refreshHello()`. */
+  folders?: () => string[];
+  /** The server refused this host for good (4403: the org turned remote control
+   *  off). The host has stopped; `reason` is the server's words. */
+  onRefused?: (reason: string) => void;
 }
 
 export interface AttachHost {
@@ -66,7 +78,10 @@ export function startAttachHost(opts: AttachHostOptions): AttachHost {
 
   const table = (): Record<string, AttachHandler> => (typeof opts.handlers === "function" ? opts.handlers() : opts.handlers);
   const hello = (socket: WebSocket): void => {
-    socket.send(JSON.stringify({ t: "hello", app: opts.app, version: opts.version ?? "0", ...(opts.name ? { name: opts.name } : {}), capabilities: Object.keys(table()) }));
+    socket.send(JSON.stringify({
+      t: "hello", app: opts.app, version: opts.version ?? "0", ...(opts.name ? { name: opts.name } : {}),
+      capabilities: Object.keys(table()), ...(opts.folders ? { folders: opts.folders() } : {}),
+    }));
   };
 
   const wsUrl = async (): Promise<string> => {
@@ -135,7 +150,16 @@ export function startAttachHost(opts: AttachHostOptions): AttachHost {
       try { opts.onDown?.(); } catch { /* a listener's failure is its own */ }
       scheduleReconnect();
     };
-    socket.addEventListener("close", drop);
+    socket.addEventListener("close", (ev: CloseEvent) => {
+      if (ev.code === 4403) {
+        stopped = true;
+        if (ws === socket) ws = null;
+        try { opts.onDown?.(); } catch { /* a listener's failure is its own */ }
+        try { opts.onRefused?.(ev.reason || "remote control is off for your organization"); } catch { /* the host's own */ }
+        return;
+      }
+      drop();
+    });
     socket.addEventListener("error", () => {
       try {
         socket.close();

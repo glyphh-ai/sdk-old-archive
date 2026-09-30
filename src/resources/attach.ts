@@ -18,10 +18,14 @@ export interface AttachedMachine {
   /** The machine's hostname — shown by pickers ("Chris's MacBook"). */
   name?: string;
   capabilities: string[];
+  /** The folders this machine granted remote control (absolute paths). */
+  folders?: string[];
   since: number;
 }
 
 export interface AttachStatus {
+  /** False when the org admin turned remote control off (then nothing is attached). */
+  allowed?: boolean;
   attached: boolean;
   machines: AttachedMachine[];
 }
@@ -56,8 +60,8 @@ export class AttachClient {
   }
 
   /** Run a method ON the caller's own machine and return its result. */
-  async dispatch<T = unknown>(method: string, params?: Record<string, unknown>): Promise<T> {
-    const { result } = await this.http.post<{ result: T }>("/api/attach/dispatch", { method, params: params ?? {} });
+  async dispatch<T = unknown>(method: string, params?: Record<string, unknown>, opts: { machineId?: string } = {}): Promise<T> {
+    const { result } = await this.http.post<{ result: T }>("/api/attach/dispatch", { method, params: params ?? {}, ...(opts.machineId ? { machineId: opts.machineId } : {}) });
     return result;
   }
 
@@ -69,8 +73,8 @@ export class AttachClient {
    * dispatch — callers should surface that as an honest "needs a desktop
    * update" state rather than an error.
    */
-  fsList(path?: string): Promise<FsListing> {
-    return this.dispatch<FsListing>("fs.list", path ? { path } : {});
+  fsList(path?: string, opts: { machineId?: string } = {}): Promise<FsListing> {
+    return this.dispatch<FsListing>("fs.list", path ? { path } : {}, opts);
   }
 
   /** Answer a parked approval/ask on a relayed run. */
@@ -101,7 +105,7 @@ export class AttachClient {
    * arrive here as Server-Sent Events.
    */
   run(
-    params: { runId?: string; threadId?: string; prompt?: string; messages?: Array<{ role: string; text?: string; content?: string }>; mode?: "cowork" | "code"; workdir?: string; model?: string; loop?: string; permission?: "ask" | "plan" | "acceptEdits" | "auto" | "bypass" },
+    params: { runId?: string; threadId?: string; prompt?: string; messages?: Array<{ role: string; text?: string; content?: string }>; mode?: "work" | "cowork" | "code"; workdir?: string; model?: string; loop?: string; permission?: "ask" | "plan" | "acceptEdits" | "auto" | "bypass"; images?: Array<{ mediaType: string; data: string }>; machineId?: string },
     opts: { signal?: AbortSignal } = {},
   ): RelayRunHandle {
     const runId = params.runId ?? `rl-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;

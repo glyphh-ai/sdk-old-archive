@@ -65,8 +65,10 @@ export interface RunTurnOptions {
   threadId?: string;
   prompt?: string;
   messages?: Array<{ role: string; text?: string; content?: string }>;
-  mode?: "chat" | "cowork" | "code";
+  mode?: "chat" | "work" | "cowork" | "code";
   workdir?: string;
+  /** Which attached machine runs a desktop turn (AttachedMachine.id). Absent → the newest. */
+  machineId?: string;
   /** A RELATIVE folder inside the CLOUD workspace to run the turn in — the
    *  source chip's cloud folder pick. Ignored on desktop-relay turns. */
   subdir?: string;
@@ -435,7 +437,9 @@ export function createClient(opts: ClientOptions): Client {
     run: (ropts: RunTurnOptions): RunHandle => {
       const { target = "cloud", signal, mode } = ropts;
       if (target === "desktop") {
-        const attachMode: "cowork" | "code" = mode === "cowork" ? "cowork" : "code";
+        // The thread's TYPE rides through: a Work turn has no folder, and sent as
+        // "code" the machine refuses it for want of one.
+        const attachMode: "work" | "code" = mode === "work" || mode === "chat" || mode === "cowork" ? "work" : "code";
         return new AttachClient(authed).run(
           {
             ...(ropts.runId ? { runId: ropts.runId } : {}),
@@ -447,6 +451,8 @@ export function createClient(opts: ClientOptions): Client {
             ...(ropts.model ? { model: ropts.model } : {}),
             ...(ropts.loop ? { loop: ropts.loop } : {}),
             ...(ropts.permission ? { permission: ropts.permission as "ask" | "plan" | "acceptEdits" | "auto" | "bypass" } : {}),
+            ...(ropts.images?.length ? { images: ropts.images } : {}),
+            ...(ropts.machineId ? { machineId: ropts.machineId } : {}),
           },
           signal ? { signal } : {},
         ) as unknown as RunHandle;
