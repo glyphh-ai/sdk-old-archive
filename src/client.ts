@@ -391,7 +391,7 @@ export function createClient(opts: ClientOptions): Client {
     orgModels: new OrgModelsClient(authed),
     models: new ModelsClient(authed),
     gateway,
-    ada: new AdaClient(gateway),
+    ada: new AdaClient(authed, gateway),
     // The guest surface rides the UNAUTHENTICATED transport — a guest token is not a
     // session bearer, it is carried per-call.
     guest: new GuestClient(http),

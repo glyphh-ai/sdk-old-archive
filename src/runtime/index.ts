@@ -62,3 +62,4 @@ export {
   type InterceptorOptions,
 } from "./interceptor.js";
 export { startAttachHost, type AttachHost, type AttachHostOptions, type AttachHandler } from "./attach.js";
+export { ADA_METHODS, openAdaStore, type OpenSqlDatabase, type SqlDatabase, type SqlStatement } from "./ada-store.js";
