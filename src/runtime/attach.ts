@@ -45,10 +45,6 @@ export interface AttachHostOptions {
   /** The folders this machine grants remote control (absolute paths). Read on
    *  every hello, so a changed grant is re-sent with `refreshHello()`. */
   folders?: () => string[];
-  /** The registered Ada device this machine is (runtime/ada-store.ts), so the
-   *  server can reach the records of the org's local models here. Read on every
-   *  hello. The server accepts it only as the signed-in member's own device. */
-  adaDevice?: () => string | undefined;
   /** The server refused this host for good (4403: the org turned remote control
    *  off). The host has stopped; `reason` is the server's words. */
   onRefused?: (reason: string) => void;
@@ -85,7 +81,6 @@ export function startAttachHost(opts: AttachHostOptions): AttachHost {
     socket.send(JSON.stringify({
       t: "hello", app: opts.app, version: opts.version ?? "0", ...(opts.name ? { name: opts.name } : {}),
       capabilities: Object.keys(table()), ...(opts.folders ? { folders: opts.folders() } : {}),
-      ...(opts.adaDevice?.() ? { ada_device: opts.adaDevice() } : {}),
     }));
   };
 
