@@ -27,7 +27,8 @@ export interface SqlDatabase {
 
 export type OpenSqlDatabase = (path: string) => SqlDatabase | Promise<SqlDatabase>;
 
-export const ADA_METHODS = ["ada.rows", "ada.append", "ada.page", "ada.update", "ada.delete", "ada.drop"] as const;
+export const ADA_METHODS = ["ada.rows", "ada.append", "ada.appendMany", "ada.page", "ada.update", "ada.delete", "ada.drop"] as const;
+const MAX_APPEND = 1000;
 const MAX_ROWS = 5000;
 const STORES = new Set(["wins", "vetoes"]);
 const MODEL_ID = /^am_[0-9a-f]{12}$/;
@@ -95,6 +96,27 @@ export async function openAdaStore(path: string, open: OpenSqlDatabase = openNod
         .run(row.id, id, row.store, JSON.stringify(row.situation), String(row.outcome), String(row.author), Number(row.ts));
       const seq = db.prepare("SELECT seq FROM ada_records WHERE id = ?").get(row.id) as { seq: number };
       return { seq: Number(seq.seq) };
+    },
+    "ada.appendMany": async (params) => {
+      const p = obj(params);
+      const id = modelId(p);
+      if (!Array.isArray(p.rows) || p.rows.length === 0 || p.rows.length > MAX_APPEND) throw new Error(`rows must be 1 to ${MAX_APPEND} records`);
+      const rows = p.rows.map((r, n) => {
+        const row = obj(r);
+        if (typeof row.id !== "string" || !STORES.has(String(row.store))) throw new Error(`rows[${n}] needs an id and a store (wins or vetoes)`);
+        return row;
+      });
+      const insert = db.prepare("INSERT INTO ada_records (id, model_id, store, situation, outcome, author, ts) VALUES (?, ?, ?, ?, ?, ?, ?)");
+      db.exec("BEGIN");
+      try {
+        for (const row of rows) insert.run(row.id, id, row.store, JSON.stringify(row.situation), String(row.outcome), String(row.author), Number(row.ts));
+        db.exec("COMMIT");
+      } catch (e) {
+        db.exec("ROLLBACK");
+        throw e;
+      }
+      const top = db.prepare("SELECT coalesce(max(seq), 0) AS top FROM ada_records WHERE model_id = ?").get(id) as { top: number };
+      return { appended: rows.length, max_seq: Number(top.top) };
     },
     "ada.page": async (params) => {
       const p = obj(params);

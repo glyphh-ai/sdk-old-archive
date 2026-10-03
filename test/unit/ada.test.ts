@@ -117,6 +117,17 @@ describe("the device's Ada row store", () => {
     expect(await h["ada.page"]!({ model_id: "am_ffffffffffff", offset: 0, limit: 50 })).toMatchObject({ total: 1 });
   });
 
+  it("appends many rows in one call, all or none, in the order given", async () => {
+    const h = await openAdaStore(join(mkdtempSync(join(tmpdir(), "ada-store-")), "records.db"));
+    const rows = ["a", "b", "c"].map((id) => row(id));
+    expect(await h["ada.appendMany"]!({ model_id: MODEL, rows })).toEqual({ appended: 3, max_seq: 3 });
+    await expect(h["ada.appendMany"]!({ model_id: MODEL, rows: [row("d"), { id: "e", store: "maybe" }] })).rejects.toThrow("rows[1]");
+    await expect(h["ada.appendMany"]!({ model_id: MODEL, rows: [row("f"), row("a")] })).rejects.toThrow();
+    const all = (await h["ada.rows"]!({ model_id: MODEL, since: 0 })) as { rows: Array<{ id: string }> };
+    expect(all.rows.map((r) => r.id)).toEqual(["a", "b", "c"]);
+    await expect(h["ada.appendMany"]!({ model_id: MODEL, rows: [] })).rejects.toThrow("rows");
+  });
+
   it("refuses calls without a model or with a bad row", async () => {
     const h = await openAdaStore(join(mkdtempSync(join(tmpdir(), "ada-store-")), "records.db"));
     await expect(h["ada.rows"]!({ since: 0 })).rejects.toThrow("model_id");
