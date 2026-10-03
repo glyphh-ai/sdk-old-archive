@@ -6,9 +6,9 @@
  * the answer comes with the records behind it and a fact tree saying why.
  *
  * Every call names a `modelId`. A model's config lives on the server; its
- * records live with Glyphh ("cloud") or on a device the org registered
- * ("local") — `registerDevice` makes this machine one, and runtime/ada-store
- * is the row store it then holds. The kernel always runs on the server.
+ * records live with Glyphh on the Ada runtime, where the kernel runs. A model
+ * is either this organization's own or one Glyphh shares with every
+ * organization, read only.
  *
  * Model calls go to the gateway's POST /ada on the member's own gateway key,
  * so each is metered and budgeted like the same ada_* tool from Claude Code
@@ -24,13 +24,18 @@ export type AdaData = string | number | boolean | null | AdaData[] | { [key: str
 export type AdaSituation = { [key: string]: AdaData };
 /** Mirrors the situation: a number weighs a key; an object weighs inside it, its own weight under "*". */
 export type AdaWeights = { [key: string]: number | AdaWeights };
-export type AdaStorage = "cloud" | "local";
 
 export interface AdaModel {
   model_id: string;
   name: string;
-  storage: AdaStorage;
-  device_id: string | null;
+  /** This organization's own model. */
+  own: boolean;
+  /** Glyphh shares it with every organization, read only. */
+  shared: boolean;
+  /** The version a shared model was loaded at; null for the organization's own. */
+  version: string | null;
+  /** Where a shared model was loaded from; null for the organization's own. */
+  source: string | null;
   weights: AdaWeights | null;
   tau: number | null;
   calibrated: boolean;
@@ -42,7 +47,6 @@ export interface AdaModel {
   vetoes?: number;
 }
 
-export interface AdaDevice { device_id: string; owner_user_id: string; name: string; created_at: string; online: boolean }
 export interface AdaReceipt { id: string; sim: number; outcome: string; hash: string; author: string }
 
 export interface AdaAnswer {
@@ -96,13 +100,13 @@ export interface AdaRecords { model_id: string; records: AdaRecord[]; total: num
 
 export interface AdaAsk { modelId: string; situation: AdaSituation; weights?: AdaWeights }
 export interface AdaGrade { modelId: string; situation: AdaSituation; outcome: string }
-export interface AdaNewModel { name: string; storage: AdaStorage; deviceId?: string; weights?: AdaWeights }
+export interface AdaNewModel { name: string; weights?: AdaWeights; spec?: Record<string, unknown> }
 
 export class AdaClient {
   #gw: { baseUrl: string; token: string } | null = null;
 
   constructor(
-    private readonly http: AuthedHttp,
+    _http: AuthedHttp,
     private readonly gateway: GatewayClient,
     private readonly fetchImpl: typeof fetch = (...a) => fetch(...a),
   ) {}
@@ -142,9 +146,9 @@ export class AdaClient {
     return (await this.#op<{ models: AdaModel[] }>("models", modelId ? { model_id: modelId } : {})).models;
   }
 
-  /** Create a model (org admins). A local model needs the device that holds its records. */
-  createModel({ deviceId, ...rest }: AdaNewModel): Promise<AdaModel> {
-    return this.#op("create_model", { ...rest, ...(deviceId ? { device_id: deviceId } : {}) });
+  /** Create a model (org admins); with a `spec`, every role is typed and anything that does not fit is refused. */
+  createModel(model: AdaNewModel): Promise<AdaModel> {
+    return this.#op("create_model", model);
   }
 
   /** Rename a model or set its default weights (org admins); `weights: null` clears them. */
@@ -152,7 +156,7 @@ export class AdaClient {
     return this.#op("update_model", { model_id: modelId, ...change });
   }
 
-  /** Delete a model and its records, wherever they live (org admins). */
+  /** Delete a model and its records (org admins). */
   deleteModel(modelId: string): Promise<{ model_id: string; deleted: true; records: number }> {
     return this.#op("delete_model", { model_id: modelId });
   }
@@ -170,17 +174,6 @@ export class AdaClient {
   /** Delete one record (org admins). */
   deleteRecord(modelId: string, recordId: string): Promise<{ deleted: true }> {
     return this.#op("delete_record", { model_id: modelId, record_id: recordId });
-  }
-
-  /** The org's registered devices, and whether each is attached now. */
-  async devices(): Promise<AdaDevice[]> {
-    return (await this.http.get<{ devices: AdaDevice[] }>("/api/ada/devices")).devices;
-  }
-
-  /** Register THIS machine to hold local models' records. Keep the id: the
-   *  attach host announces it (AttachHostOptions.adaDevice). */
-  registerDevice(name: string): Promise<{ device_id: string; name: string }> {
-    return this.http.post<{ device_id: string; name: string }>("/api/ada/devices", { name });
   }
 
   async #op<T>(op: string, args: object): Promise<T> {
