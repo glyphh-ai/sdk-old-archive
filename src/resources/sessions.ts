@@ -9,7 +9,13 @@
 
 import type { AuthedHttp } from "../core/authed-http.js";
 import type { CreateSessionInput, ProvisionedSession, RuntimeSession, ModelSwitchInput, ModelSwitchResult } from "../contract/runtime.js";
-import type { SessionThread, SessionThreadMeta, PushThreadInput, PushThreadResult } from "../contract/threads.js";
+import type {
+  SessionThread, SessionThreadMeta, PushThreadInput, PushThreadResult,
+  ThreadTranscriptUrl, AppendThreadMessagesInput, AppendThreadMessagesResult,
+} from "../contract/threads.js";
+
+const THREADS = "/api/harness/threads";
+const threadPath = (id: string): string => `${THREADS}/${encodeURIComponent(id)}`;
 
 export class SessionsClient {
   constructor(private readonly http: AuthedHttp) {}
@@ -47,16 +53,33 @@ export class SessionsClient {
     return this.http.del<void>(`/api/sessions/${encodeURIComponent(id)}`);
   }
 
-  // ── threads — the durable conversations in the regional stator ──────────────
+  // ── threads — the durable conversations the control plane keeps ─────────────
+  // Served at /api/harness/threads (the server's own; no pod involved).
 
   /** The caller's threads — metadata only (never message bodies), newest-updated first. */
   threads(): Promise<SessionThreadMeta[]> {
-    return this.http.get<SessionThreadMeta[]>("/api/sessions/threads");
+    return this.http.get<SessionThreadMeta[]>(THREADS);
   }
 
-  /** One thread with its messages (the server returns the LAST 500, in order). Owner-only. */
+  /** One thread with a PREVIEW of its messages (the last 20, in order) and its
+   *  `transcriptUrl` when a transcript is stored. Owner-only; unknown → NotFoundError. */
   thread(id: string): Promise<SessionThread> {
-    return this.http.get<SessionThread>(`/api/sessions/threads/${encodeURIComponent(id)}`);
+    return this.http.get<SessionThread>(threadPath(id));
+  }
+
+  /** A fresh presigned GET of the thread's whole transcript. */
+  transcriptUrl(id: string): Promise<ThreadTranscriptUrl> {
+    return this.http.get<ThreadTranscriptUrl>(`${threadPath(id)}/transcript`);
+  }
+
+  /**
+   * Append messages after the stored ones — the per-turn sync path, so a client
+   * never re-sends the whole transcript. Applies only when `updatedAt` is
+   * STRICTLY newer than the stored clock; a stale clock answers `applied:false`
+   * with the thread as the server holds it (never a throw), as `pushThread` does.
+   */
+  appendMessages(id: string, body: AppendThreadMessagesInput): Promise<AppendThreadMessagesResult> {
+    return this.http.post<AppendThreadMessagesResult>(`${threadPath(id)}/messages`, body);
   }
 
   /**
@@ -67,12 +90,12 @@ export class SessionsClient {
    * current state to reconcile against.
    */
   pushThread(id: string, body: PushThreadInput): Promise<PushThreadResult> {
-    return this.http.put<PushThreadResult>(`/api/sessions/threads/${encodeURIComponent(id)}`, body);
+    return this.http.put<PushThreadResult>(threadPath(id), body);
   }
 
   /** Tombstone a thread (owner-only) — messages purged; a stale push cannot resurrect it. */
   deleteThread(id: string): Promise<void> {
-    return this.http.del<void>(`/api/sessions/threads/${encodeURIComponent(id)}`);
+    return this.http.del<void>(threadPath(id));
   }
 
   /**

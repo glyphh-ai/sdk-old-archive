@@ -10,7 +10,7 @@ import { readFileSync } from "node:fs";
 import type { CommandRegistry } from "../registry.js";
 import { flagStr } from "../args.js";
 import type { CreateSessionInput, SessionLocus, ModelSwitchSurface } from "../../contract/runtime.js";
-import type { PushThreadInput } from "../../contract/threads.js";
+import type { PushThreadInput, SessionThreadMessage } from "../../contract/threads.js";
 
 export function registerSessions(reg: CommandRegistry): void {
   reg.register({
@@ -111,7 +111,7 @@ export function registerSessions(reg: CommandRegistry): void {
 
   reg.register({
     path: "threads get",
-    summary: "one thread with its messages (last 500)",
+    summary: "one thread with its message preview (last 20) and transcriptUrl",
     usage: "threads get <id>",
     covers: ["sessions.thread"],
     async run(ctx, args) {
@@ -148,6 +148,39 @@ export function registerSessions(reg: CommandRegistry): void {
       }
       if (typeof body.updatedAt !== "number") body.updatedAt = Date.now();
       ctx.printJson(await ctx.client.sessions.pushThread(id, body));
+    },
+  });
+
+  reg.register({
+    path: "threads transcript",
+    summary: "a presigned URL of a thread's whole transcript",
+    usage: "threads transcript <id>",
+    covers: ["sessions.transcriptUrl"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: threads transcript <id>");
+      ctx.printJson(await ctx.client.sessions.transcriptUrl(id));
+    },
+  });
+
+  reg.register({
+    path: "threads append",
+    summary: "append messages to a thread (LWW — a stale clock answers applied:false)",
+    usage: "threads append <id> --messages <json|@file> [--updated-at <epoch-ms>]",
+    covers: ["sessions.appendMessages"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      const raw = flagStr(args, "messages");
+      if (!id || raw === undefined) throw new Error("usage: threads append <id> --messages <json|@file> [--updated-at <epoch-ms>]");
+      const messages = JSON.parse(raw.startsWith("@") ? readFileSync(raw.slice(1), "utf8") : raw) as SessionThreadMessage[];
+      if (!Array.isArray(messages)) throw new Error("--messages must be a JSON array of messages");
+      let updatedAt = Date.now();
+      const flag = flagStr(args, "updated-at");
+      if (flag !== undefined) {
+        updatedAt = Number(flag);
+        if (!Number.isSafeInteger(updatedAt) || updatedAt < 0) throw new Error("--updated-at must be epoch milliseconds");
+      }
+      ctx.printJson(await ctx.client.sessions.appendMessages(id, { messages, updatedAt }));
     },
   });
 

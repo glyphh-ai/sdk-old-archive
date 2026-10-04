@@ -1,16 +1,19 @@
 /**
  * @license Proprietary — © Glyphh. All rights reserved.
  *
- * contract/threads.ts — SESSION THREADS: the durable conversations stored in the
- * org's regional stator (`/api/sessions/threads`). One set across every surface —
- * web, desktop, CLI — synced Last-Write-Wins: `updatedAt` (EPOCH MILLISECONDS,
- * the app's `Date.now()` clock) is the stamp, a push applies only when STRICTLY
- * newer than the server's copy, and a delete is a tombstone (a stale push can
- * never resurrect it). Thread ids are CLIENT-MINTED text (`c<ts36>` style from
- * the app's newChat — NOT uuids; ≤64 chars of `[A-Za-z0-9_-]`), so a client can
- * create threads offline and drain them up later (`sessions.pushThread` is that
- * cache-sync path). Messages are the app's CodeMsg objects, stored and returned
- * VERBATIM — the server never reshapes them.
+ * contract/threads.ts — SESSION THREADS: the durable conversations the control
+ * plane keeps (`/api/harness/threads`), database-as-truth with the full
+ * transcript in R2. One set across every surface — web, desktop, CLI — synced
+ * Last-Write-Wins: `updatedAt` (EPOCH MILLISECONDS, the app's `Date.now()`
+ * clock) is the stamp, a push applies only when STRICTLY newer than the
+ * server's copy, and a delete is a tombstone (a stale push can never resurrect
+ * it) — the rule is `sync/lww.reconcile`. Thread ids are CLIENT-MINTED text
+ * (`c<ts36>` style from the app's newChat — NOT uuids; ≤64 chars of
+ * `[A-Za-z0-9_-]`), so a client can create threads offline and drain them up
+ * later (`sessions.pushThread` / `sessions.appendMessages` are that cache-sync
+ * path). Messages are the app's CodeMsg objects, stored and returned VERBATIM —
+ * the server never reshapes them. A read carries a PREVIEW (the last 20); the
+ * whole transcript is the presigned `transcriptUrl`.
  */
 
 /** A message is the app's CodeMsg VERBATIM — `role` anchors it; `text`, `at`
@@ -37,10 +40,30 @@ export interface SessionThreadMeta {
   messageCount: number;
 }
 
-/** One thread with its messages (the server caps reads at the LAST 500, in order). */
+/** One thread with a PREVIEW of its messages (the last 20, in order) and, when
+ *  the transcript is in R2, a presigned URL to the whole of it. */
 export interface SessionThread extends SessionThreadMeta {
   messages: SessionThreadMessage[];
+  /** Presigned GET of the full transcript (NDJSON of messages); absent while
+   *  the thread has none stored. */
+  transcriptUrl?: string;
 }
+
+/** `sessions.transcriptUrl` — a fresh presigned GET of the full transcript. */
+export interface ThreadTranscriptUrl {
+  url: string;
+}
+
+/** The append body: messages to add AFTER the stored ones, at the client's clock. */
+export interface AppendThreadMessagesInput {
+  messages: SessionThreadMessage[];
+  /** Epoch milliseconds — applies only when STRICTLY newer than the stored clock. */
+  updatedAt: number;
+}
+
+/** The append verdict — the same shape as a push: `applied:false` is a stale
+ *  clock (409 on the wire), with the thread as the server holds it. */
+export type AppendThreadMessagesResult = PushThreadResult;
 
 /** The LWW push body. `updatedAt` is the client's epoch-ms clock for THIS state of
  *  the thread; omitted metadata fields keep their stored values, and `messages` —

@@ -181,6 +181,9 @@ export type {
   SessionThreadMessage,
   PushThreadInput,
   PushThreadResult,
+  ThreadTranscriptUrl,
+  AppendThreadMessagesInput,
+  AppendThreadMessagesResult,
 } from "./contract/threads.js";
 export { FilesClient } from "./resources/files.js";
 export type { FileArtifact, FileKind, ListFilesQuery, CreateFileInput } from "./contract/files.js";
