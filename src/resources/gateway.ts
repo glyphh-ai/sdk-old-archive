@@ -185,7 +185,7 @@ export class GatewayClient {
 
     // Assemble the buffered turn from the SSE events. Unknown events (the
     // gateway's trailing glyphh_usage frame included) are ignored.
-    type Block = { type: string; text?: string; id?: string; name?: string; input?: Record<string, unknown> };
+    type Block = { type: string; text?: string; id?: string; name?: string; input?: Record<string, unknown>; thinking?: string; signature?: string; data?: string };
     const blocks: Block[] = [];
     const partialJson = new Map<number, string>();
     let stopReason = "end_turn";
@@ -201,22 +201,29 @@ export class GatewayClient {
       } else if (type === "content_block_start") {
         const idx = Number(ev.index) || 0;
         const cb = (ev.content_block ?? {}) as Block;
-        // Only text and tool_use are assembled. Anything else (thinking,
-        // redacted_thinking, …) is left unslotted, NOT coerced to text: a
-        // coerced block came back as `{type:"text", text:""}` in `content`,
-        // and replaying that transcript is an Anthropic 400 ("text content
-        // blocks must be non-empty").
+        // text, tool_use and thinking are assembled from their deltas; a
+        // redacted_thinking block arrives whole and is kept verbatim. Nothing
+        // else is slotted, and never coerced to text: a coerced block came
+        // back as `{type:"text", text:""}` in `content`, and replaying that
+        // transcript is an Anthropic 400 ("text content blocks must be
+        // non-empty"). A thinking block replays only whole — text AND
+        // signature — so both are accumulated (his order, 2026-10-04: the
+        // effort dial reaches the model through the gateway, and its
+        // reasoning must survive the next tool round).
         if (cb.type === "tool_use") blocks[idx] = { type: "tool_use", id: cb.id ?? "", name: cb.name ?? "", input: {} };
         else if (cb.type === "text") blocks[idx] = { type: "text", text: "" };
+        else if (cb.type === "thinking") blocks[idx] = { type: "thinking", thinking: cb.thinking ?? "", signature: cb.signature ?? "" };
+        else if (cb.type === "redacted_thinking") blocks[idx] = { type: "redacted_thinking", data: cb.data ?? "" };
       } else if (type === "content_block_delta") {
         const idx = Number(ev.index) || 0;
-        const delta = ev.delta as { type?: string; text?: string; partial_json?: string } | undefined;
+        const delta = ev.delta as { type?: string; text?: string; partial_json?: string; thinking?: string; signature?: string } | undefined;
         const block = blocks[idx];
         if (!block) return;
         if (delta?.type === "text_delta" && delta.text) block.text = (block.text ?? "") + delta.text;
         else if (delta?.type === "input_json_delta" && delta.partial_json) {
           partialJson.set(idx, (partialJson.get(idx) ?? "") + delta.partial_json);
-        }
+        } else if (delta?.type === "thinking_delta" && delta.thinking) block.thinking = (block.thinking ?? "") + delta.thinking;
+        else if (delta?.type === "signature_delta" && delta.signature) block.signature = (block.signature ?? "") + delta.signature;
       } else if (type === "message_delta") {
         const d = ev as { delta?: { stop_reason?: string }; usage?: { output_tokens?: number } };
         if (d.delta?.stop_reason) stopReason = d.delta.stop_reason;
