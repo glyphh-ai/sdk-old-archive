@@ -1,6 +1,6 @@
 {
   "name": "@glyphh/sdk",
-  "version": "1.0.1-beta.1",
+  "version": "1.1.0-beta.1",
   "description": "The Glyphh client SDK — one library every client (mobile, desktop, CLI, web, platform) uses to authenticate and talk to the control plane + rotor runtime.",
   "license": "LicenseRef-Proprietary",
   "type": "module",
