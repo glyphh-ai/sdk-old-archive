@@ -14,13 +14,20 @@ import { join } from "node:path";
 import { GlyphhLoop, GATEWAY_OFF_MESSAGE, NO_MODEL_MESSAGE, type LoopEvent } from "../../src/loop/loop.js";
 
 type ToolCall = { id: string; name: string; input: unknown };
-type Reply = { text?: string; tool?: ToolCall; tools?: ToolCall[]; stop: "end_turn" | "tool_use" };
+type Reply = { thinking?: { text: string; signature: string }; text?: string; tool?: ToolCall; tools?: ToolCall[]; stop: "end_turn" | "tool_use" };
 
 /** SSE for one model reply. */
 function sseReply(r: Reply): string {
   const ev = (e: string, d: unknown): string => `event: ${e}\ndata: ${JSON.stringify(d)}\n\n`;
   let out = ev("message_start", { type: "message_start", message: { usage: { input_tokens: 10 } } });
   let idx = 0;
+  if (r.thinking) {
+    out += ev("content_block_start", { type: "content_block_start", index: idx, content_block: { type: "thinking", thinking: "", signature: "" } });
+    out += ev("content_block_delta", { type: "content_block_delta", index: idx, delta: { type: "thinking_delta", thinking: r.thinking.text } });
+    out += ev("content_block_delta", { type: "content_block_delta", index: idx, delta: { type: "signature_delta", signature: r.thinking.signature } });
+    out += ev("content_block_stop", { type: "content_block_stop", index: idx });
+    idx++;
+  }
   if (r.text) {
     out += ev("content_block_start", { type: "content_block_start", index: idx, content_block: { type: "text", text: "" } });
     out += ev("content_block_delta", { type: "content_block_delta", index: idx, delta: { type: "text_delta", text: r.text } });
@@ -427,5 +434,89 @@ describe("GlyphhLoop", () => {
     await running;
     loop.forgetAll();
     expect(loop.has("c")).toBe(false);
+  });
+});
+
+describe("the effort dial (his order, 2026-10-04: it returns to the desktop and reaches the model through the gateway)", () => {
+  it("a turn's effort rides the model round as reasoning_effort, is kept for the next turn, and a new value replaces it", async () => {
+    const wire = fakeWire([
+      { text: "one", stop: "end_turn" },
+      { text: "two", stop: "end_turn" },
+      { text: "three", stop: "end_turn" },
+      { text: "four", stop: "end_turn" },
+    ]);
+    const loop = new GlyphhLoop({ shell: plainShell, gateway, fetch: wire.fetchLike });
+    await collect(loop, { chatId: "e", text: "a", model: "m" });
+    expect(wire.bodies[0]).not.toHaveProperty("reasoning_effort");
+    await collect(loop, { chatId: "e", text: "b", model: "m", effort: "high" });
+    expect(wire.bodies[1]!.reasoning_effort).toBe("high");
+    expect(wire.bodies[1]!.max_tokens).toBe(wire.bodies[0]!.max_tokens);
+    // The chat keeps the dial when a turn does not set it.
+    await collect(loop, { chatId: "e", text: "c", model: "m" });
+    expect(wire.bodies[2]!.reasoning_effort).toBe("high");
+    await collect(loop, { chatId: "e", text: "d", model: "m", effort: "low" });
+    expect(wire.bodies[3]!.reasoning_effort).toBe("low");
+  });
+
+  it("a compaction never carries the effort", async () => {
+    const wire = fakeWire([
+      { text: "hi there", stop: "end_turn" },
+      { text: "SUMMARY: greeted", stop: "end_turn" },
+    ]);
+    const loop = new GlyphhLoop({ shell: plainShell, gateway, fetch: wire.fetchLike });
+    await collect(loop, { chatId: "c", text: "hello", model: "m", effort: "max" });
+    expect(wire.bodies[0]!.reasoning_effort).toBe("max");
+    expect((await loop.compactNow("c")).ok).toBe(true);
+    expect(wire.bodies[1]).not.toHaveProperty("reasoning_effort");
+  });
+
+  it("a thinking block is shown as a thinking event and replays whole, signature included, on the tool round", async () => {
+    const wire = fakeWire([
+      { thinking: { text: "I should read it.", signature: "sig-abc" }, tool: { id: "t1", name: "read_file", input: { path: "a.txt" } }, stop: "tool_use" },
+      { text: "done", stop: "end_turn" },
+    ]);
+    const dir = mkdtempSync(join(tmpdir(), "gl-think-"));
+    writeFileSync(join(dir, "a.txt"), "x");
+    const loop = new GlyphhLoop({ shell: plainShell, gateway, fetch: wire.fetchLike });
+    const events = await collect(loop, { chatId: "t", text: "read a.txt", model: "m", workdir: dir, effort: "medium" });
+    const thought = events.find((e) => e.type === "thinking") as { chatId: string; text: string } | undefined;
+    expect(thought).toMatchObject({ type: "thinking", chatId: "t", text: "I should read it." });
+    // The reasoning never leaks into the answer text.
+    expect(events.filter((e) => e.type === "delta").map((e) => (e as { delta: string }).delta).join("")).not.toContain("I should read it.");
+    // The second request replays the assistant message verbatim: the thinking
+    // block, text and signature intact, ahead of the tool_use.
+    const msgs = wire.bodies[1]!.messages as Array<{ role: string; content: unknown }>;
+    const assistant = msgs.find((m) => m.role === "assistant")!;
+    expect(assistant.content).toEqual([
+      { type: "thinking", thinking: "I should read it.", signature: "sig-abc" },
+      { type: "tool_use", id: "t1", name: "read_file", input: { path: "a.txt" } },
+    ]);
+  });
+
+  it("a sub-agent inherits the parent's effort unless its definition sets one", async () => {
+    const wire = fakeWire([
+      {
+        tools: [
+          { id: "t1", name: "spawn_agent", input: { agent: "inherits", task: "a" } },
+          { id: "t2", name: "spawn_agent", input: { agent: "own", task: "b" } },
+        ],
+        stop: "tool_use",
+      },
+      { text: "a done", stop: "end_turn" },
+      { text: "b done", stop: "end_turn" },
+      { text: "both back", stop: "end_turn" },
+    ]);
+    const loop = new GlyphhLoop({
+      gateway, fetch: wire.fetchLike,
+      agents: async () => [
+        { slug: "inherits", name: "Inherits", prompt: "You inherit.", model: "m-inherit" },
+        { slug: "own", name: "Own", prompt: "You dial your own.", model: "m-own", effort: "low" },
+      ],
+    });
+    await collect(loop, { chatId: "swarm-effort", text: "go", model: "big", effort: "xhigh" });
+    const byModel = Object.fromEntries(wire.bodies.map((b) => [String(b.model), b.reasoning_effort]));
+    expect(byModel["big"]).toBe("xhigh");
+    expect(byModel["m-inherit"]).toBe("xhigh");
+    expect(byModel["m-own"]).toBe("low");
   });
 });

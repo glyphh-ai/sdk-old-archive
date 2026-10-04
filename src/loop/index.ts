@@ -10,8 +10,8 @@
 
 export {
   GlyphhLoop,
-  GATEWAY_OFF_MESSAGE, NO_MODEL_MESSAGE, NO_FOLDER_MESSAGE, BUSY_MESSAGE,
-  type LoopAgentDef, type LoopAgentRef,
+  GATEWAY_OFF_MESSAGE, NO_MODEL_MESSAGE, NO_FOLDER_MESSAGE, BUSY_MESSAGE, LOOP_EFFORTS,
+  type LoopAgentDef, type LoopAgentRef, type LoopEffort,
   type LoopDeps, type LoopEmit, type LoopEvent, type LoopGateway, type LoopMcpServer, type LoopSpace, type LoopTurn,
 } from "./loop.js";
 export {
@@ -22,6 +22,6 @@ export {
 export { BUILTIN_TOOLS, runBuiltin, globToRegExp, type BuiltinResult, type ToolDef, type ToolDetail } from "./tools.js";
 export { lineDiff, type DiffHunk, type DiffLine, type FileDiff } from "./diff.js";
 export { insideFolder, shellLaunch, shellProfile, OutsideFolderError } from "./sandbox.js";
-export { streamMessage, assembleStream, sseEvents, type AssembledMessage, type ContentBlock, type ImageParam, type MessageParam, type MessagesBody, type ToolSpec } from "./messages.js";
+export { streamMessage, assembleStream, sseEvents, isThinkingBlock, type AssembledMessage, type ContentBlock, type ImageParam, type MessageParam, type MessagesBody, type ThinkingBlock, type ToolSpec } from "./messages.js";
 export { McpHttpClient, resultText, type McpCallResult, type McpToolAnnotations, type McpToolInfo } from "./mcp.js";
 export { CALL_TOOL, FIND_TOOL, familyOf, searchCatalog, type LoopCatalogEntry, type LoopSkill } from "./catalog.js";

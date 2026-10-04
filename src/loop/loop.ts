@@ -31,8 +31,10 @@ import { McpHttpClient, resultImages, resultText, splitDataImages } from "./mcp.
 import { CALL_TOOL, FIND_TOOL, callToolSpec, familyOf, findToolSpec, searchCatalog, skillsIndex, type LoopCatalogEntry, type LoopSkill } from "./catalog.js";
 import {
   streamMessage, isTextBlock, isToolUseBlock,
-  type ContentBlock, type FetchLike, type ImageParam, type MessageParam, type TextParam, type ToolResultBlock, type ToolSpec,
+  type ContentBlock, type FetchLike, type ImageParam, type LoopEffort, type MessageParam, type TextParam, type ToolResultBlock, type ToolSpec,
 } from "./messages.js";
+
+export { LOOP_EFFORTS, type LoopEffort } from "./messages.js";
 
 // ── the host contract ────────────────────────────────────────────────────────
 
@@ -84,6 +86,8 @@ export interface LoopAgentDef {
   space?: LoopSpace;
   /** Its permission mode. Absent = the parent's. */
   permission?: LoopPermission;
+  /** Its effort dial. Absent = the parent's (a child inherits the turn's). */
+  effort?: LoopEffort;
 }
 
 /** Who a child event came from, so a host can nest it under the right agent. */
@@ -125,6 +129,9 @@ export interface LoopDeps {
 export type LoopEvent =
   | { type: "setup"; phase: "ready"; model: string; loop: "glyphh" }
   | { type: "delta"; delta: string }
+  /** The model's reasoning as it streams (a `thinking` block's text), for a
+   *  host that shows it. A host that ignores unknown event types loses nothing. */
+  | { type: "thinking"; chatId: string; text: string }
   | { type: "tool"; phase: "start"; name: string; title: string }
   | {
       type: "tool"; phase: "done"; name: string; title: string; failed: boolean; preview: string;
@@ -165,6 +172,10 @@ export interface LoopTurn {
   /** The bare model id. The host resolves it (its picker, the org's default). */
   model: string;
   permission?: LoopPermission;
+  /** The effort dial for this turn. Set, it replaces the chat's; absent, the
+   *  chat keeps the one it had (none = the model's default). Rides the model
+   *  round as `reasoning_effort`; never a compaction. */
+  effort?: LoopEffort;
   workdir?: string;
   workspace?: string;
   /** The chat's stored turns, to seed a conversation this process has not seen. */
@@ -192,6 +203,8 @@ interface LoopChat {
   messages: MessageParam[];
   model: string;
   permission: LoopPermission;
+  /** The effort dial the last turn set, carried turn to turn. */
+  effort?: LoopEffort;
   workdir: string;
   runId: string;
   emit: LoopEmit;
@@ -541,6 +554,7 @@ export class GlyphhLoop {
       chatId: `${parent.chatId}/${def.slug}#${parent.spawned}`,
       messages: [{ role: "user", content: context ? `${task}\n\nContext from the main agent:\n${context}` : task }],
       model, permission: def.permission ?? parent.permission, workdir: parent.workdir,
+      ...((def.effort ?? parent.effort) ? { effort: def.effort ?? parent.effort } : {}),
       runId: parent.runId, emit: parent.emit, abort: parent.abort, running: true,
       nextApproval: 1, approvals: new Map(), usage: { inTokens: 0, outTokens: 0, cacheRead: 0 },
       queued: [], mcp: new Map(), clients: [], tools: null,
@@ -620,6 +634,7 @@ export class GlyphhLoop {
     // so the next turn is built with the right belt.
     if (t.space && t.space !== c.space) { c.space = t.space; c.tools = null; }
     if (t.permission) c.permission = t.permission;
+    if (t.effort) c.effort = t.effort;
     if (t.workdir) c.workdir = t.workdir;
     return c;
   }
@@ -651,8 +666,9 @@ export class GlyphhLoop {
       if (signal.aborted) break;
       const final = await streamMessage({
         ...wire, signal, ...(this.deps.fetch ? { fetch: this.deps.fetch } : {}),
-        body: { model: c.model, max_tokens: MAX_TOKENS_OUT, system, messages: c.messages, tools },
+        body: { model: c.model, max_tokens: MAX_TOKENS_OUT, system, messages: c.messages, tools, ...(c.effort ? { reasoning_effort: c.effort } : {}) },
         onText: (delta) => { answer += delta; this.send(c, { type: "delta", delta }); },
+        onThinking: (text) => this.send(c, { type: "thinking", chatId: c.chatId, text }),
       });
       c.usage.inTokens += final.usage.input_tokens;
       c.usage.outTokens += final.usage.output_tokens;

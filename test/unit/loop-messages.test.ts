@@ -47,6 +47,35 @@ describe("assembleStream", () => {
     expect(m.usage).toEqual({ input_tokens: 120, output_tokens: 17, cache_read_input_tokens: 80 });
   });
 
+  it("assembles a thinking block whole — text from thinking_delta, signature from signature_delta — hands the text to onThinking, and keeps redacted_thinking verbatim", async () => {
+    const turn = sse([
+      ["message_start", { type: "message_start", message: { usage: { input_tokens: 5 } } }],
+      ["content_block_start", { type: "content_block_start", index: 0, content_block: { type: "thinking", thinking: "", signature: "" } }],
+      ["content_block_delta", { type: "content_block_delta", index: 0, delta: { type: "thinking_delta", thinking: "First, " } }],
+      ["content_block_delta", { type: "content_block_delta", index: 0, delta: { type: "thinking_delta", thinking: "check." } }],
+      ["content_block_delta", { type: "content_block_delta", index: 0, delta: { type: "signature_delta", signature: "sig-" } }],
+      ["content_block_delta", { type: "content_block_delta", index: 0, delta: { type: "signature_delta", signature: "123" } }],
+      ["content_block_stop", { type: "content_block_stop", index: 0 }],
+      ["content_block_start", { type: "content_block_start", index: 1, content_block: { type: "redacted_thinking", data: "opaque" } }],
+      ["content_block_stop", { type: "content_block_stop", index: 1 }],
+      ["content_block_start", { type: "content_block_start", index: 2, content_block: { type: "text", text: "" } }],
+      ["content_block_delta", { type: "content_block_delta", index: 2, delta: { type: "text_delta", text: "Checked." } }],
+      ["content_block_stop", { type: "content_block_stop", index: 2 }],
+      ["message_delta", { type: "message_delta", delta: { stop_reason: "end_turn" }, usage: { output_tokens: 9 } }],
+      ["message_stop", { type: "message_stop" }],
+    ]);
+    const text: string[] = [];
+    const thought: string[] = [];
+    const m = await assembleStream(sseEvents(bodyOf(turn)), (d) => text.push(d), (d) => thought.push(d));
+    expect(thought).toEqual(["First, ", "check."]);
+    expect(text).toEqual(["Checked."]);
+    expect(m.content).toEqual([
+      { type: "thinking", thinking: "First, check.", signature: "sig-123" },
+      { type: "redacted_thinking", data: "opaque" },
+      { type: "text", text: "Checked." },
+    ]);
+  });
+
   it("an error event throws with the provider's message", async () => {
     const stream = bodyOf(sse([["error", { type: "error", error: { type: "overloaded_error", message: "Overloaded" } }]]));
     await expect(assembleStream(sseEvents(stream))).rejects.toThrow("Overloaded");
@@ -69,6 +98,18 @@ describe("streamMessage", () => {
     expect(h["x-api-key"]).toBe("sk-x");
     expect(JSON.parse(String(seen!.init.body)).stream).toBe(true);
     expect(m.stop_reason).toBe("tool_use");
+  });
+
+  it("sends reasoning_effort when the body carries it, and nothing of the kind when it does not", async () => {
+    const bodies: Array<Record<string, unknown>> = [];
+    const fetchLike = async (_url: string, init: RequestInit): Promise<Response> => {
+      bodies.push(JSON.parse(String(init.body)) as Record<string, unknown>);
+      return new Response(bodyOf(TURN), { status: 200, headers: { "content-type": "text/event-stream" } });
+    };
+    await streamMessage({ baseUrl: "https://gw", token: "t", body: { ...body, reasoning_effort: "high" }, fetch: fetchLike });
+    await streamMessage({ baseUrl: "https://gw", token: "t", body, fetch: fetchLike });
+    expect(bodies[0]!.reasoning_effort).toBe("high");
+    expect(bodies[1]).not.toHaveProperty("reasoning_effort");
   });
 
   it("a non-2xx reads as the gateway's words", async () => {

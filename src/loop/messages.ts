@@ -13,8 +13,12 @@
 
 export type TextBlock = { type: "text"; text: string };
 export type ToolUseBlock = { type: "tool_use"; id: string; name: string; input: unknown };
+/** The model's reasoning, as the API returns it. The signature is the API's
+ *  own seal on the text: a thinking block replays on the next tool round ONLY
+ *  with it (an unsigned or edited one is a 400), so both are assembled whole. */
+export type ThinkingBlock = { type: "thinking"; thinking: string; signature: string };
 export type OtherBlock = { type: string; [k: string]: unknown };
-export type ContentBlock = TextBlock | ToolUseBlock | OtherBlock;
+export type ContentBlock = TextBlock | ToolUseBlock | ThinkingBlock | OtherBlock;
 export type ToolResultBlock = { type: "tool_result"; tool_use_id: string; content: string | Array<TextParam | ImageParam>; is_error?: boolean };
 export type TextParam = { type: "text"; text: string; cache_control?: { type: "ephemeral" } };
 /** An image the host read for the user (a paste, a drop, a screenshot). */
@@ -25,12 +29,20 @@ export interface ToolSpec { name: string; description: string; input_schema: Rec
 export interface MessageUsage { input_tokens: number; output_tokens: number; cache_read_input_tokens: number }
 export interface AssembledMessage { content: ContentBlock[]; stop_reason: string | null; usage: MessageUsage }
 
+/** How hard the model thinks on a turn: the effort dial (his order, 2026-10-04:
+ *  it returns to the desktop and reaches the model API through the gateway). */
+export type LoopEffort = "low" | "medium" | "high" | "xhigh" | "max";
+export const LOOP_EFFORTS: readonly LoopEffort[] = ["low", "medium", "high", "xhigh", "max"];
+
 export interface MessagesBody {
   model: string;
   max_tokens: number;
   system?: string | TextParam[];
   messages: MessageParam[];
   tools?: ToolSpec[];
+  /** The effort dial, when the turn set one. The gateway maps it to the
+   *  provider's own knob; absent = the model's default. */
+  reasoning_effort?: LoopEffort;
 }
 
 export type FetchLike = (input: string, init: RequestInit) => Promise<Response>;
@@ -43,12 +55,15 @@ export interface StreamMessageOptions {
   fetch?: FetchLike;
   /** Streamed text as it arrives. */
   onText?: (delta: string) => void;
+  /** Streamed reasoning as it arrives (a `thinking` block's text). */
+  onThinking?: (delta: string) => void;
   /** Per-request timeout (default 10 minutes — a long tool-heavy turn). */
   timeoutMs?: number;
 }
 
 export const isTextBlock = (b: ContentBlock): b is TextBlock => b.type === "text" && typeof (b as TextBlock).text === "string";
 export const isToolUseBlock = (b: ContentBlock): b is ToolUseBlock => b.type === "tool_use" && typeof (b as ToolUseBlock).name === "string";
+export const isThinkingBlock = (b: ContentBlock): b is ThinkingBlock => b.type === "thinking";
 
 interface SseEvent { event: string; data: string }
 
@@ -86,8 +101,14 @@ export async function* sseEvents(body: ReadableStream<Uint8Array>): AsyncGenerat
   }
 }
 
-/** Assemble a streamed Messages response from its events. Exported for tests. */
-export async function assembleStream(events: AsyncIterable<SseEvent>, onText?: (delta: string) => void): Promise<AssembledMessage> {
+/** Assemble a streamed Messages response from its events. Exported for tests.
+ *
+ *  Every block type the API streams is assembled whole: text from text_delta,
+ *  a tool_use's input from input_json_delta, and a thinking block's text AND
+ *  signature from thinking_delta + signature_delta (a redacted_thinking block
+ *  arrives complete and is kept verbatim). The loop pushes `content` back as
+ *  the next assistant message, so a half-built block is a 400 on the replay. */
+export async function assembleStream(events: AsyncIterable<SseEvent>, onText?: (delta: string) => void, onThinking?: (delta: string) => void): Promise<AssembledMessage> {
   const blocks: ContentBlock[] = [];
   const partialJson: string[] = [];
   const usage: MessageUsage = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0 };
@@ -104,7 +125,10 @@ export async function assembleStream(events: AsyncIterable<SseEvent>, onText?: (
     } else if (type === "content_block_start") {
       const idx = Number(j.index ?? blocks.length);
       const cb = (j.content_block ?? { type: "text", text: "" }) as ContentBlock;
-      blocks[idx] = isToolUseBlock(cb) ? { ...cb, input: {} } : isTextBlock(cb) ? { type: "text", text: cb.text } : cb;
+      blocks[idx] = isToolUseBlock(cb) ? { ...cb, input: {} }
+        : isTextBlock(cb) ? { type: "text", text: cb.text }
+        : isThinkingBlock(cb) ? { type: "thinking", thinking: typeof cb.thinking === "string" ? cb.thinking : "", signature: typeof cb.signature === "string" ? cb.signature : "" }
+        : cb;
       partialJson[idx] = "";
     } else if (type === "content_block_delta") {
       const idx = Number(j.index ?? 0);
@@ -116,6 +140,13 @@ export async function assembleStream(events: AsyncIterable<SseEvent>, onText?: (
         onText?.(d.text);
       } else if (d.type === "input_json_delta" && typeof d.partial_json === "string") {
         partialJson[idx] = (partialJson[idx] ?? "") + d.partial_json;
+      } else if (d.type === "thinking_delta" && typeof d.thinking === "string") {
+        if (cur && isThinkingBlock(cur)) cur.thinking += d.thinking;
+        else blocks[idx] = { type: "thinking", thinking: d.thinking, signature: "" };
+        onThinking?.(d.thinking);
+      } else if (d.type === "signature_delta" && typeof d.signature === "string") {
+        if (cur && isThinkingBlock(cur)) cur.signature += d.signature;
+        else blocks[idx] = { type: "thinking", thinking: "", signature: d.signature };
       }
     } else if (type === "content_block_stop") {
       const idx = Number(j.index ?? 0);
@@ -190,11 +221,14 @@ export async function streamMessage(opts: StreamMessageOptions): Promise<Assembl
     if (!ctype.includes("text/event-stream")) {
       const j = (await res.json()) as Record<string, unknown>;
       const m = fromJson(j);
-      for (const b of m.content) if (isTextBlock(b) && b.text) opts.onText?.(b.text);
+      for (const b of m.content) {
+        if (isTextBlock(b) && b.text) opts.onText?.(b.text);
+        else if (isThinkingBlock(b) && b.thinking) opts.onThinking?.(b.thinking);
+      }
       return m;
     }
     if (!res.body) throw new Error("the gateway returned no body");
-    return await assembleStream(sseEvents(res.body), opts.onText);
+    return await assembleStream(sseEvents(res.body), opts.onText, opts.onThinking);
   } finally {
     t.clear();
   }
