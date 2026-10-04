@@ -56,6 +56,8 @@ export interface Model {
   active: boolean;
   /** Live per-org default: orgs with no explicit org_models override follow this. */
   defaultOn: boolean;
+  /** One of the handful of models a Free org gets (his order, 2026-10-04). */
+  freePlan?: boolean;
 }
 
 /** org_admin: enable a provider for the org, optionally with a BYOK key (write-only). */
@@ -93,6 +95,8 @@ export interface ModelCreate {
   outputUsdPerMTok?: number;
   /** Live per-org default: orgs with no explicit override follow this. Omit → false (opt-in). */
   defaultOn?: boolean;
+  /** One of the handful of models a Free org gets. Omit → false. */
+  freePlan?: boolean;
 }
 
 /** super_admin: update a model's list price / availability. */
@@ -108,6 +112,8 @@ export interface ModelPricing {
   active?: boolean;
   /** Live per-org default: orgs with no explicit override follow this. */
   defaultOn?: boolean;
+  /** One of the handful of models a Free org gets. */
+  freePlan?: boolean;
 }
 
 /** A TTS provider's voice — a synthesis call is model + voice. */

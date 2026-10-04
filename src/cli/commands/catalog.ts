@@ -137,12 +137,12 @@ export function registerCatalog(reg: CommandRegistry): void {
   reg.register({
     path: "admin pricing",
     summary: "update a model's list price / availability (super_admin; dollars per unit)",
-    usage: "admin pricing <modelId> [--in <n>] [--out <n>] [--active true|false]",
+    usage: "admin pricing <modelId> [--in <n>] [--out <n>] [--active true|false] [--free-plan true|false]",
     covers: ["admin.setModelPricing"],
     async run(ctx, args) {
       const id = args.positional[0];
       if (!id) throw new Error("usage: admin pricing <modelId> [--in n] [--out n] [--active true|false]");
-      const pricing: { inputUsdPerMTok?: number; outputUsdPerMTok?: number; active?: boolean; modality?: Modality; rateUnit?: RateUnit } = {};
+      const pricing: { inputUsdPerMTok?: number; outputUsdPerMTok?: number; active?: boolean; modality?: Modality; rateUnit?: RateUnit; freePlan?: boolean } = {};
       const inFlag = flagStr(args, "in");
       const outFlag = flagStr(args, "out");
       if (inFlag !== undefined) pricing.inputUsdPerMTok = Number(inFlag);
@@ -152,6 +152,7 @@ export function registerCatalog(reg: CommandRegistry): void {
       if (mod !== undefined) pricing.modality = mod as Modality;
       if (ru !== undefined) pricing.rateUnit = ru as RateUnit;
       if ("active" in args.flags) pricing.active = String(args.flags.active) === "true";
+      if ("free-plan" in args.flags) pricing.freePlan = String(args.flags["free-plan"]) === "true";
       ctx.printJson(await ctx.client.admin.setModelPricing(id, pricing));
     },
   });

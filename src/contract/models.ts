@@ -47,6 +47,8 @@ export interface OrgModel {
   hasByokKey: boolean;
   /** False when the org's PLAN excludes this model (free-tier gate). */
   planAllowed?: boolean;
+  /** The catalog flag: this model is one of the handful a Free org gets. */
+  freePlan?: boolean;
 }
 
 /** A model the caller may actually use, with the route it resolves to. */
@@ -73,6 +75,11 @@ export interface AvailableModel {
   /** Largest single completion the model produces. Null = unrecorded. */
   maxOutputTokens: number | null;
   source: ModelSource;
+  /** The catalog flag: this model is one of the handful a Free org gets. */
+  freePlan?: boolean;
+  /** The model takes a reasoning effort (`LoopTurn.effort` → `reasoning_effort`
+   *  on the wire); a picker shows the dial only for these. */
+  reasoning?: boolean;
 }
 
 /** A custom model an org admin defined — BYO OpenAI-compatible endpoint. Keys
