@@ -100,7 +100,7 @@ export function preview(text: string, cap = 240): string {
 
 /** Where the loop is rendered — the prompt names it so the model knows whether
  *  "the app" or "the terminal" is in front of the user. */
-export type LoopHost = "desktop" | "terminal";
+export type LoopHost = "desktop" | "terminal" | "worker";
 
 export interface PromptExtras {
   hasLocalMcp: boolean; hasGateway: boolean; host?: LoopHost;
@@ -115,7 +115,9 @@ export function systemPrompt(workdir: string, extras: PromptExtras): string {
   return [
     host === "terminal"
       ? "You are Glyphh, the user's agent loop, running on the user's own machine and rendered in their terminal."
-      : "You are Glyphh, the user's agent loop running inside the Glyphh desktop app.",
+      : host === "worker"
+        ? "You are Glyphh, the user's agent loop, running in a cloud workspace of theirs and rendered in their browser. The folder you work in is that workspace; nothing here is the user's own machine."
+        : "You are Glyphh, the user's agent loop running inside the Glyphh desktop app.",
     `Working folder: ${workdir}. It is this session's whole world: paths resolve against it, file tools refuse anything outside it, and the shell can write only inside it. Never try to work around that — if the task needs another folder, say so and ask the user to change the session's folder.`,
     "Use the tools for anything that touches files, the shell or the user's connected apps; never pretend to have run something.",
     "Prefer small, verifiable steps: read before you edit, run the tests you touched, and say what you did in plain words.",
@@ -126,8 +128,8 @@ export function systemPrompt(workdir: string, extras: PromptExtras): string {
     extras.finder
       ? `Your listed tools are only the everyday ones. find_tools searches everything else${extras.hasLocalMcp ? " on this machine (Glyphh's tasks, schedules, memory, installed apps and more)" : ""}${extras.hasGateway ? " and in the user's connected accounts (Gmail, Drive, GitHub and thousands more)" : ""}; call_tool runs what it finds. Search before saying something cannot be done.`
       : "",
-    host === "terminal"
-      ? "When a step needs the user's permission the terminal asks them; a denied step is not a failure of yours, report it and continue."
+    host !== "desktop"
+      ? "When a step needs the user's permission the host asks them; a denied step is not a failure of yours, report it and continue."
       : "When a step needs the user's permission the app asks them; a denied step is not a failure of yours, report it and continue.",
     extras.skills ?? "",
   ].filter(Boolean).join("\n");
