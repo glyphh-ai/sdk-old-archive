@@ -13,9 +13,9 @@
  * already the legacy personal/org library's names there.
  */
 
-export type MemberLibraryKind = "workspace" | "tab" | "skill" | "agent" | "task";
+export type MemberLibraryKind = "workspace" | "tab" | "skill" | "agent" | "task" | "drip" | "schedule";
 
-export const MEMBER_LIBRARY_KINDS: readonly MemberLibraryKind[] = ["workspace", "tab", "skill", "agent", "task"];
+export const MEMBER_LIBRARY_KINDS: readonly MemberLibraryKind[] = ["workspace", "tab", "skill", "agent", "task", "drip", "schedule"];
 
 /** One file of an item, as the server holds it in R2. */
 export interface MemberLibraryFile {
