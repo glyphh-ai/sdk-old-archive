@@ -47,6 +47,7 @@ import { AppsClient } from "./resources/apps.js";
 import { MarketplaceClient, LibraryMarketClient } from "./resources/marketplace.js";
 import { HostingClient } from "./resources/hosting.js";
 import { LibraryClient } from "./resources/library.js";
+import { MemberLibraryClient } from "./resources/member-library.js";
 import { RelayClient } from "./resources/relay.js";
 import { AttachClient } from "./resources/attach.js";
 import { RunStreamClient } from "./resources/run-stream.js";
@@ -267,6 +268,9 @@ export interface Client {
   drips: LibraryClient;
   /** Saved message-session library (personal + org). */
   messageSessions: LibraryClient;
+  /** THE MEMBER LIBRARY v2 — workspaces, tabs, skills, agents, tasks: database
+   *  as truth, files in R2, synced per item by `reconcile` (LWW + tombstones). */
+  memberLibrary: MemberLibraryClient;
   /** Drive-my-desktop relay — org policy + per-device opt-in (same-user, revocable). */
   relay: RelayClient;
   /** Attached-desktop control — status + dispatch a method to the caller's own live machine. */
@@ -386,6 +390,7 @@ export function createClient(opts: ClientOptions): Client {
     layouts: new LibraryClient(authed, "layout"),
     drips: new LibraryClient(authed, "drip"),
     messageSessions: new LibraryClient(authed, "message_session"),
+    memberLibrary: new MemberLibraryClient(authed),
     relay: new RelayClient(authed),
     attach: new AttachClient(authed),
     runStream: new RunStreamClient(authed),

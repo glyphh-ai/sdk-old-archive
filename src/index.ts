@@ -263,6 +263,12 @@ export { HostingClient } from "./resources/hosting.js";
 export type { Deployment, DeployStatus, DeployInput } from "./contract/hosting.js";
 export { LibraryClient } from "./resources/library.js";
 export type { LibraryItem, LibraryKind, LibraryScope, SaveLibraryItemInput } from "./contract/library.js";
+export { MemberLibraryClient } from "./resources/member-library.js";
+export { MEMBER_LIBRARY_KINDS } from "./contract/member-library.js";
+export type {
+  MemberLibraryKind, MemberLibraryRow, MemberLibraryItem, MemberLibraryFile, MemberLibraryFileUrls,
+  ListMemberLibraryOptions, PutMemberLibraryInput, PutMemberLibraryResult, RemoveMemberLibraryInput,
+} from "./contract/member-library.js";
 export { RelayClient } from "./resources/relay.js";
 export { AttachClient, type AttachStatus, type AttachedMachine, type FsEntry, type FsListing } from "./resources/attach.js";
 export { RunStreamClient, type RunStreamHandle, type RunStreamFrame } from "./resources/run-stream.js";
