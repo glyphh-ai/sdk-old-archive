@@ -16,6 +16,8 @@ interface AnthropicBlock {
   input?: unknown;
   tool_use_id?: string;
   content?: unknown;
+  thinking?: string;
+  signature?: string;
 }
 
 interface AnthropicMessage {
@@ -33,6 +35,19 @@ export interface AnthropicRequest {
   stream?: boolean;
   tools?: Array<{ name: string; description?: string; input_schema?: unknown }>;
   tool_choice?: { type: string; name?: string };
+  /** The loop's effort dial (MessagesBody.reasoning_effort). Forwarded as is:
+   *  OpenAI chat-completions takes `reasoning_effort` by the same name. */
+  reasoning_effort?: string;
+  /** Anthropic's own extended-thinking knob, mapped to an effort when no
+   *  reasoning_effort is set. */
+  thinking?: { type: string; budget_tokens?: number };
+}
+
+/** An Anthropic thinking budget as an OpenAI effort: the one knob the
+ *  OpenAI-compatible tail has. */
+export function effortFromBudget(budgetTokens: number | undefined): string {
+  const b = budgetTokens ?? 0;
+  return b >= 4096 ? "high" : b >= 2048 ? "medium" : b >= 1024 ? "low" : "minimal";
 }
 
 interface OpenAIMessage {
@@ -202,6 +217,11 @@ export function toOpenAIRequest(req: AnthropicRequest, model: string, opts: ToOp
   if (req.max_tokens !== undefined) out[opts.maxTokensKey ?? "max_tokens"] = req.max_tokens;
   if (req.temperature !== undefined) out.temperature = req.temperature;
   if (req.top_p !== undefined) out.top_p = req.top_p;
+  // The effort dial (his order, 2026-10-04). A loop turn sets reasoning_effort
+  // and it rides through by name; a caller that only sent Anthropic's
+  // `thinking` budget gets the nearest effort instead.
+  if (req.reasoning_effort) out.reasoning_effort = req.reasoning_effort;
+  else if (req.thinking && req.thinking.type !== "disabled") out.reasoning_effort = effortFromBudget(req.thinking.budget_tokens);
   if (req.stream) {
     out.stream = true;
     // Without this OpenAI omits usage from the stream entirely and the turn bills
@@ -254,7 +274,12 @@ interface OpenAICompletion {
   id?: string;
   model?: string;
   choices?: Array<{
-    message?: { content?: string | null; tool_calls?: Array<{ id?: string; function?: { name?: string; arguments?: string } }> };
+    message?: {
+      content?: string | null;
+      /** A reasoning model's thinking (llama-server, DeepSeek, vLLM all use this name). */
+      reasoning_content?: string | null;
+      tool_calls?: Array<{ id?: string; function?: { name?: string; arguments?: string } }>;
+    };
     finish_reason?: string | null;
   }>;
   usage?: { prompt_tokens?: number; completion_tokens?: number };
@@ -275,6 +300,11 @@ function parseArgs(raw: string | undefined): unknown {
 export function toAnthropicResponse(completion: OpenAICompletion, model: string, sentToolNames?: readonly string[]): Record<string, unknown> {
   const choice = completion.choices?.[0];
   const content: AnthropicBlock[] = [];
+  // A local model's reasoning has no signature — there is no API to seal it.
+  // The block replays fine through THIS translator (only text and tool blocks
+  // are read back), but not to Anthropic; a loop that switches a chat from a
+  // local model to Claude mid-conversation carries an unsigned block.
+  if (choice?.message?.reasoning_content) content.push({ type: "thinking", thinking: choice.message.reasoning_content, signature: "" });
   if (choice?.message?.content) content.push({ type: "text", text: choice.message.content });
   for (const call of choice?.message?.tool_calls ?? []) {
     const id = call.id || freshToolId("resp");
@@ -326,7 +356,7 @@ export function createStreamTranslator(model: string, sentToolNames?: readonly s
    * providers stream one choice's parts in order, so a closed call's arguments
    * never resume.)
    */
-  let current: { index: number; kind: "text" | "tool"; toolKey?: number; toolCallId?: string } | null = null;
+  let current: { index: number; kind: "text" | "tool" | "thinking"; toolKey?: number; toolCallId?: string } | null = null;
   let nextIndex = 0;
   let finish: string | null = null;
   let inputTokens = 0;
@@ -375,7 +405,7 @@ export function createStreamTranslator(model: string, sentToolNames?: readonly s
 
         let event: OpenAICompletion & {
           choices?: Array<{
-            delta?: { content?: string | null; tool_calls?: Array<{ index?: number; id?: string; function?: { name?: string; arguments?: string } }> };
+            delta?: { content?: string | null; reasoning_content?: string | null; tool_calls?: Array<{ index?: number; id?: string; function?: { name?: string; arguments?: string } }> };
             finish_reason?: string | null;
           }>;
         };
@@ -396,6 +426,22 @@ export function createStreamTranslator(model: string, sentToolNames?: readonly s
         if (!started) out += start();
 
         const delta = choice.delta;
+        // A reasoning model streams its thinking first, as reasoning_content;
+        // it becomes an Anthropic thinking block (unsigned — see
+        // toAnthropicResponse) so a host that shows thinking shows it.
+        if (delta?.reasoning_content) {
+          if (current?.kind !== "thinking") {
+            out += closeCurrent();
+            current = { index: nextIndex++, kind: "thinking" };
+            out += frame("content_block_start", {
+              type: "content_block_start", index: current.index, content_block: { type: "thinking", thinking: "", signature: "" },
+            });
+          }
+          out += frame("content_block_delta", {
+            type: "content_block_delta", index: current.index,
+            delta: { type: "thinking_delta", thinking: delta.reasoning_content },
+          });
+        }
         if (delta?.content) {
           if (current?.kind !== "text") {
             out += closeCurrent();
