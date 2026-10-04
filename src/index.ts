@@ -374,3 +374,8 @@ export {
   KNOWN_CAPABILITIES,
 } from "./app-spec/validate.js";
 export type { AppBundle, AppValidationResult, ParsedAppManifest, AppManifestTool } from "./app-spec/validate.js";
+
+// The sync rule — last-write-wins per item with tombstones; one pure function
+// the member library and chat threads both reconcile by.
+export { reconcile, compareLww } from "./sync/lww.js";
+export type { LwwRow, Reconciled } from "./sync/lww.js";
