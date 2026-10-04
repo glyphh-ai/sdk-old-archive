@@ -201,7 +201,7 @@ export async function runBuiltin(name: string, input: unknown, workdir: string, 
         // THE SHELL IS SANDBOXED TO THE FOLDER (sandbox.ts): on macOS it may
         // write only inside it (plus temp and package caches); it starts there
         // everywhere.
-        const launch = launcher(process.env.SHELL || "/bin/zsh", cmd, workdir);
+        const launch = launcher(process.env.SHELL || (process.platform === "darwin" ? "/bin/zsh" : "/bin/bash"), cmd, workdir);
         if (o.background === true) {
           return await new Promise((resolve) => {
             const proc = spawn(launch.file, launch.args, { cwd: workdir, env: { ...process.env }, stdio: ["ignore", "pipe", "pipe"], detached: true });
