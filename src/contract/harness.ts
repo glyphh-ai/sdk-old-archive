@@ -136,6 +136,9 @@ export interface HarnessRunBody {
   loopProgram?: string;
   system?: string;
   permission?: HarnessPermission;
+  /** The turn's effort (the composer dial — low | medium | high | …), as the
+   *  desktop's local run carries it. Absent → the runtime's default. */
+  effort?: string;
   history?: HarnessChatTurn[];
   attachments?: HarnessAttachmentRef[];
   gatewayUrl?: string;

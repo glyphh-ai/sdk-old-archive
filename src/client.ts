@@ -86,6 +86,11 @@ export interface RunTurnOptions {
    *  (server/docs/program-per-turn.md). Absent → the executor's active loop. */
   loop?: string;
   permission?: string;
+  /** The turn's EFFORT (the composer's dial: low | medium | high | …) — the
+   *  same value the desktop's local run carries. Cloud turns forward it in
+   *  the harness run body; a desktop-relay turn leaves it to the machine's
+   *  own setting. Absent → the executor's default. */
+  effort?: string;
   images?: Array<{ mediaType: string; data: string }>;
   /** The loop's memory policy (rides to the runtime as HarnessMemoryPolicy). */
   memory?: unknown;
@@ -476,6 +481,7 @@ export function createClient(opts: ClientOptions): Client {
         ...(ropts.model ? { model: ropts.model } : {}),
         ...(ropts.loop ? { loop: ropts.loop } : {}),
         ...(ropts.permission ? { permission: ropts.permission } : {}),
+        ...(ropts.effort ? { effort: ropts.effort } : {}),
         ...(ropts.images && ropts.images.length ? { images: ropts.images } : {}),
         ...(ropts.memory ? { memory: ropts.memory } : {}),
         ...(signal ? { signal } : {}),
