@@ -33,8 +33,31 @@ export interface RequestOptions {
   raw?: boolean | undefined;
 }
 
+/**
+ * The two error shapes the control plane speaks: the typed envelope
+ * (`{ error: { code, message, … } }`) on the glyphh routes, and the flat
+ * `{ error, detail }` pair the harness and member-library routes answer with
+ * (the pod's shape, so one decoder serves both). The flat form's `error` IS the
+ * code and `detail` the message.
+ */
 interface ErrorEnvelope {
-  error?: { code?: string; message?: string; remediation?: string; requestId?: string; retryable?: boolean };
+  error?: string | { code?: string; message?: string; remediation?: string; requestId?: string; retryable?: boolean };
+  detail?: string;
+}
+
+function decodeError(env: ErrorEnvelope, status: number): Parameters<typeof apiErrorFor>[0] {
+  if (typeof env.error === "string") {
+    return { code: env.error, message: env.detail ?? env.error, httpStatus: status };
+  }
+  const e = env.error;
+  return {
+    code: e?.code ?? "E_INTERNAL",
+    message: e?.message ?? `HTTP ${status}`,
+    httpStatus: status,
+    ...(e?.remediation !== undefined ? { remediation: e.remediation } : {}),
+    ...(e?.requestId !== undefined ? { requestId: e.requestId } : {}),
+    ...(e?.retryable !== undefined ? { retryable: e.retryable } : {}),
+  };
 }
 
 export class HttpClient {
@@ -116,8 +139,9 @@ export class HttpClient {
     }
   }
 
-  del<T>(path: string, opts: RequestOptions = {}): Promise<T> {
-    return this.request<T>("DELETE", path, undefined, opts);
+  /** DELETE, optionally with a JSON body (a tombstone carries its LWW clock). */
+  del<T>(path: string, body?: unknown, opts: RequestOptions = {}): Promise<T> {
+    return this.request<T>("DELETE", path, body, opts);
   }
 
   private async request<T>(method: string, path: string, body: unknown, opts: RequestOptions): Promise<T> {
@@ -153,16 +177,9 @@ export class HttpClient {
     const json = text ? safeParse(text) : undefined;
 
     if (!res.ok) {
-      const env = (json ?? {}) as ErrorEnvelope;
-      this.log.warn("request failed", { method, path, status: res.status, code: env.error?.code });
-      throw apiErrorFor({
-        code: env.error?.code ?? "E_INTERNAL",
-        message: env.error?.message ?? `HTTP ${res.status}`,
-        httpStatus: res.status,
-        ...(env.error?.remediation !== undefined ? { remediation: env.error.remediation } : {}),
-        ...(env.error?.requestId !== undefined ? { requestId: env.error.requestId } : {}),
-        ...(env.error?.retryable !== undefined ? { retryable: env.error.retryable } : {}),
-      });
+      const decoded = decodeError((json ?? {}) as ErrorEnvelope, res.status);
+      this.log.warn("request failed", { method, path, status: res.status, code: decoded.code });
+      throw apiErrorFor(decoded);
     }
     // Success envelope is `{ data }`; 204/no-body returns undefined. `raw`
     // endpoints answer a foreign shape and are handed back untouched.

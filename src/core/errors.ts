@@ -9,6 +9,7 @@
  *     AuthError       — 401; the caller must (re)authenticate.
  *     ForbiddenError  — 403; authenticated but not permitted (authz is server-side).
  *     ValidationError — 400; bad request shape.
+ *     NotFoundError   — 404; the addressed resource does not exist (or is tombstoned).
  * Transport/protocol errors (ProtocolError, UnsupportedError) join when the rotor
  * streaming layer lands.
  */
@@ -49,6 +50,7 @@ export class ApiError extends SdkError {
 export class AuthError extends ApiError {}
 export class ForbiddenError extends AuthError {}
 export class ValidationError extends ApiError {}
+export class NotFoundError extends ApiError {}
 
 /** The wire protocol version mismatched, or a frame was malformed — do not guess. */
 export class ProtocolError extends SdkError {
@@ -83,5 +85,6 @@ export function apiErrorFor(opts: { code: string; message: string; httpStatus: n
   if (opts.httpStatus === 401) return new AuthError(opts);
   if (opts.httpStatus === 403) return new ForbiddenError(opts);
   if (opts.httpStatus === 400) return new ValidationError(opts);
+  if (opts.httpStatus === 404) return new NotFoundError(opts);
   return new ApiError(opts);
 }

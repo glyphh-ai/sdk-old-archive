@@ -33,7 +33,7 @@ export { sessionTokenProvider, staticTokenProvider } from "./auth/credential-pro
 export type { TokenProvider } from "./auth/credential-provider.js";
 
 export {
-  SdkError, ConnectError, ApiError, AuthError, ForbiddenError, ValidationError,
+  SdkError, ConnectError, ApiError, AuthError, ForbiddenError, ValidationError, NotFoundError,
   ProtocolError, UnsupportedError, RUNTIME_ERROR_CODES,
 } from "./core/errors.js";
 export type { RuntimeErrorCode } from "./core/errors.js";

@@ -66,7 +66,9 @@ export class AuthedHttp {
     return this.#withAuth((bearer) => this.http.stream(path, body, { ...opts, bearer }));
   }
 
-  async del<T>(path: string): Promise<T> {
-    return this.#withAuth((bearer) => this.http.del<T>(path, { bearer }));
+  /** DELETE with the session bearer; `body` (optional) rides as JSON — a
+   *  tombstone carries its LWW clock that way. */
+  async del<T>(path: string, body?: unknown): Promise<T> {
+    return this.#withAuth((bearer) => this.http.del<T>(path, body, { bearer }));
   }
 }
