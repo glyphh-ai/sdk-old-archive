@@ -37,7 +37,8 @@ export class GitClient {
     return this.http.post<{ token: string; expiresAt: string }>("/api/git/clone-token", { repo });
   }
 
-  /** The connected account's repositories. */
+  /** The repositories across every installation the member reaches (their
+   *  own account first, then their orgs); each row names its `account`. */
   repos(): Promise<Repo[]> {
     return this.http.get<Repo[]>("/api/git/repos");
   }

@@ -52,6 +52,22 @@ describe("GitClient — the GitHub lane", () => {
     expect(calls.map((c) => [c.method, c.path])).toEqual([["GET", "/api/git/status"], ["GET", "/api/git/repos"], ["DELETE", "/api/git/connection"]]);
   });
 
+  it("status carries every installation the member reaches, and a repo row names the account it listed through", async () => {
+    const status = {
+      connected: true, login: "timmetim", installationId: "9002", connectedAt: "2026-10-05T09:00:00Z", installationUrl: "https://github.com/settings/installations/9002",
+      installations: [
+        { id: "9002", account: "timmetim", type: "User", url: "https://github.com/settings/installations/9002" },
+        { id: "9001", account: "glyphh-ai", type: "Organization", url: "https://github.com/organizations/glyphh-ai/settings/installations/9001" },
+      ],
+    };
+    const st = await recorder(status).client.status();
+    expect(st.installations?.map((i) => [i.account, i.type])).toEqual([["timmetim", "User"], ["glyphh-ai", "Organization"]]);
+    expect(st.installationId).toBe(st.installations?.[0]?.id);
+    const rows = [{ id: "7", fullName: "timmetim/notes", private: true, defaultBranch: "main", url: "", account: "timmetim", installationId: "9002" }];
+    const got = await recorder(rows).client.repos();
+    expect(got.map((r) => [r.account, r.installationId])).toEqual([["timmetim", "9002"]]);
+  });
+
   it("branches GETs the repo's branches route, each segment URL-encoded, and refuses a name that is not owner/name", async () => {
     const rows = [{ name: "main", default: true }, { name: "release/1.0", default: false }];
     const { calls, client } = recorder(rows);

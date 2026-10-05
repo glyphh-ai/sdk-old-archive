@@ -212,7 +212,7 @@ export type {
   MediaAsset, MediaKind, MediaUploadTicket, MediaUploadInput, MediaFinalizeInput, MediaGenerateInput, MediaJob,
 } from "./contract/media.js";
 export { GitClient } from "./resources/git.js";
-export type { GitConnection, GitConnectLink, Repo } from "./contract/git.js";
+export type { GitConnection, GitConnectLink, GitInstallation, Repo } from "./contract/git.js";
 export { EnvironmentsClient } from "./resources/environments.js";
 export { DEFAULT_ENVIRONMENT_ID, ENVIRONMENT_NETWORKS, ENVIRONMENT_NETWORK_LABELS } from "./contract/environments.js";
 export type {
