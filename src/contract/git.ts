@@ -18,6 +18,9 @@ export interface GitConnection {
   /** True while an install this member started waits for `git.complete` (ten
    *  minutes from the callback). Absent otherwise. */
   pending?: boolean;
+  /** GitHub's settings page for THIS installation — where repositories
+   *  change (an org's lives under the org). Present when connected. */
+  installationUrl?: string;
 }
 
 /** `git.connect` returns a GitHub URL for the user to open; `state` guards the callback.
