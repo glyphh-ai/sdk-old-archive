@@ -88,6 +88,8 @@ export interface ArtifactComment {
   createdAt: string;
   /** Set on a reply. */
   parentId?: string;
+  /** Glyphh's own reply, posted back by the member's client (author reads "Glyphh"). */
+  agent?: boolean;
   /** The thread under a top-level comment (the list nests one level). */
   replies?: ArtifactComment[];
 }
@@ -98,4 +100,6 @@ export interface AddArtifactCommentInput {
   region?: ArtifactRegion;
   /** Reply to a top-level comment. */
   parentId?: string;
+  /** Post this reply as Glyphh's (requires parentId). */
+  agent?: boolean;
 }
