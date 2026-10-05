@@ -46,6 +46,35 @@ describe("shape (errors)", () => {
   });
 });
 
+describe("data — where the app's data lives (the author's call)", () => {
+  const withData = (data: unknown): string => JSON.stringify({ kind: "glyphh-app", name: "X", slug: "x", entry: "index.html", data });
+
+  it("absent means cloud", () => {
+    const v = validateAppBundle(bundle());
+    expect(v.ok).toBe(true);
+    expect(v.manifest?.data).toBe("cloud");
+    expect(parseAppManifest(withData(null))?.data).toBe("cloud");
+  });
+
+  it("accepts cloud, local and per-home", () => {
+    for (const data of ["cloud", "local", "per-home"]) {
+      const v = validateAppBundle({ "manifest.json": withData(data), "index.html": "<p/>" });
+      expect(v.ok).toBe(true);
+      expect(v.manifest?.data).toBe(data);
+    }
+    expect(parseAppManifest(withData(" Local "))?.data).toBe("local");
+  });
+
+  it("an unknown value is an error, not advice", () => {
+    for (const data of ["org", "desktop", 7, true]) {
+      const v = validateAppBundle({ "manifest.json": withData(data), "index.html": "<p/>" });
+      expect(v.ok).toBe(false);
+      expect(v.errors.join(" ")).toContain('"data"');
+      expect(v.manifest?.data).toBe(String(data).toLowerCase());
+    }
+  });
+});
+
 describe("security (errors — block a ship anywhere)", () => {
   it("refuses remote code references in built assets", () => {
     const v = validateAppBundle(bundle({ "index.html": `<script src="https://cdn.example.com/x.js"></script>` }));
