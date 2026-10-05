@@ -11,7 +11,7 @@ export type LoopPermission = "ask" | "plan" | "acceptEdits" | "auto";
 export type ToolKind = "read" | "edit" | "exec" | "mcp";
 export type Gate = "allow" | "ask" | "deny";
 
-export const BUILTIN_READ = new Set(["read_file", "list_dir", "glob", "grep"]);
+export const BUILTIN_READ = new Set(["read_file", "list_dir", "glob", "grep", "artifact_read"]);
 export const BUILTIN_EDIT = new Set(["write_file", "edit_file", "artifact_publish"]);
 export const BUILTIN_EXEC = new Set(["bash"]);
 

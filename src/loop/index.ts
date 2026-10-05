@@ -20,7 +20,10 @@ export {
   type Gate, type LoopHost, type LoopMessage, type LoopPermission, type PromptExtras, type SeedTurn, type ToolKind,
 } from "./core.js";
 export { BUILTIN_TOOLS, runBuiltin, globToRegExp, type BuiltinResult, type ToolDef, type ToolDetail } from "./tools.js";
-export { ARTIFACT_PUBLISH, ARTIFACT_PUBLISH_TOOL, inferMime, publishBody, publishPath, runArtifactPublish, type PublishBody, type PublishContext, type Published } from "./artifacts.js";
+export {
+  ARTIFACT_PUBLISH, ARTIFACT_PUBLISH_TOOL, ARTIFACT_READ, ARTIFACT_READ_TOOL, ARTIFACT_READ_CAP, inferMime, isTextMime, publishBody, publishPath, publishRequest, readPath,
+  runArtifactPublish, runArtifactRead, type ArtifactMeta, type PublishBody, type PublishContext, type PublishRequest, type Published, type ReadContext,
+} from "./artifacts.js";
 export { lineDiff, type DiffHunk, type DiffLine, type FileDiff } from "./diff.js";
 export { insideFolder, shellLaunch, shellProfile, OutsideFolderError } from "./sandbox.js";
 export { streamMessage, assembleStream, sseEvents, isThinkingBlock, type AssembledMessage, type ContentBlock, type ImageParam, type MessageParam, type MessagesBody, type ThinkingBlock, type ToolSpec } from "./messages.js";
