@@ -34,6 +34,16 @@ describe("GitClient — the GitHub lane", () => {
     ]);
   });
 
+  it("complete POSTs the link when given, an empty body for the newest pending one, and returns the status shape", async () => {
+    const { calls, client } = recorder();
+    await client.complete("n0nce");
+    await client.complete();
+    expect(calls).toEqual([
+      { method: "POST", path: "/api/git/connect/complete", body: { link: "n0nce" } },
+      { method: "POST", path: "/api/git/connect/complete", body: {} },
+    ]);
+  });
+
   it("status, repos and disconnect hit their routes", async () => {
     const { calls, client } = recorder([]);
     await client.status();

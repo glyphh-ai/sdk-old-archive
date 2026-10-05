@@ -22,6 +22,16 @@ export function registerGit(reg: CommandRegistry): void {
   });
 
   reg.register({
+    path: "git complete",
+    summary: "finish a GitHub link the callback parked (the link from ?github=pending, or your newest)",
+    usage: "git complete [link]",
+    covers: ["git.complete"],
+    async run(ctx, args) {
+      ctx.printJson(await ctx.client.git.complete(args.positional[0]));
+    },
+  });
+
+  reg.register({
     path: "git status",
     summary: "whether GitHub is linked, and as whom",
     covers: ["git.status"],

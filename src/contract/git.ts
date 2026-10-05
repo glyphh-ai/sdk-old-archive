@@ -15,9 +15,16 @@ export interface GitConnection {
   /** The GitHub App installation backing repo access, when present. */
   installationId: string | null;
   connectedAt: string | null;
+  /** True while an install this member started waits for `git.complete` (ten
+   *  minutes from the callback). Absent otherwise. */
+  pending?: boolean;
 }
 
-/** `git.connect` returns a GitHub URL for the user to open; `state` guards the callback. */
+/** `git.connect` returns a GitHub URL for the user to open; `state` guards the callback.
+ *  The callback lands on `returnTo` with `?github=pending&link=<nonce>`: the SAME
+ *  member's session then calls `git.complete(link)` to finish, which is what binds
+ *  the installation to the person who started it (a handed-around install link
+ *  never lands on someone else's account). */
 export interface GitConnectLink {
   url: string;
   state: string;

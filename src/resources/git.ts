@@ -19,7 +19,14 @@ export class GitClient {
     return this.http.post<GitConnectLink>("/api/git/connect", opts.returnTo ? { returnTo: opts.returnTo } : {});
   }
 
-  /** Whether GitHub is linked, and as whom. */
+  /** Finish a link the callback parked: `link` is the nonce from the
+   *  `?github=pending&link=` landing; without one, this member's newest
+   *  pending install. 403 when someone else started it, 404 when none waits. */
+  complete(link?: string): Promise<GitConnection> {
+    return this.http.post<GitConnection>("/api/git/connect/complete", link ? { link } : {});
+  }
+
+  /** Whether GitHub is linked, and as whom (`pending` while a link waits). */
   status(): Promise<GitConnection> {
     return this.http.get<GitConnection>("/api/git/status");
   }
