@@ -218,6 +218,12 @@ export { DEFAULT_ENVIRONMENT_ID, ENVIRONMENT_NETWORKS, ENVIRONMENT_NETWORK_LABEL
 export type {
   Environment, EnvironmentSummary, EnvironmentVar, EnvironmentNetwork, CreateEnvironmentInput, UpdateEnvironmentInput,
 } from "./contract/environments.js";
+export { ArtifactsClient, ArtifactCommentsClient } from "./resources/artifacts.js";
+export { ARTIFACT_ACCESSES, ARTIFACT_SIZE_CAP } from "./contract/artifacts.js";
+export type {
+  Artifact, ArtifactAccess, ArtifactScope, ArtifactComment, ArtifactCommentAuthor, ArtifactRegion,
+  CreateArtifactInput, UpdateArtifactInput, ShareArtifactResult, AddArtifactCommentInput,
+} from "./contract/artifacts.js";
 export { AppsClient } from "./resources/apps.js";
 export type {
   AppManifest,

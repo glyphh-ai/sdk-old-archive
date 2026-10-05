@@ -12,7 +12,7 @@ export type ToolKind = "read" | "edit" | "exec" | "mcp";
 export type Gate = "allow" | "ask" | "deny";
 
 export const BUILTIN_READ = new Set(["read_file", "list_dir", "glob", "grep"]);
-export const BUILTIN_EDIT = new Set(["write_file", "edit_file"]);
+export const BUILTIN_EDIT = new Set(["write_file", "edit_file", "artifact_publish"]);
 export const BUILTIN_EXEC = new Set(["bash"]);
 
 /** What a tool does to the machine, which is what the permission words govern.

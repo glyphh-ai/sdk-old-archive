@@ -44,6 +44,7 @@ import { MediaClient } from "./resources/media.js";
 import { MusicClient } from "./resources/music.js";
 import { GitClient } from "./resources/git.js";
 import { EnvironmentsClient } from "./resources/environments.js";
+import { ArtifactsClient } from "./resources/artifacts.js";
 import { AppsClient } from "./resources/apps.js";
 import { MarketplaceClient, LibraryMarketClient } from "./resources/marketplace.js";
 import { HostingClient } from "./resources/hosting.js";
@@ -260,6 +261,8 @@ export interface Client {
   git: GitClient;
   /** The member's named cloud environments — variables + network policy a cloud turn runs under. */
   environments: EnvironmentsClient;
+  /** Artifacts — pages and files the loop published for the member: list, share, comment. */
+  artifacts: ArtifactsClient;
   /** The apps marketplace — browse, publish, install. */
   apps: AppsClient;
   /** Marketplace developer profiles + developer reviews. */
@@ -393,6 +396,7 @@ export function createClient(opts: ClientOptions): Client {
     music: new MusicClient(authed),
     git: new GitClient(authed),
     environments: new EnvironmentsClient(authed),
+    artifacts: new ArtifactsClient(authed),
     apps: new AppsClient(authed),
     marketplace: new MarketplaceClient(authed),
     libraryMarket: new LibraryMarketClient(authed),

@@ -27,6 +27,7 @@ import {
   MAX_TOKENS_OUT, MAX_TOOL_ROUNDS, type LoopHost, type LoopPermission, type PromptExtras, type SeedTurn,
 } from "./core.js";
 import { BUILTIN_TOOLS, runBuiltin, type ShellLauncher, type ToolDetail } from "./tools.js";
+import { ARTIFACT_PUBLISH, ARTIFACT_PUBLISH_TOOL, runArtifactPublish } from "./artifacts.js";
 import { McpHttpClient, resultImages, resultText, splitDataImages } from "./mcp.js";
 import { CALL_TOOL, FIND_TOOL, callToolSpec, familyOf, findToolSpec, searchCatalog, skillsIndex, type LoopCatalogEntry, type LoopSkill } from "./catalog.js";
 import {
@@ -328,7 +329,7 @@ export class GlyphhLoop {
         for (const t of listed) {
           const name = safeToolName(t.name);
           if (s.allow && !s.allow(t.name)) continue;
-          if (defs.some((d) => d.name === name) || BUILTIN_TOOLS.some((b) => b.name === name) || name === FIND_TOOL || name === CALL_TOOL) continue;
+          if (defs.some((d) => d.name === name) || BUILTIN_TOOLS.some((b) => b.name === name) || name === ARTIFACT_PUBLISH || name === FIND_TOOL || name === CALL_TOOL) continue;
           const readOnly = s.readOnly ? s.readOnly(t.name) : (t.annotations?.readOnlyHint === true || (t.annotations?.readOnlyHint !== false && readsByName(t.name)));
           const tool: McpTool = { client, realName: t.name, readOnly, local: s.tag === "Glyphh" };
           // The gateway's lookup pair stands in for every connected account's
@@ -387,15 +388,16 @@ export class GlyphhLoop {
     // The host's own additions (installed apps' tools, its MCP connections) go
     // straight into the catalog; a name already on the belt keeps the belt's.
     const extra = this.deps.catalog ? await this.deps.catalog().catch(() => [] as LoopCatalogEntry[]) : [];
-    const taken = new Set([...lent.map((t) => t.name), ...c.catalog.map((e) => e.name), ...BUILTIN_TOOLS.map((b) => b.name)]);
+    const taken = new Set([...lent.map((t) => t.name), ...c.catalog.map((e) => e.name), ...BUILTIN_TOOLS.map((b) => b.name), ARTIFACT_PUBLISH]);
     for (const e of extra) if (e?.name && !taken.has(e.name)) { c.catalog.push(e); taken.add(e.name); }
     const skills = this.deps.skills ? await this.deps.skills().catch(() => [] as LoopSkill[]) : [];
     c.skillsText = skillsIndex(skills, "skill_get");
-    // CODE carries the builtins; both types carry the host's belt and the one
-    // find/call pair over everything else.
+    // CODE carries the builtins; both types carry the publish tool, the host's
+    // belt and the one find/call pair over everything else.
     const finder = c.catalog.length || c.accounts ? [findToolSpec(c.catalog, !!c.accounts), callToolSpec()] : [];
     const belt: ToolSpec[] = [
       ...(c.space === "code" ? BUILTIN_TOOLS.map((t) => ({ name: t.name, description: t.description, input_schema: t.input_schema })) : []),
+      { name: ARTIFACT_PUBLISH_TOOL.name, description: ARTIFACT_PUBLISH_TOOL.description, input_schema: ARTIFACT_PUBLISH_TOOL.input_schema },
       ...lent,
       ...finder,
     ];
@@ -436,7 +438,7 @@ export class GlyphhLoop {
       c.recent.set(name, Date.now());
       try { return await entry.run(args, signal); } catch (err) { return { text: err instanceof Error ? err.message : String(err), failed: true }; }
     }
-    if (name !== CALL_TOOL && name !== FIND_TOOL && (BUILTIN_TOOLS.some((b) => b.name === name) || c.mcp.has(name))) return this.runTool(c, name, args, signal);
+    if (name !== CALL_TOOL && name !== FIND_TOOL && (BUILTIN_TOOLS.some((b) => b.name === name) || name === ARTIFACT_PUBLISH || c.mcp.has(name))) return this.runTool(c, name, args, signal);
     if (c.accounts?.call) {
       try {
         const r = await c.accounts.call.client.callTool(c.accounts.call.realName, { tool_name: name, arguments: args }, signal);
@@ -504,6 +506,9 @@ export class GlyphhLoop {
     if (name === FIND_TOOL) return this.findTools(c, input, signal);
     if (name === CALL_TOOL) return this.callTool(c, input, signal);
     if (BUILTIN_TOOLS.some((b) => b.name === name)) return runBuiltin(name, input, c.workdir, signal, this.deps.shell);
+    if (name === ARTIFACT_PUBLISH) {
+      return runArtifactPublish(input, { workdir: c.workdir, hasFolder: c.space === "code", wire: c.wire, host: this.deps.host ?? "desktop", ...(this.deps.fetch ? { fetch: this.deps.fetch } : {}) }, signal);
+    }
     const m = c.mcp.get(name);
     if (!m) return { text: `unknown tool ${name}`, failed: true };
     try {

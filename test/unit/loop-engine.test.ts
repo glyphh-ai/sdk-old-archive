@@ -296,9 +296,9 @@ describe("GlyphhLoop", () => {
     // The step view names the tool that ran, not the pair.
     const titles = events.filter((e) => e.type === "tool" && e.phase === "done").map((e) => (e as { title: string }).title);
     expect(titles.some((t) => t.startsWith("schedule_save"))).toBe(true);
-    // WORK: the same belt without the builtins.
+    // WORK: the same belt without the builtins; the publish tool rides in both spaces.
     await collect(loop, { chatId: "worky", text: "hello", model: "m", space: "work" });
-    expect((wire.bodies[5]!.tools as Array<{ name: string }>).map((t) => t.name).sort()).toEqual(["call_tool", "find_tools", "panels_open"]);
+    expect((wire.bodies[5]!.tools as Array<{ name: string }>).map((t) => t.name).sort()).toEqual(["artifact_publish", "call_tool", "find_tools", "panels_open"]);
   });
 
   it("a find_tools that matches nothing says so, and the working set ranks a used tool first", async () => {
