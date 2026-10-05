@@ -291,7 +291,7 @@ export { RotorConfigClient } from "./resources/rotor-config.js";
 export type { RotorRole, RotorCatalogEntry } from "./contract/rotors.js";
 export { OrgModelsClient } from "./resources/org-models.js";
 export type { GatewayMetrics, GatewayDay, GatewayBreakdownRow } from "./resources/gateway.js";
-export { ModelsClient } from "./resources/models.js";
+export { ModelsClient, pickUtilityModel, utilityCost } from "./resources/models.js";
 export { AgentsClient } from "./resources/agents.js";
 export type {
   Agent,

@@ -80,6 +80,9 @@ export interface AvailableModel {
   /** The model takes a reasoning effort (`LoopTurn.effort` → `reasoning_effort`
    *  on the wire); a picker shows the dial only for these. */
   reasoning?: boolean;
+  /** The catalog flag: THE one shared chat model the platform runs its side
+   *  tasks on (session titles). At most one row carries it; see pickUtilityModel. */
+  utility?: boolean;
 }
 
 /** A custom model an org admin defined — BYO OpenAI-compatible endpoint. Keys

@@ -51,6 +51,13 @@ export interface PlanGates {
   bridgeAllowed?: boolean;
   /** The org requires Bridge Mode: the desktop is the bridge TUI and nothing else. */
   forceBridge?: boolean;
+  /** The model a new session opens on when the member has picked none (the
+   *  team's flag, else the org's default, else the team's router or first chat model). */
+  defaultModel?: string;
+  /** The model the platform runs its side tasks on (session titles): the row
+   *  flagged "Utility" on the console, else the cheapest shared chat model. "" when
+   *  the catalog has no chat model. */
+  utilityModel?: string;
 }
 
 /** Every capability name a caller may ask about — a closed set, so a typo is
