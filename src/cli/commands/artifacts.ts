@@ -2,8 +2,8 @@
  * @license Proprietary — © Glyphh. All rights reserved.
  *
  * commands/artifacts.ts — the member's artifacts (his direction, 2026-10-05:
- * artifacts like Claude's): list by scope, publish a file, share one, open one
- * in the browser, read its bytes, rename, delete.
+ * artifacts like Claude's): list by scope, publish a file, update one in place
+ * from a file, share one, open one in the browser, read its bytes, rename, delete.
  */
 
 import { readFileSync } from "node:fs";
@@ -64,6 +64,21 @@ export function registerArtifacts(reg: CommandRegistry): void {
       const mime = flagStr(args, "mime");
       const content = readFileSync(file).toString("base64");
       ctx.printJson(await ctx.client.artifacts.create({ name: flagStr(args, "name") ?? basename(file), content, ...(mime ? { mime } : {}) }));
+    },
+  });
+
+  reg.register({
+    path: "artifacts update",
+    summary: "replace an artifact's content in place from a file: the same id and link, comments kept",
+    usage: "artifacts update <id> --file <path> [--name <name>] [--mime <type>]",
+    covers: ["artifacts.update"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      const file = flagStr(args, "file");
+      if (!id || !file) throw new Error("usage: artifacts update <id> --file <path> [--name <name>] [--mime <type>]");
+      const name = flagStr(args, "name");
+      const mime = flagStr(args, "mime");
+      ctx.printJson(await ctx.client.artifacts.update(id, { content: readFileSync(file).toString("base64"), ...(name ? { name } : {}), ...(mime ? { mime } : {}) }));
     },
   });
 

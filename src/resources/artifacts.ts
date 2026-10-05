@@ -62,7 +62,8 @@ export class ArtifactsClient {
     return this.http.getBytes(at(id, "/content"));
   }
 
-  /** Owner only. `access: "public"` mints the share token; leaving public clears it. */
+  /** Owner only, in place: a new name, access, mime or the bytes (base64 `content` or
+   *  UTF-8 `text`) under the same id. `access: "public"` mints the share token; leaving public clears it. */
   update(id: string, input: UpdateArtifactInput): Promise<Artifact> {
     return this.http.put<Artifact>(at(id), input);
   }

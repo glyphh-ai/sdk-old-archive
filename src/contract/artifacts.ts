@@ -49,10 +49,15 @@ export interface CreateArtifactInput {
   sessionId?: string;
 }
 
-/** `artifacts.update` input: only what is named changes. `public` mints the share token; leaving public clears it. */
+/** `artifacts.update` input: only what is named changes, in place (the same id,
+ *  comments kept). New bytes ride as base64 `content` or UTF-8 `text`, one of
+ *  them, like create. `public` mints the share token; leaving public clears it. */
 export interface UpdateArtifactInput {
   name?: string;
   access?: ArtifactAccess;
+  mime?: string;
+  content?: string;
+  text?: string;
 }
 
 export interface ShareArtifactResult {

@@ -45,12 +45,14 @@ describe("ArtifactsClient — the member's artifacts", () => {
     ]);
   });
 
-  it("publishes, renames, shares and deletes with the bodies verbatim", async () => {
+  it("publishes, renames, replaces the content in place, shares and deletes with the bodies verbatim", async () => {
     const { calls, client } = recorder();
     await client.create({ name: "report.html", text: "<h1>hi</h1>", sessionId: "t1" });
     await client.create({ name: "pic.png", mime: "image/png", content: "iVBORw0=" });
     await client.update("a1", { name: "Final.html" });
     await client.update("a1", { access: "public" });
+    await client.update("a1", { text: "<h1>v2</h1>" });
+    await client.update("a1", { content: "iVBORw0=", mime: "image/png", name: "chart.png" });
     await client.share("a1", "org");
     await client.remove("a1");
     expect(calls).toEqual([
@@ -58,6 +60,8 @@ describe("ArtifactsClient — the member's artifacts", () => {
       { method: "POST", path: "/api/artifacts", body: { name: "pic.png", mime: "image/png", content: "iVBORw0=" } },
       { method: "PUT", path: "/api/artifacts/a1", body: { name: "Final.html" } },
       { method: "PUT", path: "/api/artifacts/a1", body: { access: "public" } },
+      { method: "PUT", path: "/api/artifacts/a1", body: { text: "<h1>v2</h1>" } },
+      { method: "PUT", path: "/api/artifacts/a1", body: { content: "iVBORw0=", mime: "image/png", name: "chart.png" } },
       { method: "POST", path: "/api/artifacts/a1/share", body: { access: "org" } },
       { method: "DELETE", path: "/api/artifacts/a1" },
     ]);
