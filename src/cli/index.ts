@@ -33,6 +33,7 @@ import { registerStator } from "./commands/stator.js";
 import { registerMedia } from "./commands/media.js";
 import { registerMusic } from "./commands/music.js";
 import { registerGit } from "./commands/git.js";
+import { registerEnvironments } from "./commands/environments.js";
 import { registerApps } from "./commands/apps.js";
 import { registerMarketplace } from "./commands/marketplace.js";
 import { registerLibrary } from "./commands/library.js";
@@ -86,6 +87,7 @@ export function buildRegistry(): CommandRegistry {
   registerMusic(reg);
   registerIcons(reg);
   registerGit(reg);
+  registerEnvironments(reg);
   registerApps(reg);
   registerMarketplace(reg);
   registerLibrary(reg);

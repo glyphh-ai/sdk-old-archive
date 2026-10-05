@@ -43,6 +43,7 @@ import { StatorClient } from "./resources/stator.js";
 import { MediaClient } from "./resources/media.js";
 import { MusicClient } from "./resources/music.js";
 import { GitClient } from "./resources/git.js";
+import { EnvironmentsClient } from "./resources/environments.js";
 import { AppsClient } from "./resources/apps.js";
 import { MarketplaceClient, LibraryMarketClient } from "./resources/marketplace.js";
 import { HostingClient } from "./resources/hosting.js";
@@ -79,6 +80,12 @@ export interface RunTurnOptions {
   /** The base branch the pod checks out with `repo` (one of `git.branches`).
    *  Absent → the repo's default. Ignored on desktop-relay turns. */
   branch?: string;
+  /** The member's named cloud ENVIRONMENT this turn runs in (one of
+   *  `environments.list`; his direction, 2026-10-05: personal environments).
+   *  The front door injects its variables and network policy into the worker
+   *  server-side. Absent or "default" → the built-in Default: no variables,
+   *  full network. Ignored on desktop-relay turns. */
+  environmentId?: string;
   /** The model id to run this turn on. Honored on BOTH targets: the cloud pod
    *  runs it directly; a desktop-relay turn overrides the machine's own loop
    *  model with it (so the caller's picker wins). Absent → the executor's default. */
@@ -251,6 +258,8 @@ export interface Client {
   music: MusicClient;
   /** GitHub connection — link, list repos; sessions with a repo get a scoped clone token. */
   git: GitClient;
+  /** The member's named cloud environments — variables + network policy a cloud turn runs under. */
+  environments: EnvironmentsClient;
   /** The apps marketplace — browse, publish, install. */
   apps: AppsClient;
   /** Marketplace developer profiles + developer reviews. */
@@ -383,6 +392,7 @@ export function createClient(opts: ClientOptions): Client {
     media: new MediaClient(authed),
     music: new MusicClient(authed),
     git: new GitClient(authed),
+    environments: new EnvironmentsClient(authed),
     apps: new AppsClient(authed),
     marketplace: new MarketplaceClient(authed),
     libraryMarket: new LibraryMarketClient(authed),
@@ -487,6 +497,7 @@ export function createClient(opts: ClientOptions): Client {
         ...(ropts.subdir ? { subdir: ropts.subdir } : {}),
         ...(ropts.repo ? { repo: ropts.repo } : {}),
         ...(ropts.repo && ropts.branch ? { branch: ropts.branch } : {}),
+        ...(ropts.environmentId ? { environmentId: ropts.environmentId } : {}),
         ...(ropts.model ? { model: ropts.model } : {}),
         ...(ropts.loop ? { loop: ropts.loop } : {}),
         ...(ropts.permission ? { permission: ropts.permission } : {}),

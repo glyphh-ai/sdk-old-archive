@@ -126,6 +126,10 @@ export interface HarnessRunBody {
   /** The BASE BRANCH the pod checks out with {@link repo} (his direction,
    *  2026-10-05): a git ref name, 200 chars at most. Absent → the default. */
   branch?: string;
+  /** The member's named cloud environment (contract/environments.ts). Read by
+   *  the FRONT DOOR only: it injects the variables and network policy into the
+   *  pod body server-side. Absent or "default" → the built-in Default. */
+  environmentId?: string;
   sessionId?: string;
   model?: string;
   /** The session's LOOP slug — the program that shapes this turn
