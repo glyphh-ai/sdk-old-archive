@@ -8,14 +8,15 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
-import type { GitConnection, GitConnectLink, Repo } from "../contract/git.js";
+import type { Branch, GitConnection, GitConnectLink, GitConnectOptions, Repo } from "../contract/git.js";
 
 export class GitClient {
   constructor(private readonly http: AuthedHttp) {}
 
-  /** Begin linking GitHub — open the returned `url` to grant access. */
-  connect(): Promise<GitConnectLink> {
-    return this.http.post<GitConnectLink>("/api/git/connect", {});
+  /** Begin linking GitHub — open the returned `url` to grant access. `returnTo`
+   *  (the phone, the web app) is where the callback lands the person afterwards. */
+  connect(opts: GitConnectOptions = {}): Promise<GitConnectLink> {
+    return this.http.post<GitConnectLink>("/api/git/connect", opts.returnTo ? { returnTo: opts.returnTo } : {});
   }
 
   /** Whether GitHub is linked, and as whom. */
@@ -23,15 +24,23 @@ export class GitClient {
     return this.http.get<GitConnection>("/api/git/status");
   }
 
-  /** The connected account's repositories. */
   /** Short-lived, repo-scoped clone token for a LOCAL `git clone` — the
    *  desktop's create-from-git door. 404 when the App doesn't cover the repo. */
   cloneToken(repo: string): Promise<{ token: string; expiresAt: string }> {
     return this.http.post<{ token: string; expiresAt: string }>("/api/git/clone-token", { repo });
   }
 
+  /** The connected account's repositories. */
   repos(): Promise<Repo[]> {
     return this.http.get<Repo[]>("/api/git/repos");
+  }
+
+  /** A repo's branches (`owner/name`), the default first — the base branch
+   *  pick for a cloud Code session (his direction, 2026-10-05). */
+  branches(repo: string): Promise<Branch[]> {
+    const [owner, name] = repo.split("/", 2);
+    if (!owner || !name) throw new Error("repo must be owner/name");
+    return this.http.get<Branch[]>(`/api/git/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/branches`);
   }
 
   /** Unlink GitHub. */

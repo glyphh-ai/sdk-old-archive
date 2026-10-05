@@ -23,6 +23,14 @@ export interface GitConnectLink {
   state: string;
 }
 
+/** `git.connect` input: where GitHub's callback sends the person back once the
+ *  App is installed (`?github=connected` or `?github=error&reason=…` appended).
+ *  Only our own https hosts and localhost are honored; anything else ends on
+ *  the server's plain "connected" page. */
+export interface GitConnectOptions {
+  returnTo?: string;
+}
+
 export interface Repo {
   /** GitHub numeric id as a string. */
   id: string;
@@ -31,4 +39,10 @@ export interface Repo {
   private: boolean;
   defaultBranch: string;
   url: string;
+}
+
+/** One branch of a repo, as `git.branches` lists them: the default first. */
+export interface Branch {
+  name: string;
+  default: boolean;
 }

@@ -76,6 +76,9 @@ export interface RunTurnOptions {
   /** The session's GitHub repo (`owner/repo`) — a cloud workspace's source;
    *  the pod pre-clones it. Ignored on desktop-relay turns. */
   repo?: string;
+  /** The base branch the pod checks out with `repo` (one of `git.branches`).
+   *  Absent → the repo's default. Ignored on desktop-relay turns. */
+  branch?: string;
   /** The model id to run this turn on. Honored on BOTH targets: the cloud pod
    *  runs it directly; a desktop-relay turn overrides the machine's own loop
    *  model with it (so the caller's picker wins). Absent → the executor's default. */
@@ -483,6 +486,7 @@ export function createClient(opts: ClientOptions): Client {
         ...(ropts.workdir ? { workdir: ropts.workdir } : {}),
         ...(ropts.subdir ? { subdir: ropts.subdir } : {}),
         ...(ropts.repo ? { repo: ropts.repo } : {}),
+        ...(ropts.repo && ropts.branch ? { branch: ropts.branch } : {}),
         ...(ropts.model ? { model: ropts.model } : {}),
         ...(ropts.loop ? { loop: ropts.loop } : {}),
         ...(ropts.permission ? { permission: ropts.permission } : {}),

@@ -123,6 +123,9 @@ export interface HarnessRunBody {
   /** The session's GitHub repo (`owner/repo`) — a cloud workspace's source.
    *  The pod tells the agent and clones it into the workspace when absent. */
   repo?: string;
+  /** The BASE BRANCH the pod checks out with {@link repo} (his direction,
+   *  2026-10-05): a git ref name, 200 chars at most. Absent → the default. */
+  branch?: string;
   sessionId?: string;
   model?: string;
   /** The session's LOOP slug — the program that shapes this turn

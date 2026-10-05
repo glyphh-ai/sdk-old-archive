@@ -2,19 +2,22 @@
  * @license Proprietary — © Glyphh. All rights reserved.
  *
  * commands/git.ts — link GitHub and list repos. `git connect` prints a URL to open;
- * once linked, `git repos` lists repositories and sessions created with a repo get a
- * scoped clone token injected server-side.
+ * once linked, `git repos` lists repositories, `git branches` a repo's branches, and
+ * sessions created with a repo get a scoped clone token injected server-side.
  */
 
+import { flagStr } from "../args.js";
 import type { CommandRegistry } from "../registry.js";
 
 export function registerGit(reg: CommandRegistry): void {
   reg.register({
     path: "git connect",
     summary: "link GitHub (prints a URL to open)",
+    usage: "git connect [--return-to <url>]",
     covers: ["git.connect"],
-    async run(ctx) {
-      ctx.printJson(await ctx.client.git.connect());
+    async run(ctx, args) {
+      const returnTo = flagStr(args, "return-to");
+      ctx.printJson(await ctx.client.git.connect(returnTo ? { returnTo } : {}));
     },
   });
 
@@ -33,6 +36,30 @@ export function registerGit(reg: CommandRegistry): void {
     covers: ["git.repos"],
     async run(ctx) {
       ctx.printJson(await ctx.client.git.repos());
+    },
+  });
+
+  reg.register({
+    path: "git branches",
+    summary: "list a repo's branches, the default first",
+    usage: "git branches <owner/repo>",
+    covers: ["git.branches"],
+    async run(ctx, args) {
+      const repo = args.positional[0];
+      if (!repo) throw new Error("usage: git branches <owner/repo>");
+      ctx.printJson(await ctx.client.git.branches(repo));
+    },
+  });
+
+  reg.register({
+    path: "git clone-token",
+    summary: "mint a short-lived clone token scoped to one repo",
+    usage: "git clone-token <owner/repo>",
+    covers: ["git.cloneToken"],
+    async run(ctx, args) {
+      const repo = args.positional[0];
+      if (!repo) throw new Error("usage: git clone-token <owner/repo>");
+      ctx.printJson(await ctx.client.git.cloneToken(repo));
     },
   });
 
