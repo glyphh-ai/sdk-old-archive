@@ -323,6 +323,11 @@ export type {
   UpdateSkillInput,
 } from "./contract/skills.js";
 export { GatewayClient } from "./resources/gateway.js";
+export { AdaClient } from "./resources/ada.js";
+export type {
+  AdaAnswer, AdaAsk, AdaCalibrated, AdaCheck, AdaData, AdaFact, AdaFacts, AdaFactTree, AdaGrade, AdaModel,
+  AdaNewModel, AdaReceipt, AdaRecord, AdaRecorded, AdaRecords, AdaSituation, AdaWeights,
+} from "./resources/ada.js";
 export { GuestClient } from "./resources/guest.js";
 export type {
   GatewayMessage,
