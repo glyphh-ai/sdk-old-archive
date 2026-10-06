@@ -13,9 +13,21 @@
  * already the legacy personal/org library's names there.
  */
 
-export type MemberLibraryKind = "workspace" | "tab" | "skill" | "agent" | "task" | "drip" | "schedule";
+/**
+ * The kinds the server's member_library.py KINDS accepts. `plugin` (2026-10-05)
+ * is a Claude Code plugin folder installed from the hub. The house apps
+ * (2026-10-06: cloud is the one home): `design` and `deck` are a Design
+ * document and a Slides deck, `image` / `video` / `audio` the media panels'
+ * items, `file` a loose Drive file and `folder` a Drive folder.
+ */
+export type MemberLibraryKind =
+  | "workspace" | "tab" | "skill" | "agent" | "task" | "drip" | "schedule" | "plugin"
+  | "design" | "deck" | "image" | "video" | "audio" | "file" | "folder";
 
-export const MEMBER_LIBRARY_KINDS: readonly MemberLibraryKind[] = ["workspace", "tab", "skill", "agent", "task", "drip", "schedule"];
+export const MEMBER_LIBRARY_KINDS: readonly MemberLibraryKind[] = [
+  "workspace", "tab", "skill", "agent", "task", "drip", "schedule", "plugin",
+  "design", "deck", "image", "video", "audio", "file", "folder",
+];
 
 /** One file of an item, as the server holds it in R2. */
 export interface MemberLibraryFile {
