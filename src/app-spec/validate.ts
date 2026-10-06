@@ -50,18 +50,6 @@ const FORBIDDEN_WORKER = /\bfetch\s*\(|\brequire\s*\(|\bimport\s+[\w{*'"]|\bnew\
 
 export interface AppManifestTool { name: string; capability?: string; handler?: string; description?: string; inputSchema?: unknown }
 
-/** Where an app's data lives — the AUTHOR declares it in the manifest, the
- *  member never picks (his verdict, 2026-10-05: "an app is a row in the db"):
- *    cloud    — one store, in the cloud; the app is reachable from anywhere.
- *    local    — one store on the member's desktop; the data never leaves the
- *               machine. The marketplace shows a "Local data" badge, and a
- *               local app cannot install from the web without a connected desktop.
- *    per-home — a store in each home the member has (desktop + cloud), each
- *               scoped to that home's documents (the house apps' shape). */
-export type AppDataKind = "cloud" | "local" | "per-home";
-export const APP_DATA_KINDS: ReadonlySet<string> = new Set<AppDataKind>(["cloud", "local", "per-home"]);
-export const DEFAULT_APP_DATA: AppDataKind = "cloud";
-
 export interface ParsedAppManifest {
   name: string;
   slug: string;
@@ -70,9 +58,6 @@ export interface ParsedAppManifest {
   capabilities: string[];
   connectors: string[];
   tools: AppManifestTool[];
-  /** Absent in the file → "cloud". A value outside APP_DATA_KINDS survives
-   *  parsing so validateAppBundle can name it in an error. */
-  data: AppDataKind;
   [k: string]: unknown;
 }
 
@@ -101,7 +86,6 @@ export function parseAppManifest(json: string): ParsedAppManifest | null {
     ? (m.tools as AppManifestTool[]).filter((t) => t && typeof t.name === "string"
         && (typeof t.capability === "string") !== (typeof t.handler === "string"))
     : [];
-  m.data = m.data === undefined || m.data === null ? DEFAULT_APP_DATA : String(m.data).trim().toLowerCase();
   return m as unknown as ParsedAppManifest;
 }
 
@@ -223,10 +207,6 @@ export function validateAppBundle(
 
   const recursive = m.tools.find((t) => t.capability === "agent.run");
   if (recursive) errors.push(`tool "${recursive.name}" cannot expose agent.run as a tool — an app must not run the agent that runs apps`);
-
-  if (!APP_DATA_KINDS.has(m.data)) {
-    errors.push(`manifest "data" must be one of ${[...APP_DATA_KINDS].map((k) => `"${k}"`).join(", ")} (got "${m.data}") — where the app's data lives is the author's call, cloud when omitted`);
-  }
 
   // ── ADVICE (warnings — the runtime refuses these on its own) ──────────────
   const unknown = m.capabilities.filter((c) => !KNOWN_CAPABILITIES.has(c));
