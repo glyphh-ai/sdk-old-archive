@@ -112,6 +112,8 @@ export interface RunTurnOptions {
    *  the web the page opens things itself; a desktop keeps the relay). A
    *  desktop-relay turn ignores it — the machine IS the surface. */
   surface?: HarnessSurface;
+  /** The attached desktops this session may reach over the relay (HarnessRunBody.devices). */
+  devices?: string[];
   signal?: AbortSignal;
 }
 
@@ -512,6 +514,7 @@ export function createClient(opts: ClientOptions): Client {
         ...(ropts.images && ropts.images.length ? { images: ropts.images } : {}),
         ...(ropts.memory ? { memory: ropts.memory } : {}),
         ...(ropts.surface ? { surface: ropts.surface } : {}),
+        ...(ropts.devices && ropts.devices.length ? { devices: ropts.devices } : {}),
         ...(signal ? { signal } : {}),
       } as HarnessStartOptions;
       return hc.start(body) as unknown as RunHandle;

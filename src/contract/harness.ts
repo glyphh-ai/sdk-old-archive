@@ -131,6 +131,13 @@ export interface HarnessRunBody {
   prompt: string;
   /** The caller's surface — see {@link HarnessSurface}. */
   surface?: HarnessSurface;
+  /** THE DEVICES THIS SESSION MAY REACH (his order, 2026-10-07): the attached
+   *  desktops the member added to the chat (the + menu's Devices), by machine
+   *  id. The pod sends them to the gateway's /mcp as `x-glyphh-devices`, and
+   *  the device tools (device_folders / device_list_dir / device_read_file /
+   *  device_search / device_write_file) reach ONLY those machines, inside
+   *  ONLY the folders each granted for remote control. Absent → no device tool answers. */
+  devices?: string[];
   /** The CLIENT's thread id (`^[A-Za-z0-9_-]{1,64}$`) — scopes the recorded
    *  transcript; auth stays bound to the token's sessionId. */
   threadId?: string;
