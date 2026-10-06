@@ -4,7 +4,7 @@
  * resources/marketplace.ts — marketplace DEVELOPER PROFILES + their reviews.
  * One profile per org OR per user; developers carry stars exactly like apps
  * (install-gated, one review per person, respond/report/moderate). App-side
- * marketplace operations (pricing, releases, reports) live on `client.apps`.
+ * marketplace listings themselves are the hub's (`client.libraryMarket`).
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";

@@ -72,7 +72,8 @@
     "test:cov": "vitest run --coverage",
     "repl": "tsx scripts/repl.ts",
     "cli": "tsx scripts/cli.ts",
-    "verify": "npm run typecheck && npm run lint && npm run test"
+    "verify": "npm run typecheck && npm run lint && npm run test",
+    "gen:app-template": "node scripts/gen-app-template.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",

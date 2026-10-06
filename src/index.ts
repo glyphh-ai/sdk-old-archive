@@ -73,12 +73,7 @@ export type {
   RuntimeImage, RuntimeImageType, OrgRuntimeImage,
   AdminRuntimeImageCreate, AdminRuntimeImageUpdate,
 } from "./contract/runtime-images.js";
-export { AppServersClient } from "./resources/app-servers.js";
-export type {
-  AppServerImage, AdminAppServerImageCreate, AdminAppServerImageUpdate,
-  ServerDeployment, ServerDeployStatus, DeployToServerInput, QueuedServerDeployment,
-  CustomDomain, CustomDomainStatus, AddCustomDomainInput, DnsInstructions, DnsRecord,
-} from "./contract/app-servers.js";
+export type { AppServerImage, AdminAppServerImageCreate, AdminAppServerImageUpdate } from "./contract/app-servers.js";
 export { CatalogClient } from "./resources/catalog.js";
 export { ProvidersClient } from "./resources/providers.js";
 export { AdminClient } from "./resources/admin.js";
@@ -224,46 +219,12 @@ export type {
   Artifact, ArtifactAccess, ArtifactScope, ArtifactComment, ArtifactCommentAuthor, ArtifactRegion,
   CreateArtifactInput, UpdateArtifactInput, ShareArtifactResult, AddArtifactCommentInput,
 } from "./contract/artifacts.js";
-export { AppsClient } from "./resources/apps.js";
+export { AppInstancesClient } from "./resources/app-instances.js";
 export type {
-  AppManifest,
-  AppListing,
-  AppVisibility,
-  PublishAppInput,
-  InstalledApp,
-  AppEntitlementStatus,
-  AppKind,
-  AppLauncherConfig,
-  AppExecutionHome,
-  AppVariant,
-  OrgApp,
-  PanelApp,
-  AppSecretKey,
-  CreateAppEntryInput,
-  UpdateAppEntryInput,
-  AppRelease,
-  AppUsageDay,
-  AppAuditEntry,
-  AppListingRecord,
-  AppMarketplaceDetail,
-  AppCategory,
-  UpdateListingInput,
-  AppMediaKind,
-  StoredAppMedia,
-  AppReview,
-  FlaggedAppReview,
-  AppComment,
-  AppCommentThread,
-  FlaggedAppComment,
-  AppPricing,
-  UpdateAppPricingInput,
-  AppReleaseReviewStatus,
-  AppReviewQueueRelease,
-  ReleaseScanFinding,
-  ScanFindingCounts,
-  AppDeveloperCard,
-  AppReport,
-} from "./contract/apps.js";
+  AppInstance, AppInstanceKind, AppInstanceAccess, AppInstanceStatus, AppInstanceManifest,
+  AppRelease, AppUpload, AppInvokeResult, AppBuildResult,
+  CreateAppInstanceInput, PatchAppInstanceInput,
+} from "./contract/app-instances.js";
 export { MarketplaceClient } from "./resources/marketplace.js";
 export type {
   DeveloperScope,
@@ -273,8 +234,6 @@ export type {
   DeveloperReview,
   FlaggedDeveloperReview,
 } from "./contract/marketplace.js";
-export { HostingClient } from "./resources/hosting.js";
-export type { Deployment, DeployStatus, DeployInput } from "./contract/hosting.js";
 export { LibraryClient } from "./resources/library.js";
 export type { LibraryItem, LibraryKind, LibraryScope, SaveLibraryItemInput } from "./contract/library.js";
 export { MemberLibraryClient } from "./resources/member-library.js";
@@ -391,14 +350,14 @@ export type {
   Guardrails,
 } from "./contract/org.js";
 
-// ── App spec + validator — the one contract every app builder shares ────────
-export { GLYPHH_APP_SPEC } from "./app-spec/spec.js";
+// ── App spec + validators + template — the one contract every app builder shares ──
 export {
-  validateAppBundle, parseAppManifest, lintRemoteAssets,
-  checkCallTargets, checkCronExpressions, extractConnectorCalls,
-  KNOWN_CAPABILITIES,
-} from "./app-spec/validate.js";
-export type { AppBundle, AppValidationResult, ParsedAppManifest, AppManifestTool } from "./app-spec/validate.js";
+  GLYPHH_APP_SPEC, appTemplateFiles,
+  validateAppBundle, validateAppProject, parseAppManifest, lintRemoteAssets,
+  checkCallTargets, checkCronExpressions, checkSqlDialect, extractConnectorCalls,
+  KNOWN_CAPABILITIES, RETIRED_CAPABILITIES, MANIFEST_VERSIONS, APP_MANIFEST,
+} from "./app-spec/index.js";
+export type { AppBundle, AppValidationResult, ParsedAppManifest, AppManifestTool } from "./app-spec/index.js";
 
 // The sync rule — last-write-wins per item with tombstones; one pure function
 // the member library and chat threads both reconcile by.

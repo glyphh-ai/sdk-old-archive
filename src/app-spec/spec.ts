@@ -4,74 +4,112 @@
  * app-spec/spec.ts — the build spec handed to whatever is BUILDING a Glyphh
  * app: the desktop's own agent, Claude Code, a CI job, anything speaking the
  * SDK. One authoritative text, so every builder reads the same contract the
- * validator (validate.ts) and the server enforce.
+ * validator (validate.ts), the builder and the app server enforce.
  */
 
 export const GLYPHH_APP_SPEC = `## Building a Glyphh app
 
-A Glyphh app is a REAL project you build in a working folder, then ship. Build
-it however makes the best app — Vite + React + TypeScript + Tailwind is the
-recommended stack. Use any npm libraries you want (three.js, framer-motion,
-chart.js, d3, …) — they are bundled at build time. Make it genuinely beautiful.
+A Glyphh app is a Next.js project (static export) plus a manifest and an
+optional server-side worker. It is built into a bundle, deployed as a
+versioned release, served by the Glyphh app server, and its TOOLS land in the
+agent's toolbox (app_list_tools / app_call_tool). The app stores and finds; the
+AGENT thinks — there is no model call inside an app.
 
-There are two ways an app runs:
-- LOCAL (panel app): installed into the Glyphh desktop and rendered in a
-  sandboxed panel. Inside the desktop, update_app() is THE ONLY ship path.
-  (External builders — CI, other tools — package the bundle and install
-  through the SDK instead.)
-- HOSTED: published to the org and deployed to its own https://<slug>.glyphh.app
-  origin (client.apps.publish → releases → deploy). Hosted apps are real server
-  projects and may use the network like any web app.
+### Project layout (the folder you build in)
+- manifest.json     — the app contract (below)
+- package.json      — next + react + react-dom; scripts.build = "next build"
+- next.config.mjs   — EXACTLY this shape:
+    const base = process.env.GLYPHH_APP_BASE ?? "";
+    export default {
+      output: "export", trailingSlash: true,
+      basePath: base, assetPrefix: base || ".",
+      images: { unoptimized: true },
+    };
+  (the builder sets GLYPHH_APP_BASE to the instance's /app-host/<key>/ui; a
+  bundle built with no base loads its assets relative to ui/, root page only)
+- app/              — the Next.js app router (app/layout.js + app/page.js); pages/ also works
+- worker.js         — OPTIONAL server-side logic: handlers behind the manifest's tools and cron
 
-### Project layout (working folder root)
-- glyphh.app.json   — the manifest (see below)
-- package.json      — your deps + a "build" script
-- vite.config.ts    — MUST set \`base: './'\` so built asset paths are relative
-- index.html + src/ — your app (React/TS/Tailwind/whatever)
-- worker.js         — OPTIONAL headless tool logic (only if the app exposes handler-backed tools)
+Do NOT author an "entry": the export's index.html is always the entry. Do not
+ship node_modules, .next or out — the builder makes them. Start from the SDK
+template (appTemplateFiles(), sdk/templates/app-next).
 
-### The build → ship flow (local)
-1. Scaffold the project and write your code.
-2. npm install && npm run build — Vite emits dist/.
-3. Ship: update_app() — it packages dist/ + glyphh.app.json + worker.js
-   (NEVER src/ or node_modules) and installs in one call.
-Re-run build + update_app after any change, or the installed app runs the old
-code. NEVER ship via a CLI, npx, or any login/device-auth flow — your session
-is already authenticated; an agent must never initiate authentication.
-
-### glyphh.app.json
-STRICT JSON. REQUIRED: "kind": "glyphh-app", "name", "slug" (lowercase
-[a-z0-9_-], no leading underscore), "entry": "index.html".
-Recommended: "description", "version" (semver), "icon" (emoji), "category",
-"keywords", "about".
-Optional: "worker": "worker.js", "window": {width,height}, "capabilities": [...],
-"connectors": [...] (connection slugs), "tools": [...].
+### manifest.json
+STRICT JSON. REQUIRED: "manifestVersion": 3, "kind": "glyphh-app", "name",
+"slug" (lowercase [a-z0-9_-], no leading underscore), "description".
+Optional: "capabilities": [...], "connectors": [...] (connection slugs such as
+"gmail", "google_calendar", "slack"), "tools": [...], "worker": "worker.js",
+"window": { "width", "height" }.
 Each tool: { "name", "description", "handler" XOR "capability", "inputSchema" }.
-Exactly one of handler|capability per tool. Every capability a tool names must
-be in the top-level capabilities list; connector.* capabilities need a
-non-empty connectors list; NEVER expose agent.run as a tool.
+Exactly one of handler|capability per tool. A handler needs the worker. Every
+capability a tool names must be in the top-level capabilities list;
+connector.* capabilities need a non-empty connectors list; NEVER expose
+agent.run as a tool.
 
-### Where an app runs — the cloud, always
-An installed app is a cloud instance: one machine per install, its store in
-the cloud, its UI a panel on the web and the desktop alike. There is no
-"local" or "per-home" app and the manifest carries no word on it; a "data"
-key in glyphh.app.json is ignored.
+### The worker (worker.js)
+Sandboxed: NO fetch / require / import / process / network / node. Its whole
+world is the glyphh object:
+- glyphh.handle("name", async (args) => result) — register a tool or cron
+  handler, synchronously at the top level (10 s to be ready).
+- await glyphh.call(capability, args) → { ok: true, result } | { ok: false, error }.
+  It never throws for a capability error — check ok.
+- glyphh.app.slug; console.log/warn/error (to the app server's log);
+  setTimeout/clearTimeout. A handler has 60 s.
+Keep it stateless: state lives in the database.
 
-### Security lines (validated at ship AND enforced at runtime)
-- NO runtime network from the UI: no remote <script>/<link>, no CDN, no fetch
-  to outside origins. Everything is bundled into dist/ at build time. The
-  panel's CSP (script-src 'self' file:, connect-src 'none') enforces this; the
-  validator refuses a bundle that ships remote references at all.
-- The UI reaches the host ONLY through window.glyphh.call(method, args). All
-  data access, connectors, and storage go through declared capabilities.
-- worker.js is sandboxed: NO fetch / require / import / network / node. Its
-  whole world is the SDK: glyphh.handle("name", async (args) => result) to
-  register a tool/cron handler; await glyphh.call(cap, args) →
-  {ok,result}|{ok:false,error}; glyphh.app.slug. State lives in db.exec.
-These are policy, not style: the platform will not install or publish a bundle
-that crosses them.
+### Capabilities (declare each one in manifest capabilities)
+- db.exec { sql, params? } — POSTGRES SQL in the app's own schema. $1, $2
+  params; ONE statement per call; unqualified table names; create tables on
+  first use with CREATE TABLE IF NOT EXISTS (SERIAL / jsonb / timestamptz /
+  text). Returns { rows } for a query, { rowCount } otherwise. Refused:
+  CREATE/ALTER/DROP SCHEMA, SET search_path, multiple statements.
+- vector.upsert { collection, items: [{ id, text, metadata? }] },
+  vector.search { collection, query, k?, filter? } → { matches: [{ id, text,
+  metadata, score }] }, vector.delete { collection, ids } — pgvector underneath,
+  embedded with the org's embedding model.
+- graph.cypher { query, params? } — NEO4J Cypher over a property graph:
+  CREATE (n:Person {name: $name}), MATCH (a:Person)-[:KNOWS*1..2]->(b) RETURN b,
+  MERGE, variable-length paths. No Kuzu DDL (no CREATE NODE TABLE). Labels and
+  relationship types are the app's own; the server prefixes them per instance.
+  Returns { rows }.
+- connector.status {} → [{ connector, connected, healthy }];
+  connector.tools { connector? } → [{ connector, name, description, inputSchema }];
+  connector.call { connector, tool, args } → the connected account's answer.
+  Scoped to the manifest's connectors. Gate the UI on connector.status and say
+  "Connect X in Glyphh" instead of failing.
+- cron.schedule { id, cron, handler, args? } (5-field cron, an upsert — re-register
+  on every worker start), cron.cancel { id }, cron.list {}. Firings run as the
+  instance's owner. At most 20 per instance.
+- notify.send { title, body } — a notification to the member.
+- secrets.get { key }, secrets.list {} — config vars the member sets on the app.
+- app.call { app, tool, args } — another installed app's tool, through the
+  framework (never your own handlers: call those functions directly).
+There is no llm.*, agent.run, contacts.search or messages.send: the agent
+writes, summarizes and classifies, then calls your tools with the result;
+people are reached through connectors (gmail, slack, …).
 
-### Version control (the workspace is a real repo)
-Initialize git before building (.gitignore: node_modules/, dist/, .env). Work
-on a branch, commit in small meaningful steps after green builds, and never
-commit node_modules/ or dist/.`;
+### The UI
+The page reaches the host ONLY through the injected shim:
+window.glyphh.call(capability, args) → { ok, result } | { ok: false, error }
+(the same capabilities, as the signed-in member; "ping" answers { pong: true }).
+The UI and the worker share the DATABASE, not business logic: the UI reads and
+writes with db.exec; the worker's handlers back the agent's tools. Call the
+shim from client components ("use client") in effects and handlers, never
+during render. No remote <script>/<link>/CDN — everything is bundled at build
+time; no fetch to other origins.
+
+### Build → deploy
+1. npm install && npm run build — Next.js exports out/.
+2. Deploy from the Code session's folder with app_deploy { slug, kind?, note? }:
+   the folder (manifest.json + package.json + …) is tarred, built by the
+   platform (npm ci, next build with the instance's base path, worker.js bundled
+   with esbuild and linted), zipped as manifest.json + ui/ + worker.js, and
+   recorded as the next release n, pinned. The answer carries { key, release,
+   log tail, tools }. app_releases { app } lists releases; app_pin { app, n }
+   rolls back. app_install { bundleBase64 } installs an already BUILT bundle.
+Re-deploy after any change, or the instance runs the old release. Never ship
+through a login or device-auth flow — the session is already authenticated.
+
+### Version control
+Initialize git before building (.gitignore: node_modules/, .next/, out/, .env).
+Commit in small steps after green builds; never commit node_modules, .next or out.`;

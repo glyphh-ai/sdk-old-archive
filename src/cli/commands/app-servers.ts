@@ -1,10 +1,9 @@
 /**
  * @license Proprietary — © Glyphh. All rights reserved.
  *
- * commands/app-servers.ts — the dedicated app-server surface: the image SKU picker,
- * the super-admin catalog CRUD, and the per-app deploy-to-server + custom-domain
- * operations (which live on `client.hosting`). One command per SDK method; `covers`
- * keeps the parity test honest.
+ * commands/app-servers.ts — the super-admin app-server image SKU catalog CRUD
+ * (`client.admin.*AppServerImage*`). One command per SDK method; `covers` keeps
+ * the parity test honest.
  */
 
 import type { CommandRegistry } from "../registry.js";
@@ -36,95 +35,6 @@ function patchFromFlags(args: CliArgs): AdminAppServerImageUpdate {
 }
 
 export function registerAppServers(reg: CommandRegistry): void {
-  // ── the org-facing size picker ──────────────────────────────────────────────
-  reg.register({
-    path: "app-servers list",
-    summary: "the app-server sizes available to your org (its region's active SKUs)",
-    covers: ["appServers.list"],
-    async run(ctx) {
-      ctx.printJson(await ctx.client.appServers.list());
-    },
-  });
-
-  // ── deploy an app to its own dedicated server ───────────────────────────────
-  reg.register({
-    path: "app-servers deploy",
-    summary: "deploy an app to its OWN dedicated server (org_admin)",
-    usage: "app-servers deploy <appSlug> --image <key> [--release <id>]",
-    covers: ["hosting.deployToServer"],
-    async run(ctx, args) {
-      const appSlug = args.positional[0];
-      const imageKey = flagStr(args, "image");
-      if (!appSlug || !imageKey) throw new Error("usage: app-servers deploy <appSlug> --image <key> [--release <id>]");
-      const releaseId = flagStr(args, "release");
-      ctx.printJson(await ctx.client.hosting.deployToServer(appSlug, releaseId ? { imageKey, releaseId } : { imageKey }));
-    },
-  });
-
-  reg.register({
-    path: "app-servers deployments",
-    summary: "an app's dedicated-server deployments",
-    usage: "app-servers deployments <appSlug>",
-    covers: ["hosting.serverDeployments"],
-    async run(ctx, args) {
-      const appSlug = args.positional[0];
-      if (!appSlug) throw new Error("usage: app-servers deployments <appSlug>");
-      ctx.printJson(await ctx.client.hosting.serverDeployments(appSlug));
-    },
-  });
-
-  reg.register({
-    path: "app-servers destroy",
-    summary: "tear down a dedicated server (machine + its Postgres)",
-    usage: "app-servers destroy <appSlug> <deploymentId>",
-    covers: ["hosting.destroyServer"],
-    async run(ctx, args) {
-      const [appSlug, deploymentId] = args.positional;
-      if (!appSlug || !deploymentId) throw new Error("usage: app-servers destroy <appSlug> <deploymentId>");
-      await ctx.client.hosting.destroyServer(appSlug, deploymentId);
-      ctx.printJson({ destroyed: deploymentId });
-    },
-  });
-
-  // ── custom domains ──────────────────────────────────────────────────────────
-  reg.register({
-    path: "domains add",
-    summary: "point a custom domain at a dedicated server (returns DNS records to publish)",
-    usage: "domains add <appSlug> <hostname> --deployment <id>",
-    covers: ["hosting.addDomain"],
-    async run(ctx, args) {
-      const [appSlug, hostname] = args.positional;
-      const deploymentId = flagStr(args, "deployment");
-      if (!appSlug || !hostname || !deploymentId) throw new Error("usage: domains add <appSlug> <hostname> --deployment <id>");
-      ctx.printJson(await ctx.client.hosting.addDomain(appSlug, { hostname, deploymentId }));
-    },
-  });
-
-  reg.register({
-    path: "domains list",
-    summary: "an app's custom domains",
-    usage: "domains list <appSlug>",
-    covers: ["hosting.domains"],
-    async run(ctx, args) {
-      const appSlug = args.positional[0];
-      if (!appSlug) throw new Error("usage: domains list <appSlug>");
-      ctx.printJson(await ctx.client.hosting.domains(appSlug));
-    },
-  });
-
-  reg.register({
-    path: "domains remove",
-    summary: "remove a custom domain (and its Cloudflare hostname)",
-    usage: "domains remove <appSlug> <domainId>",
-    covers: ["hosting.removeDomain"],
-    async run(ctx, args) {
-      const [appSlug, domainId] = args.positional;
-      if (!appSlug || !domainId) throw new Error("usage: domains remove <appSlug> <domainId>");
-      await ctx.client.hosting.removeDomain(appSlug, domainId);
-      ctx.printJson({ removed: domainId });
-    },
-  });
-
   // ── super-admin catalog CRUD (the runtime-image treatment) ──────────────────
   reg.register({
     path: "admin app-servers list",
