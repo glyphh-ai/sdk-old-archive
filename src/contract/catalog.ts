@@ -149,7 +149,10 @@ export interface VoiceSettings {
 
 /** The defaults a fresh account starts from. */
 export const DEFAULT_VOICE_SETTINGS: VoiceSettings = {
-  inputModel: null, outputModel: null, voiceId: null, deviceId: null, mode: "off", autoplay: true, brief: false,
+  // The mic is ON by default (his order, 2026-10-06: the voice features are
+  // always on and available); the super admin's speech models fill the model
+  // fields on the client when a member never picked. "off" is a member's choice.
+  inputModel: null, outputModel: null, voiceId: null, deviceId: null, mode: "push-to-talk", autoplay: true, brief: false,
 };
 
 // ── Hugging Face open-weight search (proxied server-side) ─────────────────────
