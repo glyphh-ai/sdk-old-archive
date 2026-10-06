@@ -16,6 +16,7 @@ import { createLogger, type LoggerOptions } from "./core/logger.js";
 import { AuthedHttp } from "./core/authed-http.js";
 import { SseTransport } from "./transport/sse-transport.js";
 import { HarnessClient, type HarnessRunOptions, type HarnessStartOptions } from "./transport/harness.js";
+import type { HarnessSurface } from "./contract/harness.js";
 import { Session, type SessionConfig } from "./session/session.js";
 import { OrgClient } from "./resources/org.js";
 import { MembersClient } from "./resources/members.js";
@@ -105,6 +106,12 @@ export interface RunTurnOptions {
   images?: Array<{ mediaType: string; data: string }>;
   /** The loop's memory policy (rides to the runtime as HarnessMemoryPolicy). */
   memory?: unknown;
+  /** WHERE THE CALLER IS (HarnessSurface): "web" from app.glyphh.ai, "desktop"
+   *  from the desktop's cloud lane, "cli" from a CLI. A cloud turn carries it
+   *  in the run body so the pod's window tools act on the right surface (on
+   *  the web the page opens things itself; a desktop keeps the relay). A
+   *  desktop-relay turn ignores it — the machine IS the surface. */
+  surface?: HarnessSurface;
   signal?: AbortSignal;
 }
 
@@ -504,6 +511,7 @@ export function createClient(opts: ClientOptions): Client {
         ...(ropts.effort ? { effort: ropts.effort } : {}),
         ...(ropts.images && ropts.images.length ? { images: ropts.images } : {}),
         ...(ropts.memory ? { memory: ropts.memory } : {}),
+        ...(ropts.surface ? { surface: ropts.surface } : {}),
         ...(signal ? { signal } : {}),
       } as HarnessStartOptions;
       return hc.start(body) as unknown as RunHandle;
