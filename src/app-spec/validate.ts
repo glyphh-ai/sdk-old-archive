@@ -53,6 +53,11 @@ export const KNOWN_CAPABILITIES: ReadonlySet<string> = new Set([
   "connector.status", "connector.tools", "connector.call",
   "secrets.get", "secrets.list",
   "app.call",
+  // The member library's house kinds (image, video, audio, file, folder,
+  // design, deck) as the calling member, and image generation through the
+  // gateway — the house apps' two capabilities (2026-10-06).
+  "library.list", "library.get", "library.put", "library.remove", "library.fileGet", "library.filePut",
+  "images.generate",
 ]);
 
 /** Names that used to be capabilities and refuse on the app server now, with

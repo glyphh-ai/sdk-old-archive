@@ -82,6 +82,12 @@ Keep it stateless: state lives in the database.
   instance's owner. At most 20 per instance.
 - notify.send { title, body } — a notification to the member.
 - secrets.get { key }, secrets.list {} — config vars the member sets on the app.
+- library.list/get/put/remove { kind, … } and library.fileGet/filePut — the
+  member library's house kinds (image, video, audio, file, folder, design,
+  deck) as the calling member: what Images, Drive, Design and Slides are
+  built on. The app that owns a thing publishes tools for it.
+- images.generate { prompt, model?, size?, n? } — an image from the gateway
+  as the member, base64 back; the Images app's generate_image files it.
 - app.call { app, tool, args } — another installed app's tool, through the
   framework (never your own handlers: call those functions directly).
 There is no llm.*, agent.run, contacts.search or messages.send: the agent
