@@ -85,7 +85,7 @@ Keep it stateless: state lives in the database.
 - library.list/get/put/remove { kind, … } and library.fileGet/filePut — the
   member library's house kinds (image, video, audio, file, folder, design,
   deck) as the calling member: what Images, Drive, Design and Slides are
-  built on. The app that owns a thing publishes tools for it.
+  built on. The app that owns a thing exposes the tools for it.
 - images.generate { prompt, model?, size?, n? } — an image from the gateway
   as the member, base64 back; the Images app's generate_image files it.
 - app.call { app, tool, args } — another installed app's tool, through the
