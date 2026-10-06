@@ -123,6 +123,7 @@ export interface RunHandle {
 }
 import { RotorConfigClient } from "./resources/rotor-config.js";
 import { GatewayClient } from "./resources/gateway.js";
+import { AdaClient } from "./resources/ada.js";
 import { GuestClient } from "./resources/guest.js";
 import { SkillsClient } from "./resources/skills.js";
 import { AgentsClient } from "./resources/agents.js";
@@ -301,6 +302,8 @@ export interface Client {
   models: ModelsClient;
   /** The metered model call — the one egress for model traffic. */
   gateway: GatewayClient;
+  /** Ada: the org's graded precedent — record outcomes, ask with fact trees. */
+  ada: AdaClient;
   /** The anonymous (no-account) chat surface — mint a guest token + chat via the gateway. */
   guest: GuestClient;
   /** App-icon resolution — the server's cached icon for a domain, as a URL an
@@ -415,6 +418,7 @@ export function createClient(opts: ClientOptions): Client {
     orgModels: new OrgModelsClient(authed),
     models: new ModelsClient(authed),
     gateway,
+    ada: new AdaClient(authed, gateway),
     // The guest surface rides the UNAUTHENTICATED transport — a guest token is not a
     // session bearer, it is carried per-call.
     guest: new GuestClient(http),
