@@ -45,9 +45,8 @@ import { MusicClient } from "./resources/music.js";
 import { GitClient } from "./resources/git.js";
 import { EnvironmentsClient } from "./resources/environments.js";
 import { ArtifactsClient } from "./resources/artifacts.js";
-import { AppsClient } from "./resources/apps.js";
 import { MarketplaceClient, LibraryMarketClient } from "./resources/marketplace.js";
-import { HostingClient } from "./resources/hosting.js";
+import { AppInstancesClient } from "./resources/app-instances.js";
 import { LibraryClient } from "./resources/library.js";
 import { MemberLibraryClient } from "./resources/member-library.js";
 import { RelayClient } from "./resources/relay.js";
@@ -133,7 +132,6 @@ import { ProfileClient } from "./resources/profile.js";
 import { SupportClient } from "./resources/support.js";
 import { OAuthClient } from "./resources/oauth.js";
 import { RuntimeImagesClient } from "./resources/runtime-images.js";
-import { AppServersClient } from "./resources/app-servers.js";
 import type { Identity, StoredSession } from "./contract/auth.js";
 
 export interface ClientOptions {
@@ -209,8 +207,6 @@ export interface Client {
   releases: ReleasesClient;
   /** Runtime image SKUs (§7b) — the org's picker, current image, and change requests. */
   runtimeImages: RuntimeImagesClient;
-  /** App-server image SKUs — the size picker for deploying an app to its own server. */
-  appServers: AppServersClient;
   /** The provider/model catalog (read). */
   catalog: CatalogClient;
   /** Voice runtime — transcribe (STT) + synthesize (TTS). */
@@ -264,14 +260,12 @@ export interface Client {
   environments: EnvironmentsClient;
   /** Artifacts — pages and files the loop published for the member: list, share, comment. */
   artifacts: ArtifactsClient;
-  /** The apps marketplace — browse, publish, install. */
-  apps: AppsClient;
+  /** Installed apps — instances on the app server: install, build from source, releases, pin, invoke. */
+  appInstances: AppInstancesClient;
   /** Marketplace developer profiles + developer reviews. */
   marketplace: MarketplaceClient;
   /** Skills + loops marketplace — free installs, org share queue, review desk. */
   libraryMarket: LibraryMarketClient;
-  /** App hosting — deploy a published app to `<slug>.glyphh.app`. */
-  hosting: HostingClient;
   /** Rotor-loop library (personal + org). */
   rotors: LibraryClient;
   /** Skill library — manifest + prompt + optional program (org_admin builds). */
@@ -375,7 +369,6 @@ export function createClient(opts: ClientOptions): Client {
     billing: new BillingClient(authed),
     releases: new ReleasesClient(authed),
     runtimeImages: new RuntimeImagesClient(authed),
-    appServers: new AppServersClient(authed),
     catalog: new CatalogClient(authed),
     voice: new VoiceClient(authed),
     providers: new ProvidersClient(authed),
@@ -400,10 +393,9 @@ export function createClient(opts: ClientOptions): Client {
     git: new GitClient(authed),
     environments: new EnvironmentsClient(authed),
     artifacts: new ArtifactsClient(authed),
-    apps: new AppsClient(authed),
+    appInstances: new AppInstancesClient(authed),
     marketplace: new MarketplaceClient(authed),
     libraryMarket: new LibraryMarketClient(authed),
-    hosting: new HostingClient(authed),
     rotors: new LibraryClient(authed, "rotor"),
     skills: new SkillsClient(authed),
     agents: new AgentsClient(authed),
