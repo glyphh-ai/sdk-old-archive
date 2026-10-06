@@ -45,25 +45,19 @@ STRICT JSON. REQUIRED: "kind": "glyphh-app", "name", "slug" (lowercase
 Recommended: "description", "version" (semver), "icon" (emoji), "category",
 "keywords", "about".
 Optional: "worker": "worker.js", "window": {width,height}, "capabilities": [...],
-"connectors": [...] (connection slugs), "tools": [...],
-"data": "cloud" | "local" | "per-home" (where the app's data lives, see below).
+"connectors": [...] (connection slugs), "tools": [...].
 Each tool: { "name", "description", "handler" XOR "capability", "inputSchema" }.
 Exactly one of handler|capability per tool. Every capability a tool names must
 be in the top-level capabilities list; connector.* capabilities need a
 non-empty connectors list; NEVER expose agent.run as a tool.
 
-### Where the app's data lives — "data" (the AUTHOR declares it, never the user)
-An app is a row in the db. The user never picks where an app's data lives:
-you, the author, declare it in the manifest. Omitted = "cloud".
-- "cloud" — one store, in the cloud; the app is reachable from anywhere.
-- "local" — one store on the member's desktop; the data never leaves the
-  machine. The marketplace shows a "Local data" badge, and a local app cannot
-  install from the web without a connected desktop.
-- "per-home" — a store in each home the member has (desktop + cloud), each
-  scoped to that home's documents (the house apps' shape).
-Anything else is a validation error.
+### Where an app runs — the cloud, always
+An installed app is a cloud instance: one machine per install, its store in
+the cloud, its UI a panel on the web and the desktop alike. There is no
+"local" or "per-home" app and the manifest carries no word on it; a "data"
+key in glyphh.app.json is ignored.
 
-### Security lines (LOCAL apps — validated at ship AND enforced at runtime)
+### Security lines (validated at ship AND enforced at runtime)
 - NO runtime network from the UI: no remote <script>/<link>, no CDN, no fetch
   to outside origins. Everything is bundled into dist/ at build time. The
   panel's CSP (script-src 'self' file:, connect-src 'none') enforces this; the
