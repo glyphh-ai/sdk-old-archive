@@ -23,7 +23,7 @@ export { HARNESS_WIRE_VERSION, isHarnessTerminal, isHarnessWireFrame } from "./c
 export type {
   HarnessFrame, HarnessWireFrame, HarnessAskQuestion, HarnessActionKind, HarnessMode,
   HarnessPermission, HarnessRunBody, HarnessRunAck, HarnessAnswer, HarnessRunResult,
-  HarnessAttachmentRef, HarnessChatTurn, HarnessMcpServerRef, HarnessImageRef,
+  HarnessAttachmentRef, HarnessChatTurn, HarnessMcpServerRef, HarnessImageRef, HarnessSurface,
 } from "./contract/harness.js";
 
 export { AuthClient } from "./auth/auth-client.js";

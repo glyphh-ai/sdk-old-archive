@@ -25,6 +25,7 @@ export function registerHarness(reg: CommandRegistry): void {
       const pod = ctx.client.harness({ url, ...(token ? { token: async () => token } : {}) });
       const run = pod.start({
         prompt,
+        surface: "cli", // the window tools act where the caller is (HarnessSurface)
         ...(thread ? { threadId: thread } : {}),
         ...(mode === "chat" || mode === "cowork" || mode === "code" ? { mode } : {}),
       });

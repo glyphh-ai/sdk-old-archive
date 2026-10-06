@@ -43,6 +43,11 @@ export type HarnessPermission = "ask" | "plan" | "acceptEdits" | "auto" | "bypas
 /** A harness event frame, pre-envelope. Shapes mirror the pod's emit sites. */
 export type HarnessFrame =
   | { type: "delta"; delta: string }
+  /** The agent asked to SHOW something and the watching surface renders it
+   *  itself: `ref` is an app slug, `layout:<name>` (a saved workspace) or
+   *  `settings:<page>`; `url` opens a page. A web run's window tools answer
+   *  with this frame instead of relaying to a desktop (2026-10-06). */
+  | { type: "open-app"; ref?: string; url?: string }
   | {
       type: "tool";
       phase: "start" | "done";
@@ -112,10 +117,20 @@ export interface HarnessImageRef {
   data: string;
 }
 
+/** WHERE THE CALLER IS (surface-aware window tools, 2026-10-06): the surface
+ *  the member is looking at when the run starts. The pod keeps it on the run
+ *  and sends it to the gateway's /mcp as `x-glyphh-surface`; on the web the
+ *  window tools (panels_open / layouts_open / settings_open) answer with an
+ *  `open-app` frame the page acts on itself, and nothing is relayed to a
+ *  desktop. Absent → the pod treats the run as a desktop/CLI one (today's relay). */
+export type HarnessSurface = "web" | "desktop" | "cli";
+
 /** The `POST /run` body (prompt required; the bearer defaults `runtimeToken`
  *  and the token's binding defaults `sessionId` — omit both normally). */
 export interface HarnessRunBody {
   prompt: string;
+  /** The caller's surface — see {@link HarnessSurface}. */
+  surface?: HarnessSurface;
   /** The CLIENT's thread id (`^[A-Za-z0-9_-]{1,64}$`) — scopes the recorded
    *  transcript; auth stays bound to the token's sessionId. */
   threadId?: string;
