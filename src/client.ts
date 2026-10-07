@@ -134,6 +134,7 @@ export interface RunHandle {
 import { RotorConfigClient } from "./resources/rotor-config.js";
 import { GatewayClient } from "./resources/gateway.js";
 import { AdaClient } from "./resources/ada.js";
+import { SystemOneClient } from "./resources/systemone.js";
 import { GuestClient } from "./resources/guest.js";
 import { SkillsClient } from "./resources/skills.js";
 import { AgentsClient } from "./resources/agents.js";
@@ -309,6 +310,13 @@ export interface Client {
   gateway: GatewayClient;
   /** Ada: the org's graded precedent — record outcomes, ask with fact trees. */
   ada: AdaClient;
+  /** Jev (TypeSafe's System One decision model) through GlyphhRouter's
+   *  /v1/systemone: a state + typed questions → numeric answers. */
+  decide: SystemOneClient["decide"];
+  /** Route a state to one of `branches` with one Jev `choice` question —
+   *  deterministic: highest probability, ties to the first branch listed,
+   *  `fallback` under `minConfidence`. */
+  route: SystemOneClient["route"];
   /** The anonymous (no-account) chat surface — mint a guest token + chat via the gateway. */
   guest: GuestClient;
   /** App-icon resolution — the server's cached icon for a domain, as a URL an
@@ -363,6 +371,7 @@ export function createClient(opts: ClientOptions): Client {
   // refresh signs out); a static credential has nothing to refresh.
   const authed = new AuthedHttp(http, token, staticCred ? undefined : () => refresh.onUnauthorized());
   const gateway = new GatewayClient(authed);
+  const systemOne = new SystemOneClient(gateway, opts.fetch);
   // `authed` is built first: the device grant's APPROVE leg is performed BY the
   // signed-in user, so AuthClient needs an authenticated transport for it.
   const auth = new AuthClient(http, refresh, authed);
@@ -422,6 +431,8 @@ export function createClient(opts: ClientOptions): Client {
     models: new ModelsClient(authed),
     gateway,
     ada: new AdaClient(authed, gateway),
+    decide: systemOne.decide,
+    route: systemOne.route,
     // The guest surface rides the UNAUTHENTICATED transport — a guest token is not a
     // session bearer, it is carried per-call.
     guest: new GuestClient(http),
