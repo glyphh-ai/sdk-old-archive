@@ -114,6 +114,8 @@ export interface RunTurnOptions {
   surface?: HarnessSurface;
   /** The attached desktops this session may reach over the relay (HarnessRunBody.devices). */
   devices?: string[];
+  /** The turn's own folder per machine, beside the grants (HarnessRunBody.folders). */
+  folders?: Record<string, string[]>;
   signal?: AbortSignal;
 }
 
@@ -515,6 +517,7 @@ export function createClient(opts: ClientOptions): Client {
         ...(ropts.memory ? { memory: ropts.memory } : {}),
         ...(ropts.surface ? { surface: ropts.surface } : {}),
         ...(ropts.devices && ropts.devices.length ? { devices: ropts.devices } : {}),
+        ...(ropts.folders && Object.keys(ropts.folders).length ? { folders: ropts.folders } : {}),
         ...(signal ? { signal } : {}),
       } as HarnessStartOptions;
       return hc.start(body) as unknown as RunHandle;
