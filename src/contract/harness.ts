@@ -138,6 +138,13 @@ export interface HarnessRunBody {
    *  device_search / device_write_file) reach ONLY those machines, inside
    *  ONLY the folders each granted for remote control. Absent → no device tool answers. */
   devices?: string[];
+  /** THE TURN'S OWN FOLDER ON THE MACHINE IT WAS BORN ON (his report,
+   *  2026-10-07: a desktop Work session pointed at a local folder could not
+   *  reach it). Machine id → absolute folders the device tools may reach for
+   *  this turn, on top of what each machine granted for remote control. The
+   *  pod sends it to the gateway's /mcp as `x-glyphh-folders`; the gateway
+   *  honours it only for machines named in `devices`. */
+  folders?: Record<string, string[]>;
   /** The CLIENT's thread id (`^[A-Za-z0-9_-]{1,64}$`) — scopes the recorded
    *  transcript; auth stays bound to the token's sessionId. */
   threadId?: string;
