@@ -32,8 +32,7 @@ import { McpHttpClient, resultImages, resultText, splitDataImages } from "./mcp.
 import { CALL_TOOL, FIND_TOOL, callToolSpec, familyOf, findToolSpec, searchCatalog, skillsIndex, type LoopCatalogEntry, type LoopSkill } from "./catalog.js";
 import {
   streamMessage, isTextBlock, isToolUseBlock,
-  type ContentBlock, type FetchLike, type ImageParam, type LoopEffort, type MessageParam, type TextParam, type ToolResultBlock, type ToolSpec,
-} from "./messages.js";
+  type ContentBlock, type FetchLike, type ImageParam, type LoopEffort, type MessageParam, type TextParam, type ToolResultBlock, type ToolSpec, withConversationCacheMark } from "./messages.js";
 
 export { LOOP_EFFORTS, type LoopEffort } from "./messages.js";
 
@@ -685,7 +684,10 @@ export class GlyphhLoop {
       if (signal.aborted) break;
       const final = await streamMessage({
         ...wire, signal, ...(this.deps.fetch ? { fetch: this.deps.fetch } : {}),
-        body: { model: c.model, max_tokens: MAX_TOKENS_OUT, system, messages: c.messages, tools, ...(c.effort ? { reasoning_effort: c.effort } : {}) },
+        // The transcript rides with its cache breakpoint on the newest message
+        // (withConversationCacheMark): the next round reads every earlier
+        // turn from the cache instead of paying for it again.
+        body: { model: c.model, max_tokens: MAX_TOKENS_OUT, system, messages: withConversationCacheMark(c.messages), tools, ...(c.effort ? { reasoning_effort: c.effort } : {}) },
         onText: (delta) => { answer += delta; this.send(c, { type: "delta", delta }); },
         onThinking: (text) => this.send(c, { type: "thinking", chatId: c.chatId, text }),
       });
@@ -809,12 +811,22 @@ export class GlyphhLoop {
       c.toolsStale = false;
     }
     this.send(c, { type: "setup", phase: "ready", model, loop: "glyphh" });
+    // What the member has told us before, if the host keeps memory. IT RIDES
+    // THE USER'S MESSAGE, not the system prompt (his question, 2026-10-07:
+    // "why are we not using prompt caching through the gateway?"): as a second
+    // system block it changed every turn, and the cache prefix runs tools →
+    // system → messages, so nothing after it could ever be read from the cache
+    // — the whole transcript was re-sent uncached. In the turn's own message
+    // it is part of the history like everything else the member sent, and the
+    // prefix before each new turn stays identical.
+    const recalled = this.deps.facts && t.text ? await this.deps.facts(t.text, scope).catch(() => "") : "";
     if (t.text || t.images?.length) {
       const blocks: Array<ContentBlock | ToolResultBlock> = [
         ...(t.text ? [{ type: "text", text: t.text } as ContentBlock] : []),
         ...(t.images ?? []) as ContentBlock[],
+        ...(recalled.trim() ? [{ type: "text", text: recalled } as ContentBlock] : []),
       ];
-      c.messages.push({ role: "user", content: t.images?.length ? blocks : t.text });
+      c.messages.push({ role: "user", content: blocks.length === 1 && t.text ? t.text : blocks });
     }
     try {
       // THE BELT BEFORE THE BRIEF: connecting the lent servers is what tells us
@@ -823,13 +835,6 @@ export class GlyphhLoop {
       // "no tools" (caught by the MCP test). Cached, so rounds() re-uses it.
       await this.toolset(c);
       const system: TextParam[] = [{ type: "text", text: systemPrompt(c.workdir, GlyphhLoop.promptExtras(c, this.deps.host)), cache_control: { type: "ephemeral" } }];
-      // What the member has told us before, if the host keeps memory. A second
-      // block, uncached on purpose: it changes every turn, and caching it would
-      // poison the prefix the first block earns.
-      if (this.deps.facts && t.text) {
-        const recalled = await this.deps.facts(t.text, scope).catch(() => "");
-        if (recalled.trim()) system.push({ type: "text", text: recalled });
-      }
       const answer = await this.rounds(c, wire, system, signal);
       // The turn is over and it was not aborted: hand the exchange to memory.
       // A stopped turn is not remembered — it is half a thought.
