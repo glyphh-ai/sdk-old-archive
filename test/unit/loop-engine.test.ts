@@ -141,6 +141,26 @@ describe("GlyphhLoop", () => {
     expect(loop.has("c")).toBe(true);
   });
 
+  it("standing text is a second CACHED system block; recalled facts ride the user's message (2026-10-07)", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "gl-"));
+    const wire = fakeWire([{ text: "ok", stop: "end_turn" }]);
+    const loop = new GlyphhLoop({
+      shell: plainShell, gateway, fetch: wire.fetchLike,
+      standing: async () => "Be brief.",
+      facts: async (q) => `You remember: ${q} was asked before.`,
+    });
+    await collect(loop, { chatId: "s", text: "hi", model: "claude-x", workdir: dir, permission: "ask" });
+    const body = wire.bodies[0]!;
+    const system = body.system as Array<{ text: string; cache_control?: unknown }>;
+    expect(system).toHaveLength(2);
+    expect(system[1]).toEqual({ type: "text", text: "Be brief.", cache_control: { type: "ephemeral" } });
+    const first = (body.messages as Array<{ role: string; content: unknown }>)[0]!;
+    expect(first.content).toEqual([
+      { type: "text", text: "hi" },
+      { type: "text", text: "You remember: hi was asked before.", cache_control: { type: "ephemeral" } },
+    ]);
+  });
+
   it("a shell step PARKS on an approval; the answer resumes it; a denial is a tool_result the model sees", async () => {
     const dir = mkdtempSync(join(tmpdir(), "gl-"));
     const wire = fakeWire([
