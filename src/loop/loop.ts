@@ -113,12 +113,19 @@ export interface LoopDeps {
   shell?: ShellLauncher;
   /** MEMORY, NATIVE (his order, 2026-09-28: the bridge goes, the memory lane
    *  stays through this loop). `facts` is asked for relevant context before the
-   *  turn and, when it returns text, it rides as a second system block;
-   *  `capture` is handed the exchange once the turn settles. Both are the
-   *  host's business — the engine only calls them, and a host that passes
-   *  neither has no memory, which is exactly the old behaviour. Every model
-   *  gets memory this way, not just the one a proxy happened to sit in front of. */
+   *  turn and, when it returns text, it rides inside the turn's own user
+   *  message (2026-10-07: it changes every turn, so as a system block it broke
+   *  the cache prefix before the transcript); `capture` is handed the exchange
+   *  once the turn settles. Both are the host's business — the engine only
+   *  calls them, and a host that passes neither has no memory, which is
+   *  exactly the old behaviour. Every model gets memory this way, not just
+   *  the one a proxy happened to sit in front of. */
   facts?: (userText: string, scope: { folder: string; workspace?: string }) => Promise<string>;
+  /** STANDING TEXT (2026-10-07): what a host wants in the system prompt for the
+   *  whole chat — a run's own instructions, a workspace note — the SAME every
+   *  turn. It rides as a second, CACHED system block: constant text belongs
+   *  in the prefix, where the cache reads it back. Per-turn text is `facts`. */
+  standing?: (scope: { folder: string; workspace?: string }) => Promise<string>;
   capture?: (userText: string, answer: string, scope: { folder: string; workspace?: string }) => void;
   host?: LoopHost;
   fetch?: FetchLike;
@@ -835,6 +842,9 @@ export class GlyphhLoop {
       // "no tools" (caught by the MCP test). Cached, so rounds() re-uses it.
       await this.toolset(c);
       const system: TextParam[] = [{ type: "text", text: systemPrompt(c.workdir, GlyphhLoop.promptExtras(c, this.deps.host)), cache_control: { type: "ephemeral" } }];
+      // The host's standing text: a second cached block, the same every turn.
+      const standing = this.deps.standing ? await this.deps.standing(scope).catch(() => "") : "";
+      if (standing.trim()) system.push({ type: "text", text: standing, cache_control: { type: "ephemeral" } });
       const answer = await this.rounds(c, wire, system, signal);
       // The turn is over and it was not aborted: hand the exchange to memory.
       // A stopped turn is not remembered — it is half a thought.
