@@ -24,6 +24,36 @@ export type TextParam = { type: "text"; text: string; cache_control?: { type: "e
 /** An image the host read for the user (a paste, a drop, a screenshot). */
 export type ImageParam = { type: "image"; source: { type: "base64"; media_type: string; data: string } };
 export interface MessageParam { role: "user" | "assistant"; content: string | Array<ContentBlock | ToolResultBlock> }
+
+/** THE CONVERSATION'S CACHE BREAKPOINT (his question, 2026-10-07: "why are we
+ *  not using prompt caching through the gateway?"). Anthropic caches the
+ *  prefix up to a marker, in order: tools, system, then the messages. A marker
+ *  on the system prompt alone caches the tools and the brief and nothing
+ *  else, so every turn re-sent the whole transcript uncached. Marking the last
+ *  block of the last message caches the transcript too: the next turn reads
+ *  everything before its own new message from the cache. Set on the wire
+ *  copy only — the stored history stays clean, so the marker always moves to
+ *  the newest message. A thinking block cannot carry one; the block before it
+ *  does. */
+export function withConversationCacheMark(messages: readonly MessageParam[]): MessageParam[] {
+  if (!messages.length) return [];
+  const out = messages.slice();
+  const last = out[out.length - 1]!;
+  const mark = { cache_control: { type: "ephemeral" as const } };
+  if (typeof last.content === "string") {
+    out[out.length - 1] = { role: last.role, content: [{ type: "text", text: last.content, ...mark }] };
+    return out;
+  }
+  const blocks = last.content.slice();
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    const b = blocks[i]!;
+    if (b.type === "thinking" || b.type === "redacted_thinking") continue;
+    blocks[i] = { ...b, ...mark } as ContentBlock | ToolResultBlock;
+    out[out.length - 1] = { role: last.role, content: blocks };
+    return out;
+  }
+  return out;
+}
 export interface ToolSpec { name: string; description: string; input_schema: Record<string, unknown> }
 
 export interface MessageUsage { input_tokens: number; output_tokens: number; cache_read_input_tokens: number }

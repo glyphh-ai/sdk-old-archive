@@ -130,7 +130,11 @@ describe("GlyphhLoop", () => {
     // The second request carried the tool result and the cached system prompt.
     const second = wire.bodies[1]!;
     const msgs = second.messages as Array<{ role: string; content: unknown }>;
-    expect(msgs[msgs.length - 1]).toEqual({ role: "user", content: [{ type: "tool_result", tool_use_id: "t1", is_error: false, content: "alpha\n" }] });
+    // The newest message carries the conversation's cache breakpoint on the
+    // wire (his question, 2026-10-07): the transcript before it is read back.
+    expect(msgs[msgs.length - 1]).toEqual({ role: "user", content: [{ type: "tool_result", tool_use_id: "t1", is_error: false, content: "alpha\n", cache_control: { type: "ephemeral" } }] });
+    expect(msgs[0]).toEqual({ role: "user", content: "what is in a.txt?" });   // earlier turns stay bare: ONE breakpoint, always the newest
+    expect((wire.bodies[0]!.messages as Array<{ content: unknown }>)[0]!.content).toEqual([{ type: "text", text: "what is in a.txt?", cache_control: { type: "ephemeral" } }]);
     expect((second.system as Array<{ cache_control?: unknown; text: string }>)[0]!.cache_control).toEqual({ type: "ephemeral" });
     expect((second.system as Array<{ text: string }>)[0]!.text).toContain("terminal");
     expect(second.model).toBe("claude-x");
@@ -162,7 +166,7 @@ describe("GlyphhLoop", () => {
     expect(dones[1]!.failed).toBe(true);
     expect(dones[1]!.preview).toBe("not permitted in this mode");
     const third = wire.bodies[2]!.messages as Array<{ content: unknown }>;
-    expect(third[third.length - 1]!.content).toEqual([{ type: "tool_result", tool_use_id: "t2", is_error: true, content: "The user declined this step." }]);
+    expect(third[third.length - 1]!.content).toEqual([{ type: "tool_result", tool_use_id: "t2", is_error: true, content: "The user declined this step.", cache_control: { type: "ephemeral" } }]);
   });
 
   it("plan mode denies edits without asking, and reads freely", async () => {
@@ -424,7 +428,7 @@ describe("GlyphhLoop", () => {
     await first;
     await new Promise((r) => setTimeout(r, 120));   // the drained turn runs
     const sent = wire.bodies.at(-1)!.messages as Array<{ role: string; content: unknown }>;
-    expect(sent.at(-1)).toEqual({ role: "user", content: "two" });
+    expect(sent.at(-1)).toEqual({ role: "user", content: [{ type: "text", text: "two", cache_control: { type: "ephemeral" } }] });   // the wire's cache breakpoint rides the newest message
     // A chat with nothing to say while busy still gets the busy answer.
     const busy: LoopEvent[] = [];
     const running = loop.run({ workdir: SCRATCH, chatId: "c", text: "three", model: "m" }, () => undefined);

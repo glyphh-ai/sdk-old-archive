@@ -6,7 +6,7 @@
  * reads as the gateway's own words, and a JSON (non-streamed) body still works.
  */
 import { describe, it, expect } from "vitest";
-import { assembleStream, sseEvents, streamMessage } from "../../src/loop/messages.js";
+import { assembleStream, sseEvents, streamMessage, withConversationCacheMark } from "../../src/loop/messages.js";
 
 const sse = (events: Array<[string, unknown]>): string =>
   events.map(([e, d]) => `event: ${e}\ndata: ${JSON.stringify(d)}\n\n`).join("");
@@ -125,5 +125,26 @@ describe("streamMessage", () => {
     expect(deltas).toEqual(["plain"]);
     expect(m.stop_reason).toBe("end_turn");
     expect(m.usage.cache_read_input_tokens).toBe(0);
+  });
+});
+
+describe("the conversation's cache breakpoint (his question, 2026-10-07)", () => {
+  it("marks the last block of the last message on a copy; the stored history stays bare", () => {
+    const history = [
+      { role: "user" as const, content: "hi" },
+      { role: "assistant" as const, content: [{ type: "text", text: "hello" }] },
+      { role: "user" as const, content: [{ type: "tool_result", tool_use_id: "t", content: "x" }, { type: "text", text: "and" }] },
+    ];
+    const wire = withConversationCacheMark(history);
+    expect(wire[0]).toEqual({ role: "user", content: "hi" });
+    expect(wire[1]).toEqual({ role: "assistant", content: [{ type: "text", text: "hello" }] });
+    expect(wire[2]).toEqual({ role: "user", content: [{ type: "tool_result", tool_use_id: "t", content: "x" }, { type: "text", text: "and", cache_control: { type: "ephemeral" } }] });
+    expect(history[2]!.content).toEqual([{ type: "tool_result", tool_use_id: "t", content: "x" }, { type: "text", text: "and" }]);
+  });
+  it("a string message becomes one marked text block; a thinking block is skipped for the block before it", () => {
+    expect(withConversationCacheMark([{ role: "user", content: "go" }])).toEqual([{ role: "user", content: [{ type: "text", text: "go", cache_control: { type: "ephemeral" } }] }]);
+    const marked = withConversationCacheMark([{ role: "assistant", content: [{ type: "text", text: "a" }, { type: "thinking", thinking: "…", signature: "s" }] }]);
+    expect(marked[0]!.content).toEqual([{ type: "text", text: "a", cache_control: { type: "ephemeral" } }, { type: "thinking", thinking: "…", signature: "s" }]);
+    expect(withConversationCacheMark([])).toEqual([]);
   });
 });
