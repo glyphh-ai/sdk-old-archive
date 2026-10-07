@@ -106,13 +106,18 @@ time; no fetch to other origins.
 
 ### Build → deploy
 1. npm install && npm run build — Next.js exports out/.
-2. Deploy from the Code session's folder with app_deploy { slug, kind?, note? }:
-   the folder (manifest.json + package.json + …) is tarred, built by the
-   platform (npm ci, next build with the instance's base path, worker.js bundled
-   with esbuild and linted), zipped as manifest.json + ui/ + worker.js, and
-   recorded as the next release n, pinned. The answer carries { key, release,
-   log tail, tools }. app_releases { app } lists releases; app_pin { app, n }
-   rolls back. app_install { bundleBase64 } installs an already BUILT bundle.
+2. Build and run with app_install { dir, kind?, note? } — THE ONE DOOR, BY PATH:
+   dir is the app's folder (default: the session's folder). The runtime tars
+   the source itself; the platform builds it as a JOB (npm ci, next build with
+   the instance's base path, worker.js bundled with esbuild and linted), zips it
+   as manifest.json + ui/ + worker.js, and records it as the next release n,
+   pinned. The answer carries { key, mode, release (null while the job still
+   builds), job, log tail, tools, url }; app_build_status { job } reads a job.
+   NEVER tar, zip or base64 a folder yourself and never paste a bundle into a
+   tool call. app_releases { app } lists releases; app_pin { app, n } rolls back.
+   Start with glyphh_app_scaffold { name, slug?, connections?, tools? }: it
+   writes this starter into the folder with the member's real connected-account
+   tool names, and answers this spec.
 Re-deploy after any change, or the instance runs the old release. Never ship
 through a login or device-auth flow — the session is already authenticated.
 

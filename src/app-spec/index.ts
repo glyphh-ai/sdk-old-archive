@@ -8,6 +8,8 @@
 import { APP_TEMPLATE_FILES } from "./template.js";
 
 export { GLYPHH_APP_SPEC } from "./spec.js";
+export { scaffoldAppFiles, slugOf as appSlugOf, SCAFFOLD_NEXT } from "./scaffold.js";
+export type { ScaffoldOptions, ScaffoldTool, ScaffoldConnection } from "./scaffold.js";
 export {
   validateAppBundle, validateAppProject, parseAppManifest, lintRemoteAssets,
   checkCallTargets, checkCronExpressions, checkSqlDialect, extractConnectorCalls,

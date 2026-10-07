@@ -520,3 +520,31 @@ describe("the effort dial (his order, 2026-10-04: it returns to the desktop and 
     expect(byModel["m-own"]).toBe("low");
   });
 });
+
+describe("A HOST TOOL ON THE BELT (2026-10-07: the worker's app doors)", () => {
+  it("a catalog entry marked belt rides the belt by name and runs through runTool; the rest of the catalog is still found", async () => {
+    const wire = fakeWire(
+      [
+        { tool: { id: "t1", name: "glyphh_app_scaffold", input: { name: "Inbox Pulse" } }, stop: "tool_use" },
+        { text: "done", stop: "end_turn" },
+      ],
+      { tools: [], toolsFor: () => [], call: () => "" },
+    );
+    const runs: unknown[] = [];
+    const loop = new GlyphhLoop({
+      gateway, fetch: wire.fetchLike, shell: plainShell,
+      mcpServers: async () => [],
+      catalog: async () => [
+        { name: "glyphh_app_scaffold", description: "write the starter", family: "apps", belt: true, run: async (args) => { runs.push(args); return { text: JSON.stringify({ dir: "/w/inbox-pulse" }), failed: false }; } },
+        { name: "happy_shoes_add_to_cart", description: "Add a sneaker to the cart", family: "app: Happy Shoes", run: async () => ({ text: "added", failed: false }) },
+      ],
+    });
+    const events = await collect(loop, { chatId: "belt", text: "build it", model: "m", space: "code", permission: "auto" });
+    const names = (wire.bodies[0]!.tools as Array<{ name: string }>).map((t) => t.name);
+    expect(names).toContain("glyphh_app_scaffold");
+    expect(names).not.toContain("happy_shoes_add_to_cart");
+    expect(names).toContain("find_tools");
+    expect(runs).toEqual([{ name: "Inbox Pulse" }]);
+    expect(events.some((e) => e.type === "tool" && e.phase === "done" && e.name === "glyphh_app_scaffold" && !e.failed)).toBe(true);
+  });
+});
