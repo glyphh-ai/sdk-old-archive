@@ -54,6 +54,7 @@ import { registerGuest } from "./commands/guest.js";
 import { registerRuntimeImages } from "./commands/runtime-images.js";
 import { registerAppServers } from "./commands/app-servers.js";
 import { registerIcons } from "./commands/icons.js";
+import { registerDecide } from "./commands/decide.js";
 
 export function buildRegistry(): CommandRegistry {
   const reg = new CommandRegistry();
@@ -87,6 +88,7 @@ export function buildRegistry(): CommandRegistry {
   registerMedia(reg);
   registerMusic(reg);
   registerIcons(reg);
+  registerDecide(reg);
   registerGit(reg);
   registerEnvironments(reg);
   registerArtifacts(reg);
