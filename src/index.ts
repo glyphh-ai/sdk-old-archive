@@ -352,12 +352,12 @@ export type {
 
 // ── App spec + validators + template — the one contract every app builder shares ──
 export {
-  GLYPHH_APP_SPEC, appTemplateFiles,
+  GLYPHH_APP_SPEC, appTemplateFiles, scaffoldAppFiles, appSlugOf, SCAFFOLD_NEXT,
   validateAppBundle, validateAppProject, parseAppManifest, lintRemoteAssets,
   checkCallTargets, checkCronExpressions, checkSqlDialect, extractConnectorCalls,
   KNOWN_CAPABILITIES, RETIRED_CAPABILITIES, MANIFEST_VERSIONS, APP_MANIFEST,
 } from "./app-spec/index.js";
-export type { AppBundle, AppValidationResult, ParsedAppManifest, AppManifestTool } from "./app-spec/index.js";
+export type { AppBundle, AppValidationResult, ParsedAppManifest, AppManifestTool, ScaffoldOptions, ScaffoldTool, ScaffoldConnection } from "./app-spec/index.js";
 
 // The sync rule — last-write-wins per item with tombstones; one pure function
 // the member library and chat threads both reconcile by.

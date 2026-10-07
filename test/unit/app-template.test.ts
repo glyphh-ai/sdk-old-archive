@@ -62,11 +62,12 @@ describe("templates/app-next", () => {
     expect(JSON.parse(files["package.json"]!).scripts.build).toBe("next build");
   });
 
-  it("the spec text describes this spec — Next.js, Postgres, Neo4j, app_deploy; nothing hosted", () => {
-    for (const needle of ["manifestVersion", "next.config.mjs", "GLYPHH_APP_BASE", "$1", "Cypher", "app_deploy", "app_pin", "{ ok: true, result }"]) {
+  it("the spec text describes this spec — Next.js, Postgres, Neo4j, the one install door by path; nothing hosted", () => {
+    for (const needle of ["manifestVersion", "next.config.mjs", "GLYPHH_APP_BASE", "$1", "Cypher", "app_install { dir", "glyphh_app_scaffold", "app_build_status", "app_pin", "{ ok: true, result }"]) {
       expect(GLYPHH_APP_SPEC).toContain(needle);
     }
-    for (const gone of ["<slug>.glyphh.app", ".glyphh.app origin", "glyphh.app.json", "publish", "SQLite", "CREATE NODE TABLE Person", "update_app", "vite"]) {
+    // app_deploy is gone (2026-10-07): the folder goes up by path, never as base64 through the model.
+    for (const gone of ["<slug>.glyphh.app", ".glyphh.app origin", "glyphh.app.json", "publish", "SQLite", "CREATE NODE TABLE Person", "update_app", "vite", "app_deploy", "bundleBase64"]) {
       expect(GLYPHH_APP_SPEC.includes(gone), gone).toBe(false);
     }
   });

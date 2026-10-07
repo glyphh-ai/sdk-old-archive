@@ -395,11 +395,15 @@ export class GlyphhLoop {
     // CODE carries the builtins; both types carry the artifact pair (publish,
     // read), the host's belt and the one find/call pair over everything else.
     const finder = c.catalog.length || c.accounts ? [findToolSpec(c.catalog, !!c.accounts), callToolSpec()] : [];
+    // A host entry marked `belt` rides the belt by name (the worker's app
+    // doors, 2026-10-07); the rest of the catalog is found.
+    const hostBelt: ToolSpec[] = c.catalog.filter((e) => e.belt).map((e) => ({ name: e.name, description: e.description, input_schema: e.inputSchema ?? { type: "object", properties: {} } }));
     const belt: ToolSpec[] = [
       ...(c.space === "code" ? BUILTIN_TOOLS.map((t) => ({ name: t.name, description: t.description, input_schema: t.input_schema })) : []),
       { name: ARTIFACT_PUBLISH_TOOL.name, description: ARTIFACT_PUBLISH_TOOL.description, input_schema: ARTIFACT_PUBLISH_TOOL.input_schema },
       { name: ARTIFACT_READ_TOOL.name, description: ARTIFACT_READ_TOOL.description, input_schema: ARTIFACT_READ_TOOL.input_schema },
       ...lent,
+      ...hostBelt,
       ...finder,
     ];
     const spawn = await this.spawnTool(c);
@@ -512,6 +516,12 @@ export class GlyphhLoop {
     }
     if (name === ARTIFACT_READ) {
       return runArtifactRead(input, { wire: c.wire, host: this.deps.host ?? "desktop", ...(this.deps.fetch ? { fetch: this.deps.fetch } : {}) }, signal);
+    }
+    const onBelt = c.catalog.find((e) => e.belt && e.name === name);
+    if (onBelt) {
+      c.recent.set(name, Date.now());
+      try { return await onBelt.run((input && typeof input === "object" ? input : {}) as Record<string, unknown>, signal); }
+      catch (err) { return { text: err instanceof Error ? err.message : String(err), failed: true }; }
     }
     const m = c.mcp.get(name);
     if (!m) return { text: `unknown tool ${name}`, failed: true };
@@ -701,7 +711,7 @@ export class GlyphhLoop {
         const innerEntry = inner ? c.catalog.find((e) => e.name === inner.name) : undefined;
         const kind = use.name === GlyphhLoop.SPAWN_TOOL || use.name === FIND_TOOL ? "read"
           : inner ? toolKind(inner.name, innerEntry ? innerEntry.readOnly === true : c.mcp.get(inner.name)?.readOnly === true)
-          : toolKind(use.name, c.mcp.get(use.name)?.readOnly === true);
+          : toolKind(use.name, (c.catalog.find((e) => e.belt && e.name === use.name)?.readOnly ?? c.mcp.get(use.name)?.readOnly) === true);
         const title = inner?.name ? toolTitle(inner.name, inner.args) : toolTitle(use.name, use.input);
         let verdict = gate(c.permission, kind);
         if (verdict === "ask") {

@@ -35,6 +35,10 @@ export interface LoopCatalogEntry {
   family: string;
   /** Runs without an approval in Ask mode. */
   readOnly?: boolean;
+  /** ON THE BELT (2026-10-07): a host tool the model must see by name, not
+   *  find — the worker's app_install / glyphh_app_scaffold. The belt stays
+   *  fixed-size by construction: a host lends a handful, never a catalog. */
+  belt?: boolean;
   run(args: Record<string, unknown>, signal?: AbortSignal): Promise<{ text: string; failed: boolean; images?: ImageParam[] }>;
 }
 
