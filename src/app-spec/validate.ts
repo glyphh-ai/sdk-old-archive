@@ -58,6 +58,11 @@ export const KNOWN_CAPABILITIES: ReadonlySet<string> = new Set([
   // gateway — the house apps' two capabilities (2026-10-06).
   "library.list", "library.get", "library.put", "library.remove", "library.fileGet", "library.filePut",
   "images.generate",
+  // RPA ON A TAB from an app's panel UI (his order, 2026-10-07: "give apps …
+  // the ability to call the rpa tooling"): the mapped commands and sequences
+  // of the member's tabs, on the desktop the panel is open on. A worker on
+  // the app server has no machine and gets a precise refusal.
+  "rpa.commands", "rpa.run", "rpa.sequence",
 ]);
 
 /** Names that used to be capabilities and refuse on the app server now, with
