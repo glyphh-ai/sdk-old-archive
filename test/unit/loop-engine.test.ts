@@ -638,3 +638,46 @@ describe("A HOST TOOL ON THE BELT (2026-10-07: the worker's app doors)", () => {
     expect(events.some((e) => e.type === "tool" && e.phase === "done" && e.name === "glyphh_app_scaffold" && !e.failed)).toBe(true);
   });
 });
+
+describe("a dropped stream is not a failed turn (his report, 2026-10-08)", () => {
+  it("retries the round once when fetch says `terminated` before anything streamed", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "gl-"));
+    const wire = fakeWire([{ text: "all good", stop: "end_turn" }]);
+    let dropped = 0;
+    const flaky = async (url: string, init: RequestInit): Promise<Response> => {
+      if (url.endsWith("/v1/messages") && dropped === 0) { dropped++; throw new TypeError("terminated"); }
+      return wire.fetchLike(url, init);
+    };
+    const loop = new GlyphhLoop({ shell: plainShell, gateway, fetch: flaky });
+    const events = await collect(loop, { chatId: "drop", text: "hi", model: "m", workdir: dir, permission: "auto" });
+    expect(events.some((e) => e.type === "error")).toBe(false);
+    expect(events.filter((e) => e.type === "delta").map((e) => (e as { delta: string }).delta).join("")).toBe("all good");
+    expect(dropped).toBe(1);
+  });
+  it("a drop after text reached the member stands as the error it is; a gateway refusal is never retried", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "gl-"));
+    const half = new ReadableStream<Uint8Array>({
+      start(ctl) {
+        const enc = new TextEncoder();
+        ctl.enqueue(enc.encode(`event: message_start\ndata: ${JSON.stringify({ type: "message_start", message: { usage: { input_tokens: 1 } } })}\n\n`));
+        ctl.enqueue(enc.encode(`event: content_block_start\ndata: ${JSON.stringify({ type: "content_block_start", index: 0, content_block: { type: "text", text: "" } })}\n\n`));
+        ctl.enqueue(enc.encode(`event: content_block_delta\ndata: ${JSON.stringify({ type: "content_block_delta", index: 0, delta: { type: "text_delta", text: "partial" } })}\n\n`));
+      },
+      // The drop comes AFTER the queued chunks were read (erroring in start()
+      // would discard the queue and nothing would have streamed).
+      pull(ctl) { ctl.error(new TypeError("terminated")); },
+    });
+    let calls = 0;
+    const midway = async (): Promise<Response> => { calls++; return new Response(half, { status: 200, headers: { "content-type": "text/event-stream" } }); };
+    const loop = new GlyphhLoop({ shell: plainShell, gateway, fetch: midway });
+    const events = await collect(loop, { chatId: "mid", text: "hi", model: "m", workdir: dir, permission: "auto" });
+    expect(events.some((e) => e.type === "error")).toBe(true);
+    expect(calls).toBe(1);
+    let refusals = 0;
+    const refusing = async (): Promise<Response> => { refusals++; return new Response(JSON.stringify({ error: { message: "budget exceeded" } }), { status: 402 }); };
+    const loop2 = new GlyphhLoop({ shell: plainShell, gateway, fetch: refusing });
+    const ev2 = await collect(loop2, { chatId: "ref", text: "hi", model: "m", workdir: dir, permission: "auto" });
+    expect(ev2.some((e) => e.type === "error")).toBe(true);
+    expect(refusals).toBe(1);
+  });
+});
