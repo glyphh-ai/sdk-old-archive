@@ -287,6 +287,15 @@ export type {
   AdaAnswer, AdaAsk, AdaCalibrated, AdaCheck, AdaData, AdaFact, AdaFacts, AdaFactTree, AdaGrade, AdaModel,
   AdaNewModel, AdaReceipt, AdaRecord, AdaRecorded, AdaRecords, AdaSituation, AdaWeights,
 } from "./resources/ada.js";
+export {
+  SystemOneClient, jevDecide, jevRoute, pickBranch, decisionSummary, decisionLine, routeRequest, branchKeys, validateDecideRequest,
+  JEV_DEFAULT_MODEL, JEV_MAX_CHOICES, JEV_MIN_SCORE_LEVELS, JEV_MAX_SCORE_LEVELS, ROUTE_QUESTION_KEY,
+} from "./resources/systemone.js";
+export type {
+  JevValue, JevText, JevState, JevNoulQuestion, JevChoiceQuestion, JevScoreQuestion, JevQuestion, JevQuestions,
+  JevNoulAnswer, JevChoiceAnswer, JevScoreAnswer, JevAnswer, JevAnswerFor, JevUsage, JevConnection, JevAnswerSummary,
+  DecideRequest, DecideResponse, RouteBranches, RouteOptions, RouteDecision, RouteResult,
+} from "./resources/systemone.js";
 export { GuestClient } from "./resources/guest.js";
 export type {
   GatewayMessage,

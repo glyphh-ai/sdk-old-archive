@@ -20,7 +20,7 @@ import type { GatewayCompletion, GatewayCompletionInput, MessageTurn, MessageTur
 
 
 // ── gateway telemetry (org_admin) ────────────────────────────────────────────
-// The org's slice of the LiteLLM router's spend log. Metadata only — the
+// The org's slice of GlyphhRouter's spend log. Metadata only — the
 // gateway never stores prompt or completion content, so none exists to read.
 
 export interface GatewayDay {
