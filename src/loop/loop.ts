@@ -900,7 +900,10 @@ ${context}` : task;
     } catch (err) {
       const said = err instanceof Error ? err.message : String(err);
       if (!signal.aborted) this.send(c, { type: "error", error: said });
-      this.send(c, { type: "done", stopped: true });
+      // A failure is not a stop: only an abort says stopped. Reporting every
+      // error as stopped made hosts that miss the error frame paint the
+      // "you stopped it" line over a turn that broke.
+      this.send(c, { type: "done", stopped: signal.aborted });
     } finally {
       c.running = false;
       c.abort = null;

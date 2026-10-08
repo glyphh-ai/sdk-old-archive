@@ -227,6 +227,16 @@ describe("GlyphhLoop", () => {
     expect(JSON.stringify(msgs[msgs.length - 2]!.content)).toContain("paused after");
   });
 
+  it("a turn that fails reports the error and is NOT settled as stopped", async () => {
+    const broken = async (): Promise<Response> =>
+      new Response(JSON.stringify({ error: { type: "invalid_request_error", message: "gateway said no" } }), { status: 400, headers: { "content-type": "application/json" } });
+    const loop = new GlyphhLoop({ shell: plainShell, gateway, fetch: broken });
+    const events: LoopEvent[] = [];
+    await loop.run({ workdir: SCRATCH, chatId: "c", text: "hi", model: "m" }, (ev) => events.push(ev));
+    expect(events.some((e) => e.type === "error")).toBe(true);
+    expect(events[events.length - 1]).toEqual({ type: "done", stopped: false, runId: expect.any(String) });
+  });
+
   it("stop() aborts a running turn and settles it as stopped", async () => {
     const wire = fakeWire([{ text: "…", stop: "end_turn" }]);
     const slow = async (url: string, init: RequestInit): Promise<Response> => {
