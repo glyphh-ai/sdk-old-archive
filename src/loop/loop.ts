@@ -32,7 +32,15 @@ import { McpHttpClient, resultImages, resultText, splitDataImages } from "./mcp.
 import { CALL_TOOL, FIND_TOOL, callToolSpec, familyOf, findToolSpec, searchCatalog, skillsIndex, type LoopCatalogEntry, type LoopSkill } from "./catalog.js";
 import {
   streamMessage, isTextBlock, isToolUseBlock,
-  type ContentBlock, type FetchLike, type ImageParam, type LoopEffort, type MessageParam, type TextParam, type ToolResultBlock, type ToolSpec, withConversationCacheMark } from "./messages.js";
+  type ContentBlock, type FetchLike, type ImageParam, type LoopEffort, type MessageParam, type TextParam, type ToolResultBlock, type ToolSpec, type AssembledMessage, withConversationCacheMark } from "./messages.js";
+
+/** A transport drop, not an answer: the stream ended under fetch (`terminated`,
+ *  a reset, a hang-up, a failed connect). A gateway's own refusal is an answer. */
+export function isTransportDrop(err: unknown): boolean {
+  const m = err instanceof Error ? err.message : String(err);
+  if (/^gateway \d{3}/.test(m)) return false;
+  return /terminated|ECONNRESET|ECONNREFUSED|EPIPE|ETIMEDOUT|socket hang up|fetch failed|network error|other side closed|aborted/i.test(m);
+}
 
 export { LOOP_EFFORTS, type LoopEffort } from "./messages.js";
 
@@ -734,15 +742,31 @@ ${context}` : task;
         c.messages.push({ role: "assistant", content: [{ type: "text", text: note.trim() }] });
         break;
       }
-      const final = await streamMessage({
+      // A DROPPED STREAM IS NOT A FAILED TURN (his report, 2026-10-08: "The
+      // turn didn't go through — terminated", at random). `terminated` is what
+      // fetch says when the gateway's stream closes under it — a deploy, an
+      // idle edge, a dead socket. With nothing of this round streamed yet,
+      // the request is simply made again; once text has reached the member
+      // the error stands, so nothing is shown twice.
+      let streamedThisRound = 0;
+      const request = (): Promise<AssembledMessage> => streamMessage({
         ...wire, signal, ...(this.deps.fetch ? { fetch: this.deps.fetch } : {}),
         // The transcript rides with its cache breakpoint on the newest message
         // (withConversationCacheMark): the next round reads every earlier
         // turn from the cache instead of paying for it again.
         body: { model: c.model, max_tokens: MAX_TOKENS_OUT, system, messages: withConversationCacheMark(c.messages), tools, ...(c.effort ? { reasoning_effort: c.effort } : {}) },
-        onText: (delta) => { answer += delta; this.send(c, { type: "delta", delta }); },
+        onText: (delta) => { streamedThisRound += delta.length; answer += delta; this.send(c, { type: "delta", delta }); },
         onThinking: (text) => this.send(c, { type: "thinking", chatId: c.chatId, text }),
       });
+      let final: AssembledMessage;
+      try {
+        final = await request();
+      } catch (err) {
+        if (signal.aborted || streamedThisRound > 0 || !isTransportDrop(err)) throw err;
+        await new Promise((r) => setTimeout(r, 800));
+        if (signal.aborted) throw err;
+        final = await request();
+      }
       c.usage.inTokens += final.usage.input_tokens;
       c.usage.outTokens += final.usage.output_tokens;
       c.usage.cacheRead += final.usage.cache_read_input_tokens;
