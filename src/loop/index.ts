@@ -16,7 +16,7 @@ export {
 } from "./loop.js";
 export {
   gate, toolKind, readsByName, seedFromChat, shouldCompact, safeToolName, toolTitle, preview, systemPrompt,
-  COMPACT_AT_TOKENS, MAX_TOOL_ROUNDS, MAX_TOKENS_OUT,
+  COMPACT_AT_TOKENS, MAX_TOOL_ROUNDS, MAX_TOKENS_OUT, roundsPausedMessage,
   type Gate, type LoopHost, type LoopMessage, type LoopPermission, type PromptExtras, type SeedTurn, type ToolKind,
 } from "./core.js";
 export { BUILTIN_TOOLS, runBuiltin, globToRegExp, type BuiltinResult, type ToolDef, type ToolDetail } from "./tools.js";

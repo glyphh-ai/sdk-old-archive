@@ -47,7 +47,16 @@ export function gate(permission: LoopPermission, kind: ToolKind): Gate {
 }
 
 export const COMPACT_AT_TOKENS = 120_000;
-export const MAX_TOOL_ROUNDS = 40;
+/** THE STEPS ONE TURN MAY TAKE (his report, 2026-10-08: "this chat and others
+ *  time out or stop showing working — I have to prod with a prompt to keep you
+ *  going"). At 40 a real piece of work (find the bug, fix it, typecheck, test,
+ *  commit, push, watch the deploy) ran out mid-task and the turn ended with no
+ *  word: the spinner just stopped. It is a runaway guard, not a pacing rule. */
+export const MAX_TOOL_ROUNDS = 200;
+
+/** What the person reads when a turn does reach the limit: never a silent stop. */
+export const roundsPausedMessage = (n: number): string =>
+  `\n\n⏸ I've paused after ${n} steps, the most one turn takes without checking in. Say "continue" and I'll pick up exactly where I left off.`;
 export const MAX_TOKENS_OUT = 8192;
 
 export const shouldCompact = (inputTokens: number): boolean => inputTokens >= COMPACT_AT_TOKENS;

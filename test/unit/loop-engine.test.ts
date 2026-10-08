@@ -12,6 +12,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { GlyphhLoop, GATEWAY_OFF_MESSAGE, NO_MODEL_MESSAGE, type LoopEvent } from "../../src/loop/loop.js";
+import { MAX_TOOL_ROUNDS, roundsPausedMessage } from "../../src/loop/core.js";
 
 type ToolCall = { id: string; name: string; input: unknown };
 type Reply = { thinking?: { text: string; signature: string }; text?: string; tool?: ToolCall; tools?: ToolCall[]; stop: "end_turn" | "tool_use" };
@@ -201,6 +202,29 @@ describe("GlyphhLoop", () => {
     expect(events.some((e) => e.type === "approval")).toBe(false);
     const dones = events.filter((e): e is Extract<LoopEvent, { type: "tool"; phase: "done" }> => e.type === "tool" && e.phase === "done");
     expect(dones.map((d) => [d.name, d.failed])).toEqual([["write_file", true], ["list_dir", false]]);
+  });
+
+  it("a turn that reaches the step limit SAYS it paused, and continue resumes with its steps in context (his report, 2026-10-08)", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "gl-"));
+    writeFileSync(join(dir, "a.txt"), "alpha\n");
+    const step = (i: number): Reply => ({ tool: { id: `t${i}`, name: "read_file", input: { path: "a.txt" } }, stop: "tool_use" });
+    const wire = fakeWire([
+      ...Array.from({ length: MAX_TOOL_ROUNDS }, (_, i) => step(i)),
+      { text: "Carrying on: done.", stop: "end_turn" },
+    ]);
+    const loop = new GlyphhLoop({ shell: plainShell, gateway, fetch: wire.fetchLike });
+    const first = await collect(loop, { chatId: "c", text: "do a long job", model: "m", workdir: dir, permission: "auto" });
+    expect(wire.bodies).toHaveLength(MAX_TOOL_ROUNDS);
+    const said = first.filter((e) => e.type === "delta").map((e) => (e as { delta: string }).delta).join("");
+    expect(said).toBe(roundsPausedMessage(MAX_TOOL_ROUNDS));
+    expect(first[first.length - 1]).toEqual({ type: "done", stopped: false, runId: expect.any(String) });
+    // "continue": the next request still carries the last step's result, then
+    // the pause note as the assistant's word, then the new message.
+    await collect(loop, { chatId: "c", text: "continue", model: "m", workdir: dir, permission: "auto" });
+    const msgs = wire.bodies[MAX_TOOL_ROUNDS]!.messages as Array<{ role: string; content: unknown }>;
+    expect(msgs.slice(-3).map((m) => m.role)).toEqual(["user", "assistant", "user"]);
+    expect(JSON.stringify(msgs[msgs.length - 3]!.content)).toContain(`"tool_use_id":"t${MAX_TOOL_ROUNDS - 1}"`);
+    expect(JSON.stringify(msgs[msgs.length - 2]!.content)).toContain("paused after");
   });
 
   it("stop() aborts a running turn and settles it as stopped", async () => {

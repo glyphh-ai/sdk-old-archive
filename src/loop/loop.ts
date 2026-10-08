@@ -24,7 +24,7 @@
 import { homedir } from "node:os";
 import {
   gate, toolKind, readsByName, seedFromChat, shouldCompact, safeToolName, toolTitle, preview, systemPrompt,
-  MAX_TOKENS_OUT, MAX_TOOL_ROUNDS, type LoopHost, type LoopPermission, type PromptExtras, type SeedTurn,
+  MAX_TOKENS_OUT, MAX_TOOL_ROUNDS, roundsPausedMessage, type LoopHost, type LoopPermission, type PromptExtras, type SeedTurn,
 } from "./core.js";
 import { BUILTIN_TOOLS, runBuiltin, type ShellLauncher, type ToolDetail } from "./tools.js";
 import { ARTIFACT_PUBLISH, ARTIFACT_PUBLISH_TOOL, ARTIFACT_READ, ARTIFACT_READ_TOOL, runArtifactPublish, runArtifactRead } from "./artifacts.js";
@@ -719,8 +719,21 @@ ${context}` : task;
   private async rounds(c: LoopChat, wire: { baseUrl: string; token: string }, system: TextParam[], signal: AbortSignal): Promise<string> {
     const tools = await this.toolset(c);
     let answer = "";
-    for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+    for (let round = 0; ; round++) {
       if (signal.aborted) break;
+      // THE LIMIT IS SAID OUT LOUD (his report, 2026-10-08). Reaching it used
+      // to end the turn as an ordinary done with nothing said, so the work just
+      // stopped and the person had to prod. Now the turn says it paused, and
+      // the note joins the transcript as the assistant's last word: the
+      // conversation still alternates, and "continue" resumes with every tool
+      // result of this turn in context.
+      if (round >= MAX_TOOL_ROUNDS) {
+        const note = roundsPausedMessage(MAX_TOOL_ROUNDS);
+        answer += note;
+        this.send(c, { type: "delta", delta: note });
+        c.messages.push({ role: "assistant", content: [{ type: "text", text: note.trim() }] });
+        break;
+      }
       const final = await streamMessage({
         ...wire, signal, ...(this.deps.fetch ? { fetch: this.deps.fetch } : {}),
         // The transcript rides with its cache breakpoint on the newest message
