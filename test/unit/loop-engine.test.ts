@@ -410,6 +410,38 @@ describe("GlyphhLoop", () => {
     expect(sent.indexOf("slow done")).toBeLessThan(sent.indexOf("fast done"));
   });
 
+  it("a CLI agent is run headless by the host, with the brief's model and the chat's folder (his order, 2026-10-07)", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "gl-"));
+    const wire = fakeWire([
+      { tool: { id: "t1", name: "spawn_agent", input: { agent: "coder", task: "fix the typo", context: "in README" } }, stop: "tool_use" },
+      { text: "done", stop: "end_turn" },
+    ]);
+    const ran: unknown[] = [];
+    const loop = new GlyphhLoop({
+      shell: plainShell, gateway, fetch: wire.fetchLike,
+      agents: async () => [{ slug: "coder", name: "Coder", kind: "cli", cli: "claude", prompt: "You fix code.", model: "claude-sonnet" }],
+      runCliAgent: async (def, task, opts) => { ran.push({ cli: def.cli, task, model: opts.model, workdir: opts.workdir }); return { text: "typo fixed", failed: false }; },
+    });
+    const events = await collect(loop, { chatId: "cli", text: "go", model: "m", workdir: dir, permission: "auto" });
+    expect(ran).toEqual([{ cli: "claude", task: "fix the typo\n\nContext from the main agent:\nin README", model: "claude-sonnet", workdir: dir }]);
+    // The spawn tool names the kind so the model knows what it is handing work to.
+    const spawn = (wire.bodies[0]!.tools as Array<{ name: string; description: string }>).find((t) => t.name === "spawn_agent")!;
+    expect(spawn.description).toContain("a claude agent, run headless on this machine on claude-sonnet");
+    // No loop child ran: only the parent's two requests went out, and the answer rode the tool_result.
+    expect(wire.bodies).toHaveLength(2);
+    expect(JSON.stringify(wire.bodies[1]!.messages)).toContain("typo fixed");
+    const done = events.find((e) => e.type === "agent" && e.phase === "done") as { failed: boolean; summary: string };
+    expect(done).toMatchObject({ failed: false, summary: "typo fixed" });
+    // A host without the seam says so instead of running the loop in its place.
+    const wire2 = fakeWire([
+      { tool: { id: "t1", name: "spawn_agent", input: { agent: "coder", task: "x" } }, stop: "tool_use" },
+      { text: "ok", stop: "end_turn" },
+    ]);
+    const bare = new GlyphhLoop({ shell: plainShell, gateway, fetch: wire2.fetchLike, agents: async () => [{ slug: "coder", name: "Coder", kind: "cli", cli: "codex", prompt: "p" }] });
+    await collect(bare, { chatId: "cli2", text: "go", model: "m", workdir: dir, permission: "auto" });
+    expect(JSON.stringify(wire2.bodies[1]!.messages)).toContain("cannot run one headless");
+  });
+
   it("an agent made mid-conversation can be handed work on the next turn", async () => {
     // His order, 2026-09-29: agents are made from any surface, including an
     // agent_save the loop itself calls. The belt is cached per chat, so the

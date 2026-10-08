@@ -77,6 +77,13 @@ export interface LoopAgentDef {
   slug: string;
   name: string;
   description?: string;
+  /** WHAT RUNS IT (his order, 2026-10-07: "allow agents and tasks to define
+   *  cli or glyphh agents with models"): "glyphh" (the default) is this loop
+   *  as a child, with its own model slot; "cli" is one of the member's CLI
+   *  agents (claude, codex, gemini, …) run headless by the host through
+   *  LoopDeps.runCliAgent, with `cli` naming which. */
+  kind?: "glyphh" | "cli";
+  cli?: string;
   /** The standing instruction every one of this agent's runs opens with. */
   prompt: string;
   /** THE MODEL SLOT — empty runs it on the parent's model. This is the point
@@ -126,6 +133,11 @@ export interface LoopDeps {
    *  turn. It rides as a second, CACHED system block: constant text belongs
    *  in the prefix, where the cache reads it back. Per-turn text is `facts`. */
   standing?: (scope: { folder: string; workspace?: string }) => Promise<string>;
+  /** A CLI AGENT AS A CHILD (2026-10-07): the host runs the named CLI headless
+   *  with the agent's brief, the task and the model slot, in the chat's
+   *  folder, and hands back what it printed. A host without the seam cannot
+   *  run `kind: "cli"` agents, and the spawn says so. */
+  runCliAgent?: (def: LoopAgentDef, task: string, opts: { model: string; workdir: string; signal: AbortSignal }) => Promise<{ text: string; failed: boolean }>;
   capture?: (userText: string, answer: string, scope: { folder: string; workspace?: string }) => void;
   host?: LoopHost;
   fetch?: FetchLike;
@@ -489,7 +501,7 @@ export class GlyphhLoop {
     c.roster = roster.length ? roster : null;
     if (!roster.length) return null;
     const lines = roster
-      .map((a) => `- ${a.slug}: ${a.name}${a.description ? ` — ${a.description}` : ""}${a.model ? ` [runs on ${a.model}]` : ""}`)
+      .map((a) => `- ${a.slug}: ${a.name}${a.description ? ` — ${a.description}` : ""}${a.kind === "cli" ? ` [a ${a.cli || "CLI"} agent, run headless on this machine${a.model ? ` on ${a.model}` : ""}]` : a.model ? ` [runs on ${a.model}]` : ""}`)
       .join("\n");
     return {
       name: GlyphhLoop.SPAWN_TOOL,
@@ -590,6 +602,26 @@ export class GlyphhLoop {
     this.send(parent, { type: "agent", phase: "start", agent: ref, task });
     let answer = "";
     let failed = false;
+    // A CLI AGENT runs on the host, headless, not as a loop child (2026-10-07).
+    if (def.kind === "cli") {
+      const prompt = context ? `${task}
+
+Context from the main agent:
+${context}` : task;
+      try {
+        if (!this.deps.runCliAgent) throw new Error(`"${name}" is a CLI agent, and this host cannot run one headless`);
+        const r = await this.deps.runCliAgent(def, prompt, { model, workdir: parent.workdir, signal });
+        answer = r.text;
+        failed = r.failed;
+      } catch (err) {
+        failed = true;
+        answer = err instanceof Error ? err.message : String(err);
+      }
+      const saidCli = answer.trim();
+      this.send(parent, { type: "agent", phase: "done", agent: ref, failed: failed || !saidCli, summary: preview(saidCli || "(nothing)") });
+      if (failed) return { text: `${name} failed: ${saidCli}`, failed: true };
+      return { text: saidCli || `${name} returned nothing.`, failed: !saidCli };
+    }
     try {
       await this.toolset(child);
       const system: TextParam[] = [
