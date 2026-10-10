@@ -8,10 +8,10 @@
  * the toolset and are called by their real names.
  */
 import { describe, it, expect } from "vitest";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { GlyphhLoop, GATEWAY_OFF_MESSAGE, NO_MODEL_MESSAGE, type LoopEvent } from "../../src/loop/loop.js";
+import { GlyphhLoop, GATEWAY_OFF_MESSAGE, NO_MODEL_MESSAGE, type LoopEvent, type ScopeCall } from "../../src/loop/loop.js";
 import { MAX_TOOL_ROUNDS, roundsPausedMessage } from "../../src/loop/core.js";
 
 type ToolCall = { id: string; name: string; input: unknown };
@@ -679,5 +679,136 @@ describe("a dropped stream is not a failed turn (his report, 2026-10-08)", () =>
     const ev2 = await collect(loop2, { chatId: "ref", text: "hi", model: "m", workdir: dir, permission: "auto" });
     expect(ev2.some((e) => e.type === "error")).toBe(true);
     expect(refusals).toBe(1);
+  });
+});
+
+describe("GlyphhLoop scope (his order, 2026-10-10: NO EXCEPTIONS)", () => {
+  const lastResult = (body: Record<string, unknown>): string =>
+    JSON.stringify((body.messages as Array<{ content: unknown }>).at(-1)!.content);
+
+  it("a refused call never runs and never asks, whatever lane it takes; the model is told why", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "gl-scope-"));
+    const wire = fakeWire(
+      [
+        { tools: [
+          { id: "t1", name: "write_file", input: { path: "x.txt", content: "no" } },
+          { id: "t2", name: "call_tool", input: { name: "write_file", arguments: { path: "y.txt", content: "no" } } },
+          { id: "t3", name: "call_tool", input: { name: "happy_shoes_add_to_cart", arguments: { sku: "A1" } } },
+          { id: "t4", name: "call_tool", input: { name: "gmail_send_email", arguments: { to: "sam@x.co" } } },
+          { id: "t5", name: "lent_tool", input: {} },
+          { id: "t6", name: "read_file", input: { path: "a.txt" } },
+        ], stop: "tool_use" },
+        { text: "done", stop: "end_turn" },
+      ],
+      {
+        tools: [],
+        toolsFor: (url) => url.startsWith("https://local") ? [{ name: "lent_tool", description: "a lent tool" }]
+          : [{ name: "mcp_tool_search", description: "find a tool" }, { name: "mcp_tool_call", description: "call it" }],
+        call: (name) => `${name} ran`,
+      },
+    );
+    writeFileSync(join(dir, "a.txt"), "alpha\n");
+    const seen: ScopeCall[] = [];
+    const appRuns: unknown[] = [];
+    let asked = 0;
+    const loop = new GlyphhLoop({
+      gateway, fetch: wire.fetchLike, shell: plainShell,
+      mcpServers: async () => [
+        { name: "glyphh-app", url: "https://local/mcp", tag: "Glyphh", core: { work: new Set(["lent_tool"]), code: new Set(["lent_tool"]) } },
+        { name: "gateway", url: "https://gw/mcp", tag: "connection" },
+      ],
+      catalog: async () => [{ name: "happy_shoes_add_to_cart", description: "cart", family: "app: Happy Shoes", run: async (a) => { appRuns.push(a); return { text: "added", failed: false }; } }],
+      scope: (call) => { seen.push(call); return call.tool === "read_file" ? null : `Not run: ${call.tool} is outside this super power's powers.`; },
+    });
+    const events = await collect(loop, { chatId: "scoped", text: "go", model: "m", workdir: dir, space: "code", permission: "ask" }, (ev, l) => {
+      if (ev.type === "approval") { asked++; setTimeout(() => l.respondApproval(ev.id, true), 0); }
+    });
+    // Nothing out of scope ran, through any door, and nothing asked.
+    expect(asked).toBe(0);
+    expect(existsSync(join(dir, "x.txt"))).toBe(false);
+    expect(existsSync(join(dir, "y.txt"))).toBe(false);
+    expect(appRuns).toEqual([]);
+    expect(wire.mcpCalls.filter((m) => m.name !== "mcp_tool_search")).toEqual([]);
+    // The scope saw each call as what it would really run.
+    expect(seen.map((s) => [s.kind, s.tool, s.chatId])).toEqual([
+      ["builtin", "write_file", "scoped"], ["builtin", "write_file", "scoped"], ["catalog", "happy_shoes_add_to_cart", "scoped"],
+      ["account", "gmail_send_email", "scoped"], ["mcp", "lent_tool", "scoped"], ["builtin", "read_file", "scoped"],
+    ]);
+    expect(seen[2]!.family).toBe("app: Happy Shoes");
+    expect(seen[4]!.local).toBe(true);
+    // The in-scope read still ran; the model got the refusal as the result.
+    const sent = lastResult(wire.bodies[1]!);
+    expect(sent).toContain("alpha");
+    expect(sent).toContain("Not run: gmail_send_email is outside");
+    expect(events.filter((e) => e.type === "tool" && e.phase === "start").map((e) => (e as { name: string }).name)).toEqual(["read_file"]);
+  });
+
+  it("a scope that throws refuses (fail closed)", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "gl-scope-"));
+    const wire = fakeWire([
+      { tool: { id: "t1", name: "write_file", input: { path: "x.txt", content: "no" } }, stop: "tool_use" },
+      { text: "ok", stop: "end_turn" },
+    ]);
+    const loop = new GlyphhLoop({ gateway, fetch: wire.fetchLike, shell: plainShell, scope: () => { throw new Error("roster unreadable"); } });
+    await collect(loop, { chatId: "c", text: "go", model: "m", workdir: dir, space: "code", permission: "auto" });
+    expect(existsSync(join(dir, "x.txt"))).toBe(false);
+    expect(lastResult(wire.bodies[1]!)).toContain("scope could not be checked (roster unreadable)");
+  });
+
+  it("find_tools lists only what the scope allows, on this machine and in the accounts", async () => {
+    const wire = fakeWire(
+      [
+        { tool: { id: "t1", name: "find_tools", input: { query: "save schedule send mail" } }, stop: "tool_use" },
+        { text: "ok", stop: "end_turn" },
+      ],
+      {
+        tools: [],
+        toolsFor: () => [{ name: "mcp_tool_search", description: "find a tool" }, { name: "mcp_tool_call", description: "call it" }],
+        call: () => JSON.stringify([{ name: "gmail_send_email", description: "send mail" }, { name: "slack_send", description: "send a message" }]),
+      },
+    );
+    const loop = new GlyphhLoop({
+      gateway, fetch: wire.fetchLike, shell: plainShell,
+      mcpServers: async () => [{ name: "gateway", url: "https://gw/mcp", tag: "connection" }],
+      catalog: async () => [
+        { name: "schedule_save", description: "save a schedule", family: "Glyphh", run: async () => ({ text: "", failed: false }) },
+        { name: "schedule_delete", description: "delete a schedule", family: "Glyphh", run: async () => ({ text: "", failed: false }) },
+      ],
+      scope: (call) => ["schedule_save", "slack_send"].includes(call.tool) ? null : "no",
+    });
+    await collect(loop, { chatId: "c", text: "go", model: "m", space: "work" });
+    const sent = lastResult(wire.bodies[1]!);
+    expect(sent).toContain("schedule_save");
+    expect(sent).toContain("slack_send");
+    expect(sent).not.toContain("schedule_delete");
+    expect(sent).not.toContain("gmail_send_email");
+  });
+
+  it("a sub-agent's start, and each of its calls, are held to the scope under its own slug", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "gl-scope-"));
+    const wire = fakeWire([
+      { tools: [
+        { id: "t1", name: "spawn_agent", input: { agent: "intruder", task: "x" } },
+        { id: "t2", name: "spawn_agent", input: { agent: "coder", task: "write it" } },
+      ], stop: "tool_use" },
+      { tool: { id: "c1", name: "write_file", input: { path: "x.txt", content: "no" } }, stop: "tool_use" },   // the child
+      { text: "could not", stop: "end_turn" },                                                                // the child
+      { text: "done", stop: "end_turn" },                                                                     // the parent
+    ]);
+    const seen: ScopeCall[] = [];
+    const loop = new GlyphhLoop({
+      gateway, fetch: wire.fetchLike, shell: plainShell,
+      agents: async () => [
+        { slug: "coder", name: "Coder", description: "codes", prompt: "You code.", model: "m" },
+        { slug: "intruder", name: "Intruder", description: "no", prompt: "No.", model: "m" },
+      ],
+      scope: (call) => { seen.push(call); return call.kind === "spawn" && call.tool === "coder" ? null : `Not run: ${call.tool}`; },
+    });
+    const events = await collect(loop, { chatId: "p", text: "go", model: "m", workdir: dir, space: "code", permission: "auto" });
+    expect(events.filter((e) => e.type === "agent" && e.phase === "start").map((e) => (e as { agent: { slug: string } }).agent.slug)).toEqual(["coder"]);
+    expect(seen.map((s) => [s.kind, s.tool, s.chatId, s.agent])).toEqual([
+      ["spawn", "intruder", "p", undefined], ["spawn", "coder", "p", undefined], ["builtin", "write_file", "p", "coder"],
+    ]);
+    expect(existsSync(join(dir, "x.txt"))).toBe(false);
   });
 });
