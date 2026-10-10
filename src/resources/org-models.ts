@@ -9,15 +9,7 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
-import type { OrgModel, ModelAuditQuery, ModelAuditPage, CustomModel, CustomModelInput, CustomProvider, CustomProviderInput } from "../contract/models.js";
-
-/** Append defined params to a path as a query string. */
-function withQuery(path: string, params: Record<string, string | number | undefined>): string {
-  const qs = new URLSearchParams();
-  for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== "") qs.set(k, String(v));
-  const s = qs.toString();
-  return s ? `${path}?${s}` : path;
-}
+import type { OrgModel, CustomModel, CustomModelInput, CustomProvider, CustomProviderInput } from "../contract/models.js";
 
 export class OrgModelsClient {
   constructor(private readonly http: AuthedHttp) {}

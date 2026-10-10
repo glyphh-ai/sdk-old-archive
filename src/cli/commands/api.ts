@@ -6,9 +6,11 @@
  * yet; the response prints as JSON verbatim.
  */
 
+import { readFileSync, writeFileSync } from "node:fs";
 import type { CommandRegistry } from "../registry.js";
 import type { CliContext } from "../context.js";
 import type { CliArgs } from "../args.js";
+import { flagStr } from "../args.js";
 
 const METHODS = ["get", "post", "patch", "put", "del"] as const;
 type Method = (typeof METHODS)[number] | "stream";
@@ -48,6 +50,34 @@ export function registerApi(reg: CommandRegistry): void {
           ? await ctx.client.http[method](path)
           : await ctx.client.http[method](path, parsed);
       ctx.printJson(result);
+    },
+  });
+
+  reg.register({
+    path: "api post-binary",
+    summary: "raw authenticated POST of a file's bytes → JSON",
+    usage: "api post-binary </api/path> <file> --type <mime>",
+    covers: ["http.postBinary"],
+    async run(ctx, args) {
+      const [path, file] = args.positional;
+      const type = flagStr(args, "type");
+      if (!path?.startsWith("/") || !file || !type) throw new Error("usage: api post-binary </api/path> <file> --type <mime>");
+      ctx.printJson(await ctx.client.http.postBinary(path, new Uint8Array(readFileSync(file)), type));
+    },
+  });
+
+  reg.register({
+    path: "api post-for-bytes",
+    summary: "raw authenticated JSON POST whose response bytes are written to --out",
+    usage: "api post-for-bytes </api/path> [<json-body>] --out <file>",
+    covers: ["http.postForBytes"],
+    async run(ctx, args) {
+      const [path, body] = args.positional;
+      const out = flagStr(args, "out");
+      if (!path?.startsWith("/") || !out) throw new Error("usage: api post-for-bytes </api/path> [<json-body>] --out <file>");
+      const bytes = await ctx.client.http.postForBytes(path, parseBody(body, ctx) ?? {});
+      writeFileSync(out, new Uint8Array(bytes));
+      ctx.print(`wrote ${bytes.byteLength} bytes → ${out}`);
     },
   });
 }

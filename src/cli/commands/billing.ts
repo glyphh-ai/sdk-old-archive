@@ -133,4 +133,43 @@ export function registerBilling(reg: CommandRegistry): void {
       ctx.print((await ctx.client.billing.portal()).url);
     },
   });
+
+  reg.register({
+    path: "billing upcoming",
+    summary: "the org's next invoice preview",
+    covers: ["billing.upcoming"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.billing.upcoming());
+    },
+  });
+
+  reg.register({
+    path: "billing subscribe-embedded",
+    summary: "start an embedded checkout for a tier (prints the client secret)",
+    usage: "billing subscribe-embedded <basic|pro>",
+    covers: ["billing.subscribeEmbedded"],
+    async run(ctx, args) {
+      const tier = args.positional[0];
+      if (!tier) throw new Error("usage: billing subscribe-embedded <basic|pro>");
+      ctx.printJson(await ctx.client.billing.subscribeEmbedded(tier));
+    },
+  });
+
+  reg.register({
+    path: "billing config",
+    summary: "the public Stripe key for embedded checkout (null = hosted fallback)",
+    covers: ["billing.config"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.billing.config());
+    },
+  });
+
+  reg.register({
+    path: "billing card",
+    summary: "the org's card on file (brand + last4), or null",
+    covers: ["billing.paymentMethod"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.billing.paymentMethod());
+    },
+  });
 }

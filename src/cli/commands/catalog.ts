@@ -33,6 +33,18 @@ export function registerCatalog(reg: CommandRegistry): void {
   });
 
   reg.register({
+    path: "catalog voices",
+    summary: "a TTS provider's available voices",
+    usage: "catalog voices <providerSlug>",
+    covers: ["catalog.voices"],
+    async run(ctx, args) {
+      const slug = args.positional[0];
+      if (!slug) throw new Error("usage: catalog voices <providerSlug>");
+      ctx.printJson(await ctx.client.catalog.voices(slug));
+    },
+  });
+
+  reg.register({
     path: "providers enable",
     summary: "enable a provider for the org (optional BYOK key)",
     usage: "providers enable <slug> [--key <apiKey>]",

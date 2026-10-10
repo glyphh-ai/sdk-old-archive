@@ -8,7 +8,8 @@
 
 import { readFileSync } from "node:fs";
 import type { CommandRegistry } from "../registry.js";
-import { flagStr } from "../args.js";
+import { flagStr, flagBool } from "../args.js";
+import { printFrame } from "./harness.js";
 import type { PushThreadInput, SessionThreadMessage } from "../../contract/threads.js";
 
 export function registerSessions(reg: CommandRegistry): void {
@@ -18,6 +19,29 @@ export function registerSessions(reg: CommandRegistry): void {
 
 
   // ── threads: the durable conversations in the regional stator (LWW sync) ────
+
+  reg.register({
+    path: "threads watch",
+    summary: "stream whatever runs on a thread, wherever it runs; exits when that run settles unless --follow",
+    usage: "threads watch <threadId> [--from <streamId>] [--follow]",
+    covers: ["runStream.attach"],
+    async run(ctx, args) {
+      const threadId = args.positional[0];
+      if (!threadId) throw new Error("usage: threads watch <threadId> [--from <streamId>] [--follow]");
+      const from = flagStr(args, "from");
+      const follow = flagBool(args, "follow");
+      const watch = ctx.client.runStream.attach(threadId, from ? { from } : {});
+      await new Promise<void>((resolve) => {
+        process.once("SIGINT", () => { watch.stop(); resolve(); });
+        watch.onRun((runId) => ctx.print(`run ${runId}`));
+        watch.on((f) => {
+          printFrame(ctx, f);
+          if (!follow && (f.type === "done" || f.type === "error")) { watch.stop(); resolve(); }
+        });
+      });
+      ctx.print("");
+    },
+  });
 
   reg.register({
     path: "threads list",

@@ -10,9 +10,8 @@
 
 import type { AuthedHttp } from "../core/authed-http.js";
 import type { Provider, Model, ProviderCreate, ModelCreate } from "../contract/catalog.js";
-import type { AdminOrgsPage, AdminOrgListItem, AdminOrgDetail, AdminOrgPatch, AdminCreateOrg, AdminUsersPage, AdminPlan, AdminPlanUpdate, AdminPlanCreate, AdminProviderKey, AdminModel, AdminModelUpdate, AdminPlanPrice, AuditPage, AuditQuery, AdminUsageByUser, AdminUsageDay, AdminDailyQuery, AdminListQuery, AdminUsageByRuntime, AdminRuntimeUsageQuery, RuntimeMode, AdminRevenue } from "../contract/admin.js";
+import type { AdminOrgsPage, AdminOrgListItem, AdminOrgDetail, AdminOrgPatch, AdminCreateOrg, AdminPlan, AdminPlanUpdate, AdminPlanCreate, AdminProviderKey, AdminModel, AdminModelUpdate, AdminPlanPrice, AdminUsageByUser, AdminUsageDay, AdminDailyQuery, AdminListQuery, AdminUsageByRuntime, AdminRuntimeUsageQuery, RuntimeMode, AdminRevenue } from "../contract/admin.js";
 import type { EffectiveContext } from "../contract/membership.js";
-import type { AdminSupportPage, AdminSupportQuery } from "../contract/support.js";
 
 /** Append defined params to a path as a query string. */
 function withQuery(path: string, params: Record<string, string | number | undefined>): string {

@@ -25,6 +25,18 @@ export function registerMedia(reg: CommandRegistry): void {
 
 
   reg.register({
+    path: "media job",
+    summary: "one generation job's current state",
+    usage: "media job <id>",
+    covers: ["media.job"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: media job <id>");
+      ctx.printJson(await ctx.client.media.job(id));
+    },
+  });
+
+  reg.register({
     path: "media url",
     summary: "a direct-playable (presigned) URL for an asset",
     usage: "media url <id>",

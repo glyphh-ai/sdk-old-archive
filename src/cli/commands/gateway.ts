@@ -6,6 +6,7 @@
  */
 
 import type { CommandRegistry } from "../registry.js";
+import { flagStr, flagBool } from "../args.js";
 
 export function registerGateway(reg: CommandRegistry): void {
 
@@ -34,6 +35,33 @@ export function registerGateway(reg: CommandRegistry): void {
     },
   });
 
+
+  reg.register({
+    path: "gateway token",
+    summary: "your gateway credential for a CLI (base URL, models; key masked unless --reveal)",
+    usage: "gateway token [--reveal]",
+    covers: ["gateway.token"],
+    async run(ctx, args) {
+      const t = await ctx.client.gateway.token();
+      ctx.printJson(flagBool(args, "reveal") ? t : { ...t, token: t.token ? `${t.token.slice(0, 12)}…${t.token.slice(-4)}` : t.token });
+    },
+  });
+
+  reg.register({
+    path: "gateway metrics",
+    summary: "the org's gateway telemetry window (org_admin)",
+    usage: "gateway metrics [--days 1|7|30|90] [--workspace <id>]",
+    covers: ["gateway.metrics"],
+    async run(ctx, args) {
+      const days = flagStr(args, "days");
+      if (days !== undefined && !["1", "7", "30", "90"].includes(days)) throw new Error("--days must be 1, 7, 30 or 90");
+      const workspaceId = flagStr(args, "workspace");
+      ctx.printJson(await ctx.client.gateway.metrics({
+        ...(days ? { days: Number(days) as 1 | 7 | 30 | 90 } : {}),
+        ...(workspaceId ? { workspaceId } : {}),
+      }));
+    },
+  });
 
   reg.register({
     path: "gateway my-keys",

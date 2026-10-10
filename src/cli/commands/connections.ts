@@ -38,6 +38,26 @@ export function registerConnections(reg: CommandRegistry): void {
 
 
   reg.register({
+    path: "connections popular",
+    summary: "the most connected apps across the server, by install count",
+    usage: "connections popular [--limit <n>]",
+    covers: ["connections.popular"],
+    async run(ctx, args) {
+      const limit = flagStr(args, "limit");
+      ctx.printJson(await ctx.client.connections.popular(limit ? Number(limit) : undefined));
+    },
+  });
+
+  reg.register({
+    path: "connections categories",
+    summary: "the connector directory by category (name, count, featured apps)",
+    covers: ["connections.categories"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.connections.categories());
+    },
+  });
+
+  reg.register({
     path: "connections apptools",
     summary: "list a connector app's tools",
     usage: "connections apptools <slug>",
@@ -174,6 +194,18 @@ export function registerConnections(reg: CommandRegistry): void {
       const label = rest.join(" ");
       if (!id || !label) throw new Error("usage: connections personal rename <id> <label...>");
       ctx.printJson(await ctx.client.connections.renamePersonalConnection(id, label));
+    },
+  });
+
+  reg.register({
+    path: "connections personal enable",
+    summary: "turn one of your own connections on or off",
+    usage: "connections personal enable <id> <on|off>",
+    covers: ["connections.setPersonalConnectionEnabled"],
+    async run(ctx, args) {
+      const [id, state] = args.positional;
+      if (!id || (state !== "on" && state !== "off")) throw new Error("usage: connections personal enable <id> <on|off>");
+      ctx.printJson(await ctx.client.connections.setPersonalConnectionEnabled(id, state === "on"));
     },
   });
 

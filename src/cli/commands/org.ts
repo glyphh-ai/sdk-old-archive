@@ -143,6 +143,27 @@ export function registerOrg(reg: CommandRegistry): void {
   });
 
   reg.register({
+    path: "members invites",
+    summary: "the org's pending invites (unaccepted, unexpired)",
+    covers: ["members.pendingInvites"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.members.pendingInvites());
+    },
+  });
+
+  reg.register({
+    path: "members status",
+    summary: "disable or re-enable a member (org_admin)",
+    usage: "members status <userId> <disabled|enabled>",
+    covers: ["members.setStatus"],
+    async run(ctx, args) {
+      const [userId, state] = args.positional;
+      if (!userId || (state !== "disabled" && state !== "enabled")) throw new Error("usage: members status <userId> <disabled|enabled>");
+      ctx.printJson(await ctx.client.members.setStatus(userId, state === "disabled"));
+    },
+  });
+
+  reg.register({
     path: "members remove",
     summary: "remove a member (frees the seat)",
     usage: "members remove <userId>",
@@ -207,6 +228,27 @@ export function registerOrg(reg: CommandRegistry): void {
       const policy = guardrailsFromFlags(args);
       if (Object.keys(policy).length === 0) throw new Error("usage: org guardrails set [--clear] [--maxInputTokens n] …");
       ctx.printJson(await ctx.client.org.setGuardrails(policy));
+    },
+  });
+
+  reg.register({
+    path: "org security",
+    summary: "the org's SSO posture (org_admin)",
+    covers: ["org.security"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.org.security());
+    },
+  });
+
+  reg.register({
+    path: "org require-sso",
+    summary: "require every member to sign in through the org's IdP (org_admin)",
+    usage: "org require-sso <on|off>",
+    covers: ["org.setRequireSso"],
+    async run(ctx, args) {
+      const state = args.positional[0];
+      if (state !== "on" && state !== "off") throw new Error("usage: org require-sso <on|off>");
+      ctx.printJson(await ctx.client.org.setRequireSso(state === "on"));
     },
   });
 

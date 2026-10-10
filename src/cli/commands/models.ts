@@ -8,7 +8,6 @@
 
 import type { CommandRegistry } from "../registry.js";
 import { flagStr } from "../args.js";
-import type { ModelAuditQuery } from "../../contract/models.js";
 
 export function registerModels(reg: CommandRegistry): void {
   reg.register({

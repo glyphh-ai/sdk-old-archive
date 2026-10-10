@@ -45,6 +45,9 @@ import { registerSkills } from "./commands/skills.js";
 import { registerAgents } from "./commands/agents.js";
 import { registerIcons } from "./commands/icons.js";
 import { registerDecide } from "./commands/decide.js";
+import { registerAda } from "./commands/ada.js";
+import { registerReleases } from "./commands/releases.js";
+import { registerVoice } from "./commands/voice.js";
 
 export function buildRegistry(): CommandRegistry {
   const reg = new CommandRegistry();
@@ -76,6 +79,9 @@ export function buildRegistry(): CommandRegistry {
   registerMusic(reg);
   registerIcons(reg);
   registerDecide(reg);
+  registerAda(reg);
+  registerReleases(reg);
+  registerVoice(reg);
   registerGit(reg);
   registerEnvironments(reg);
   registerArtifacts(reg);

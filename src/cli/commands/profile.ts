@@ -7,6 +7,7 @@
 
 import type { CommandRegistry } from "../registry.js";
 import { flagStr } from "../args.js";
+import type { VoiceSettings } from "../../contract/catalog.js";
 
 export function registerProfile(reg: CommandRegistry): void {
   reg.register({
@@ -66,6 +67,40 @@ export function registerProfile(reg: CommandRegistry): void {
       const url = args.positional[0];
       if (!url) throw new Error("usage: profile set-image <url|null>");
       ctx.printJson(await ctx.client.profile.update({ imageUrl: url === "null" ? null : url }));
+    },
+  });
+
+  reg.register({
+    path: "profile voice",
+    summary: "your voice settings (STT input, TTS output + voice, mode)",
+    covers: ["profile.voiceSettings"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.profile.voiceSettings());
+    },
+  });
+
+  reg.register({
+    path: "profile voice set",
+    summary: "merge-update your voice settings (\"null\" clears a model, voice or device)",
+    usage: "profile voice set [--inputModel <id|null>] [--outputModel <id|null>] [--voiceId <id|null>] [--deviceId <id|null>] [--mode off|push-to-talk|continuous] [--autoplay true|false] [--brief true|false]",
+    covers: ["profile.setVoiceSettings"],
+    async run(ctx, args) {
+      const patch: Partial<VoiceSettings> = {};
+      for (const k of ["inputModel", "outputModel", "voiceId", "deviceId"] as const) {
+        const v = flagStr(args, k);
+        if (v !== undefined) patch[k] = v === "null" ? null : v;
+      }
+      const mode = flagStr(args, "mode");
+      if (mode !== undefined) {
+        if (mode !== "off" && mode !== "push-to-talk" && mode !== "continuous") throw new Error("--mode must be off, push-to-talk or continuous");
+        patch.mode = mode;
+      }
+      for (const k of ["autoplay", "brief"] as const) {
+        const v = flagStr(args, k);
+        if (v !== undefined) patch[k] = v === "true";
+      }
+      if (Object.keys(patch).length === 0) throw new Error("usage: profile voice set [--inputModel <id|null>] [--outputModel <id|null>] [--voiceId <id|null>] [--mode <m>] …");
+      ctx.printJson(await ctx.client.profile.setVoiceSettings(patch));
     },
   });
 }
