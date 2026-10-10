@@ -30,7 +30,6 @@ import { VoiceClient } from "./resources/voice.js";
 import { ProvidersClient } from "./resources/providers.js";
 import { AdminClient } from "./resources/admin.js";
 import { MarketingClient } from "./resources/marketing.js";
-import { TasksClient } from "./resources/tasks.js";
 import { ConnectionsClient } from "./resources/connections.js";
 import { UsageClient } from "./resources/usage.js";
 import { ApiKeysClient } from "./resources/api-keys.js";
@@ -38,15 +37,14 @@ import { PlansClient } from "./resources/plans.js";
 import { OrgLibraryClient } from "./resources/org-library.js";
 import { SessionsClient } from "./resources/sessions.js";
 import { FilesClient } from "./resources/files.js";
-import { OfficeSlidesClient, OfficeDocsClient, OfficeDriveClient, OfficeSheetsClient } from "./resources/office.js";
-import { DesignsClient } from "./resources/design.js";
+import { OfficeDocsClient, OfficeSheetsClient } from "./resources/office.js";
 import { StatorClient } from "./resources/stator.js";
 import { MediaClient } from "./resources/media.js";
 import { MusicClient } from "./resources/music.js";
 import { GitClient } from "./resources/git.js";
 import { EnvironmentsClient } from "./resources/environments.js";
 import { ArtifactsClient } from "./resources/artifacts.js";
-import { MarketplaceClient, LibraryMarketClient } from "./resources/marketplace.js";
+import { LibraryMarketClient } from "./resources/marketplace.js";
 import { AppInstancesClient } from "./resources/app-instances.js";
 import { LibraryClient } from "./resources/library.js";
 import { MemberLibraryClient } from "./resources/member-library.js";
@@ -133,7 +131,6 @@ export interface RunHandle {
 import { GatewayClient } from "./resources/gateway.js";
 import { AdaClient } from "./resources/ada.js";
 import { SystemOneClient } from "./resources/systemone.js";
-import { GuestClient } from "./resources/guest.js";
 import { SkillsClient } from "./resources/skills.js";
 import { AgentsClient } from "./resources/agents.js";
 import { OrgModelsClient } from "./resources/org-models.js";
@@ -224,10 +221,6 @@ export interface Client {
   admin: AdminClient;
   /** Marketing link tracking + click analytics (super_admin). */
   marketing: MarketingClient;
-  /** The org's TASK library (members read; org_admin builds). Formerly
-   *  `loops` — renamed 2026-09-12 so "loop" means one thing. Routes return
-   *  with the Build section. */
-  tasks: TasksClient;
   /** Connectors — Pipedream accounts + custom MCP servers (org_admin manages). */
   connections: ConnectionsClient;
   /** Usage rollups — dollars spent by user, workspace, org. */
@@ -245,16 +238,10 @@ export interface Client {
   sessions: SessionsClient;
   /** Saved FILE ARTIFACTS — the explicit deliverables an agent saves for the user (list/get/create/delete). */
   files: FilesClient;
-  /** Glyphh Office · Slides — the org's shared, agent-authored slide decks (list/get/put/delete). */
-  officeSlides: OfficeSlidesClient;
   /** Glyphh Office · Docs — markdown documents + the review-and-approve suggestion flow + templates. */
   officeDocs: OfficeDocsClient;
   /** Glyphh Office · Sheets — JSON workbooks with materialized formula values. */
   officeSheets: OfficeSheetsClient;
-  /** Glyphh Drive — folders and the pointer view over every Office file. */
-  officeDrive: OfficeDriveClient;
-  /** Glyphh Design — org design systems: the brand kit Apps and Slides consume (list/get/put/css/assets). */
-  designs: DesignsClient;
   /** The org MEMORY PLANE — recall/write for runtimes; browse/graph/forget/amend for curation (the Memory panel). */
   stator: StatorClient;
   /** Glyphh Image/Video/Sounds — the media library + enforced, credit-debited generation jobs. */
@@ -269,8 +256,6 @@ export interface Client {
   artifacts: ArtifactsClient;
   /** Installed apps — instances on the app server: install, build from source, releases, pin, invoke. */
   appInstances: AppInstancesClient;
-  /** Marketplace developer profiles + developer reviews. */
-  marketplace: MarketplaceClient;
   /** Skills + loops marketplace — free installs, org share queue, review desk. */
   libraryMarket: LibraryMarketClient;
   /** Rotor-loop library (personal + org). */
@@ -308,8 +293,6 @@ export interface Client {
    *  deterministic: highest probability, ties to the first branch listed,
    *  `fallback` under `minConfidence`. */
   route: SystemOneClient["route"];
-  /** The anonymous (no-account) chat surface — mint a guest token + chat via the gateway. */
-  guest: GuestClient;
   /** App-icon resolution — the server's cached icon for a domain, as a URL an
    *  <img>/texture loads directly (public endpoint, no bearer). */
   icons: { urlFor(domain: string): string };
@@ -384,7 +367,6 @@ export function createClient(opts: ClientOptions): Client {
     providers: new ProvidersClient(authed),
     admin: new AdminClient(authed),
     marketing: new MarketingClient(authed),
-    tasks: new TasksClient(authed),
     connections: new ConnectionsClient(authed),
     usage: new UsageClient(authed),
     apiKeys: new ApiKeysClient(authed),
@@ -392,11 +374,8 @@ export function createClient(opts: ClientOptions): Client {
     orgLibrary: new OrgLibraryClient(authed),
     sessions: new SessionsClient(authed),
     files: new FilesClient(authed),
-    officeSlides: new OfficeSlidesClient(authed),
     officeDocs: new OfficeDocsClient(authed),
     officeSheets: new OfficeSheetsClient(authed),
-    officeDrive: new OfficeDriveClient(authed),
-    designs: new DesignsClient(authed),
     stator: new StatorClient(authed),
     media: new MediaClient(authed),
     music: new MusicClient(authed),
@@ -404,7 +383,6 @@ export function createClient(opts: ClientOptions): Client {
     environments: new EnvironmentsClient(authed),
     artifacts: new ArtifactsClient(authed),
     appInstances: new AppInstancesClient(authed),
-    marketplace: new MarketplaceClient(authed),
     libraryMarket: new LibraryMarketClient(authed),
     rotors: new LibraryClient(authed, "rotor"),
     skills: new SkillsClient(authed),
@@ -421,9 +399,6 @@ export function createClient(opts: ClientOptions): Client {
     ada: new AdaClient(authed, gateway),
     decide: systemOne.decide,
     route: systemOne.route,
-    // The guest surface rides the UNAUTHENTICATED transport — a guest token is not a
-    // session bearer, it is carried per-call.
-    guest: new GuestClient(http),
     icons: {
       // v=2: cache-shape bump — clients that pinned the (formerly cacheable)
       // 404s bypass those entries instead of replaying them for an hour.

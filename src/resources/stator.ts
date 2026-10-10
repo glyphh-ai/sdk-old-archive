@@ -7,14 +7,7 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
-import type {
-  StatorRecallInput, StatorRecallResult,
-  StatorBrowseInput, StatorBrowseResult,
-  StatorCreateInput, StatorCreateResult,
-  StatorGraphInput, StatorGraphResult,
-  StatorForgetInput, StatorForgetResult,
-  StatorAmendInput, StatorAmendResult,
-} from "../contract/stator.js";
+import type { StatorRecallInput, StatorRecallResult, StatorBrowseInput, StatorBrowseResult, StatorGraphInput, StatorGraphResult, StatorForgetInput, StatorForgetResult, StatorAmendInput, StatorAmendResult } from "../contract/stator.js";
 
 export class StatorClient {
   constructor(private readonly http: AuthedHttp) {}
@@ -29,10 +22,6 @@ export class StatorClient {
     return this.http.post<StatorBrowseResult>("/api/stator/browse", input, { raw: true });
   }
 
-  /** Append a NEW fact glyphh to the org ledger. */
-  create(input: StatorCreateInput): Promise<StatorCreateResult> {
-    return this.http.post<StatorCreateResult>("/api/stator/create", input, { raw: true });
-  }
 
   /** The fact space as data: nodes, 3D PCA coords, banded similarity edges. */
   graph(input: StatorGraphInput = {}): Promise<StatorGraphResult> {

@@ -184,18 +184,6 @@ export function registerOrg(reg: CommandRegistry): void {
     },
   });
 
-  reg.register({
-    path: "members workspace",
-    summary: "assign a member to a workspace (or --clear to the base)",
-    usage: "members workspace <userId> <workspaceId | --clear>",
-    covers: ["members.assignWorkspace"],
-    async run(ctx, args) {
-      const userId = args.positional[0];
-      if (!userId) throw new Error("usage: members workspace <userId> <workspaceId | --clear>");
-      const workspaceId = "clear" in args.flags ? null : args.positional[1] ?? null;
-      ctx.printJson(await ctx.client.members.assignWorkspace(userId, workspaceId));
-    },
-  });
 
   reg.register({
     path: "org guardrails",

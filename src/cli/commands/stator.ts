@@ -51,25 +51,6 @@ export function registerStator(reg: CommandRegistry): void {
     },
   });
 
-  reg.register({
-    path: "memory create",
-    summary: "append a new fact glyphh (slots as layer.role=value pairs)",
-    usage: "memory create <name> [layer.role=value ...] [--confidence <f>] [--scope org|user]",
-    covers: ["stator.create"],
-    async run(ctx, args) {
-      const [name, ...pairs] = args.positional;
-      if (!name) throw new Error("usage: memory create <name> [layer.role=value ...]");
-      const confidence = flagStr(args, "confidence");
-      const scopeFlag = flagStr(args, "scope");
-      const facts = parseSlots(pairs);
-      ctx.printJson(await ctx.client.stator.create({
-        name,
-        ...(Object.keys(facts).length ? { facts } : {}),
-        ...(confidence ? { confidence: Number(confidence) } : {}),
-        ...(scopeFlag === "user" || scopeFlag === "org" ? { scope: scopeFlag } : {}),
-      }));
-    },
-  });
 
   reg.register({
     path: "memory graph",

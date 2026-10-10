@@ -70,27 +70,7 @@ export function registerCatalog(reg: CommandRegistry): void {
     },
   });
 
-  reg.register({
-    path: "catalog hf-search",
-    summary: "search Hugging Face for GGUF open-weight repos",
-    usage: "catalog hf-search [query]",
-    covers: ["catalog.hfSearch"],
-    async run(ctx, args) {
-      ctx.printJson(await ctx.client.catalog.hfSearch(args.positional[0] ?? ""));
-    },
-  });
 
-  reg.register({
-    path: "catalog hf-quants",
-    summary: "list a Hugging Face repo's GGUF quants",
-    usage: "catalog hf-quants <repo>",
-    covers: ["catalog.hfQuants"],
-    async run(ctx, args) {
-      const repo = args.positional[0];
-      if (!repo) throw new Error("usage: catalog hf-quants <repo>");
-      ctx.printJson(await ctx.client.catalog.hfQuants(repo));
-    },
-  });
 
   reg.register({
     path: "admin provider",
@@ -134,26 +114,4 @@ export function registerCatalog(reg: CommandRegistry): void {
     },
   });
 
-  reg.register({
-    path: "admin pricing",
-    summary: "update a model's list price / availability (super_admin; dollars per unit)",
-    usage: "admin pricing <modelId> [--in <n>] [--out <n>] [--active true|false] [--free-plan true|false]",
-    covers: ["admin.setModelPricing"],
-    async run(ctx, args) {
-      const id = args.positional[0];
-      if (!id) throw new Error("usage: admin pricing <modelId> [--in n] [--out n] [--active true|false]");
-      const pricing: { inputUsdPerMTok?: number; outputUsdPerMTok?: number; active?: boolean; modality?: Modality; rateUnit?: RateUnit; freePlan?: boolean } = {};
-      const inFlag = flagStr(args, "in");
-      const outFlag = flagStr(args, "out");
-      if (inFlag !== undefined) pricing.inputUsdPerMTok = Number(inFlag);
-      if (outFlag !== undefined) pricing.outputUsdPerMTok = Number(outFlag);
-      const mod = flagStr(args, "modality");
-      const ru = flagStr(args, "rate-unit");
-      if (mod !== undefined) pricing.modality = mod as Modality;
-      if (ru !== undefined) pricing.rateUnit = ru as RateUnit;
-      if ("active" in args.flags) pricing.active = String(args.flags.active) === "true";
-      if ("free-plan" in args.flags) pricing.freePlan = String(args.flags["free-plan"]) === "true";
-      ctx.printJson(await ctx.client.admin.setModelPricing(id, pricing));
-    },
-  });
 }

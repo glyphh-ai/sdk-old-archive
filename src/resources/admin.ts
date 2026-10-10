@@ -9,10 +9,10 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
-import type { Provider, Model, ProviderCreate, ModelCreate, ModelPricing } from "../contract/catalog.js";
-import type { AdminStats, AdminOrgsPage, AdminOrgListItem, AdminOrgDetail, AdminOrgPatch, AdminCreateOrg, AdminUsersPage, AdminUser, AdminUserPatch, AdminPlan, AdminPlanUpdate, AdminPlanCreate, AdminProviderKey, AdminModel, AdminModelUpdate, AdminPlanPrice, AuditPage, AuditQuery, AdminUsageByUser, AdminUsageDay, AdminDailyQuery, AdminListQuery, AdminUsageByRuntime, AdminRuntimeUsageQuery, RuntimeMode, AdminRevenue } from "../contract/admin.js";
+import type { Provider, Model, ProviderCreate, ModelCreate } from "../contract/catalog.js";
+import type { AdminOrgsPage, AdminOrgListItem, AdminOrgDetail, AdminOrgPatch, AdminCreateOrg, AdminUsersPage, AdminPlan, AdminPlanUpdate, AdminPlanCreate, AdminProviderKey, AdminModel, AdminModelUpdate, AdminPlanPrice, AuditPage, AuditQuery, AdminUsageByUser, AdminUsageDay, AdminDailyQuery, AdminListQuery, AdminUsageByRuntime, AdminRuntimeUsageQuery, RuntimeMode, AdminRevenue } from "../contract/admin.js";
 import type { EffectiveContext } from "../contract/membership.js";
-import type { AppServerImage, AdminAppServerImageCreate, AdminAppServerImageUpdate } from "../contract/app-servers.js";
+import type { AdminSupportPage, AdminSupportQuery } from "../contract/support.js";
 
 /** Append defined params to a path as a query string. */
 function withQuery(path: string, params: Record<string, string | number | undefined>): string {
@@ -32,22 +32,7 @@ export class AdminClient {
   createModel(input: ModelCreate): Promise<Model> {
     return this.http.post<Model>("/api/admin/models", input);
   }
-  /** Rename a model's id (same provider) — an atomic migrate of the catalog row,
-   *  org support, and rotor bindings. Usage history keeps the old ref. */
-  renameModel(provider: string, model: string, newModel: string): Promise<AdminModel> {
-    return this.http.post<{ model: AdminModel }>(
-      `/api/admin/models/${encodeURIComponent(provider)}/${encodeURIComponent(model)}/rename`,
-      { model: newModel },
-    ).then((r) => r.model);
-  }
-  setModelPricing(id: string, pricing: ModelPricing): Promise<Model> {
-    return this.http.patch<Model>(`/api/admin/models/${encodeURIComponent(id)}`, pricing);
-  }
 
-  // ── dashboard ─────────────────────────────────────────────────────────────
-  stats(): Promise<AdminStats> {
-    return this.http.get<AdminStats>("/api/admin/stats");
-  }
 
   // ── orgs ─────────────────────────────────────────────────────────────────────
   orgs(query: AdminListQuery = {}): Promise<AdminOrgsPage> {
@@ -62,12 +47,6 @@ export class AdminClient {
   }
   updateOrg(id: string, patch: AdminOrgPatch): Promise<AdminOrgDetail> {
     return this.http.patch<AdminOrgDetail>(`/api/admin/orgs/${encodeURIComponent(id)}`, patch);
-  }
-  lockOrg(id: string, reason?: string): Promise<{ ok: boolean }> {
-    return this.http.post<{ ok: boolean }>(`/api/admin/orgs/${encodeURIComponent(id)}/lock`, reason ? { reason } : {});
-  }
-  unlockOrg(id: string): Promise<{ ok: boolean }> {
-    return this.http.post<{ ok: boolean }>(`/api/admin/orgs/${encodeURIComponent(id)}/unlock`);
   }
   /** Add dollars to an org's budget (an admin grant; never expires).
    *  Returns the budget's new remaining dollars. */
@@ -86,18 +65,6 @@ export class AdminClient {
   // ── users ──────────────────────────────────────────────────────────────────
   users(query: AdminListQuery = {}): Promise<AdminUsersPage> {
     return this.http.get<AdminUsersPage>(withQuery("/api/admin/users", { q: query.q, page: query.page, limit: query.limit }));
-  }
-  user(id: string): Promise<AdminUser> {
-    return this.http.get<AdminUser>(`/api/admin/users/${encodeURIComponent(id)}`);
-  }
-  updateUser(id: string, patch: AdminUserPatch): Promise<AdminUser> {
-    return this.http.patch<AdminUser>(`/api/admin/users/${encodeURIComponent(id)}`, patch);
-  }
-  disableUser(id: string, reason?: string): Promise<{ ok: boolean }> {
-    return this.http.post<{ ok: boolean }>(`/api/admin/users/${encodeURIComponent(id)}/disable`, reason ? { reason } : {});
-  }
-  enableUser(id: string): Promise<{ ok: boolean }> {
-    return this.http.post<{ ok: boolean }>(`/api/admin/users/${encodeURIComponent(id)}/enable`);
   }
 
   // ── plans + models pricing ────────────────────────────────────────────────────
@@ -136,18 +103,7 @@ export class AdminClient {
   updateModel(provider: string, model: string, patch: AdminModelUpdate): Promise<{ model: AdminModel }> {
     return this.http.put<{ model: AdminModel }>(`/api/admin/models/${encodeURIComponent(provider)}/${encodeURIComponent(model)}`, patch);
   }
-  /** DELETE an organization + everything it owns (typed-name confirmed).
-   *  Sole-org members are deleted with it; multi-org members lose the
-   *  membership. Refused while Stripe billing is live or a platform admin
-   *  is a member. */
-  deleteOrg(orgId: string, confirmName: string): Promise<{ orgId: string; name: string; usersDeleted: number; membersDetached: number }> {
-    return this.http.post(`/api/admin/orgs/${encodeURIComponent(orgId)}/delete`, { confirmName });
-  }
 
-  /** Hard-delete a catalog model + its org support rows (super_admin). */
-  deleteModel(provider: string, model: string): Promise<void> {
-    return this.http.del<void>(`/api/admin/models/${encodeURIComponent(provider)}/${encodeURIComponent(model)}`);
-  }
 
   // ── plan price history (super_admin) ──────────────────────────────────────────
   /** A plan tier's Stripe price history (newest first), active flag included. */
@@ -168,27 +124,6 @@ export class AdminClient {
   }
 
 
-  // ── app-server image catalog (the runtime-image treatment) ────────────────────
-  /** Every app-server SKU, every region, active + inactive. */
-  appServerImages(): Promise<{ images: AppServerImage[] }> {
-    return this.http.get<{ images: AppServerImage[] }>("/api/admin/app-servers");
-  }
-  /** Add an app-server SKU to a region's catalog (`monthlyCredits` in WHOLE credits/month). */
-  createAppServerImage(input: AdminAppServerImageCreate): Promise<{ image: AppServerImage }> {
-    return this.http.post<{ image: AppServerImage }>("/api/admin/app-servers", input);
-  }
-  /** Re-price / re-size / retire a region's app-server SKU (audited). */
-  updateAppServerImage(region: string, key: string, patch: AdminAppServerImageUpdate): Promise<{ image: AppServerImage }> {
-    return this.http.put<{ image: AppServerImage }>(
-      `/api/admin/app-servers/${encodeURIComponent(region)}/${encodeURIComponent(key)}`, patch,
-    );
-  }
-  /** Remove an app-server SKU from a region's catalog (audited). */
-  deleteAppServerImage(region: string, key: string): Promise<{ ok: boolean }> {
-    return this.http.del<{ ok: boolean }>(
-      `/api/admin/app-servers/${encodeURIComponent(region)}/${encodeURIComponent(key)}`,
-    );
-  }
 
   // ── impersonation (platform admin reaches into an org they don't belong to) ───
   /** Start impersonating `orgId` on this session; returns the new effective scope. */
@@ -234,4 +169,11 @@ export class AdminClient {
     );
   }
 
+  // ── support console (super_admin) ──────────────────────────────────────────────
+  /** Browse every org's tickets (search + status filter + pagination). Shapes are snake_case. */
+  supportTickets(query: AdminSupportQuery = {}): Promise<AdminSupportPage> {
+    return this.http.get<AdminSupportPage>(
+      withQuery("/api/admin/support/tickets", { q: query.q, status: query.status, page: query.page, limit: query.limit }),
+    );
+  }
 }

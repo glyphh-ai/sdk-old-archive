@@ -33,29 +33,8 @@ describe("@glyphh/sdk — connections", () => {
     }
   });
 
-  it("org custom-MCP catalog + appTools + org-shared Pipedream (rich surfaces)", async () => {
+  it("org custom-MCP catalog, appTools and org-shared Pipedream for a fresh org", async () => {
     const client = await signIn(); // a personal-org org_admin
-    expect(await client.connections.orgMcpList()).toEqual([]);
-
-    const created = await client.connections.orgMcpCreate({
-      slug: "billing",
-      name: "Internal Billing",
-      url: "https://mcp.example.invalid/billing",
-      headers: { Authorization: "Bearer sk-secret-value" },
-    });
-    // Reachability is best-effort (the endpoint is unreachable here), but it is saved
-    // with the rich shape and the header VALUE never leaks — only the key name.
-    expect(typeof created.ok).toBe("boolean");
-    expect(created.connection.slug).toBe("mcp-billing");
-    expect(created.connection.headerKeys).toEqual(["Authorization"]);
-    expect(JSON.stringify(created)).not.toContain("sk-secret");
-
-    expect((await client.connections.orgMcpList()).some((c) => c.slug === "mcp-billing")).toBe(true);
-
-    const updated = await client.connections.orgMcpUpdate("mcp-billing", { name: "Billing v2", enabled: false });
-    expect(updated.connection).toMatchObject({ name: "Billing v2", enabled: false });
-
-    expect((await client.connections.orgMcpRemove("mcp-billing")).ok).toBe(true);
     expect(await client.connections.orgMcpList()).toEqual([]);
 
     // appTools — typed { tools } list.
@@ -67,21 +46,9 @@ describe("@glyphh/sdk — connections", () => {
     await expect(client.connections.pipedreamDisconnect(randomUUID())).rejects.toMatchObject({ httpStatus: 404 });
   });
 
-  it("mcpTools (org_admin): degrades to [] for an unreachable connection; 404s an unknown slug", async () => {
+  it("mcpTools (org_admin) 404s a connection the org does not have", async () => {
     const client = await signIn(); // a personal-org org_admin
-    await client.connections.orgMcpCreate({
-      slug: "tools-probe",
-      name: "Tools Probe",
-      url: "https://mcp.example.invalid/probe",
-      headers: { Authorization: "Bearer sk-secret-value" },
-    });
-    try {
-      // The endpoint is unreachable here, so the best-effort probe degrades to an empty list.
-      expect(await client.connections.mcpTools("mcp-tools-probe")).toEqual([]);
-      await expect(client.connections.mcpTools("mcp-does-not-exist")).rejects.toMatchObject({ httpStatus: 404 });
-    } finally {
-      await client.connections.orgMcpRemove("mcp-tools-probe");
-    }
+    await expect(client.connections.mcpTools("mcp-does-not-exist")).rejects.toMatchObject({ httpStatus: 404 });
   });
 
   it("resolvedTools returns the { connections } shape (empty for a fresh org)", async () => {

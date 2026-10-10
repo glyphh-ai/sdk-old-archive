@@ -32,11 +32,6 @@ describe("AdminClient catalog mutations", () => {
     expect(calls).toEqual([{ method: "POST", path: "/api/admin/models", body: input }]);
   });
 
-  it("deleteModel DELETEs the (provider, model) route, URL-encoded", async () => {
-    const { calls, client } = recorder();
-    await client.deleteModel("acme", "m/1");
-    expect(calls).toEqual([{ method: "DELETE", path: "/api/admin/models/acme/m%2F1" }]);
-  });
 
   it("createOrg POSTs { name, tier } to /api/admin/orgs", async () => {
     const { calls, client } = recorder();

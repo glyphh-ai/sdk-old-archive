@@ -12,73 +12,10 @@ import type { CommandRegistry } from "../registry.js";
 import { flagStr } from "../args.js";
 
 export function registerOffice(reg: CommandRegistry): void {
-  reg.register({
-    path: "slides list",
-    summary: "the org's slide decks (newest first)",
-    usage: "slides list",
-    covers: ["officeSlides.list"],
-    async run(ctx) {
-      ctx.printJson(await ctx.client.officeSlides.list());
-    },
-  });
 
-  reg.register({
-    path: "slides get",
-    summary: "one deck by name — metadata + HTML (--out writes the HTML to a file)",
-    usage: "slides get <file> [--out <path>]",
-    covers: ["officeSlides.get"],
-    async run(ctx, args) {
-      const file = args.positional[0];
-      if (!file) throw new Error("usage: slides get <file> [--out <path>]");
-      const deck = await ctx.client.officeSlides.get(file);
-      const out = flagStr(args, "out");
-      if (out) {
-        writeFileSync(out, deck.html, "utf8");
-        const { html: _html, ...meta } = deck;
-        ctx.printJson({ ...meta, wrote: out });
-        return;
-      }
-      ctx.printJson(deck);
-    },
-  });
 
-  reg.register({
-    path: "slides text",
-    summary: "a deck's readable text (per-slide) — skip the font bytes",
-    usage: "slides text <file>",
-    covers: ["officeSlides.text"],
-    async run(ctx, args) {
-      const file = args.positional[0];
-      if (!file) throw new Error("usage: slides text <file>");
-      ctx.printJson(await ctx.client.officeSlides.text(file));
-    },
-  });
 
-  reg.register({
-    path: "slides save",
-    summary: "create/overwrite a deck from a local HTML file",
-    usage: "slides save <path> [--name <file>]",
-    covers: ["officeSlides.put"],
-    async run(ctx, args) {
-      const path = args.positional[0];
-      if (!path) throw new Error("usage: slides save <path> [--name <file>]");
-      const name = flagStr(args, "name") ?? basename(path);
-      ctx.printJson(await ctx.client.officeSlides.put(name, readFileSync(path, "utf8")));
-    },
-  });
 
-  reg.register({
-    path: "slides delete",
-    summary: "delete a deck for the whole org",
-    usage: "slides delete <file>",
-    covers: ["officeSlides.delete"],
-    async run(ctx, args) {
-      const file = args.positional[0];
-      if (!file) throw new Error("usage: slides delete <file>");
-      await ctx.client.officeSlides.delete(file);
-      ctx.printJson({ deleted: file });
-    },
-  });
 
   // ── DOCS ────────────────────────────────────────────────────────────────────
 
@@ -194,71 +131,10 @@ export function registerOffice(reg: CommandRegistry): void {
 
   // ── DRIVE ───────────────────────────────────────────────────────────────────
 
-  reg.register({
-    path: "drive list",
-    summary: "folders + every Office file pointer (--q searches)",
-    usage: "drive list [--q <query>]",
-    covers: ["officeDrive.list"],
-    async run(ctx, args) {
-      ctx.printJson(await ctx.client.officeDrive.list(flagStr(args, "q")));
-    },
-  });
 
-  reg.register({
-    path: "drive mkdir",
-    summary: "create a folder",
-    usage: "drive mkdir <name> [--parent <folderId>]",
-    covers: ["officeDrive.createFolder"],
-    async run(ctx, args) {
-      const name = args.positional[0];
-      if (!name) throw new Error("usage: drive mkdir <name> [--parent <folderId>]");
-      ctx.printJson(await ctx.client.officeDrive.createFolder(name, flagStr(args, "parent") ?? null));
-    },
-  });
 
-  reg.register({
-    path: "drive folder",
-    summary: "rename and/or re-parent a folder (--root moves it to the root)",
-    usage: "drive folder <id> [--name <name>] [--parent <folderId>] [--root]",
-    covers: ["officeDrive.updateFolder"],
-    async run(ctx, args) {
-      const id = args.positional[0];
-      if (!id) throw new Error("usage: drive folder <id> [--name …] [--parent …] [--root]");
-      const fields: { name?: string; parentId?: string | null } = {};
-      const name = flagStr(args, "name");
-      if (name) fields.name = name;
-      const parent = flagStr(args, "parent");
-      if (parent) fields.parentId = parent;
-      else if (flagStr(args, "root") !== undefined) fields.parentId = null;
-      ctx.printJson(await ctx.client.officeDrive.updateFolder(id, fields));
-    },
-  });
 
-  reg.register({
-    path: "drive rmdir",
-    summary: "delete a folder (its contents re-parent, nothing is lost)",
-    usage: "drive rmdir <id>",
-    covers: ["officeDrive.deleteFolder"],
-    async run(ctx, args) {
-      const id = args.positional[0];
-      if (!id) throw new Error("usage: drive rmdir <id>");
-      await ctx.client.officeDrive.deleteFolder(id);
-      ctx.printJson({ deleted: id });
-    },
-  });
 
-  reg.register({
-    path: "drive mv",
-    summary: "move an Office file into a folder (--root files it at the root)",
-    usage: "drive mv <slides|docs> <file> [--folder <folderId>] [--root]",
-    covers: ["officeDrive.move"],
-    async run(ctx, args) {
-      const [kind, file] = args.positional;
-      if ((kind !== "slides" && kind !== "docs") || !file) throw new Error("usage: drive mv <slides|docs> <file> [--folder <id>] [--root]");
-      const folder = flagStr(args, "folder");
-      ctx.printJson(await ctx.client.officeDrive.move(kind, file, folder ?? null));
-    },
-  });
 
   // ── SHEETS ──────────────────────────────────────────────────────────────────
 
@@ -320,15 +196,4 @@ export function registerOffice(reg: CommandRegistry): void {
     },
   });
 
-  reg.register({
-    path: "sheets text",
-    summary: "a workbook's readable text (headers + sample rows)",
-    usage: "sheets text <file>",
-    covers: ["officeSheets.text"],
-    async run(ctx, args) {
-      const file = args.positional[0];
-      if (!file) throw new Error("usage: sheets text <file>");
-      ctx.printJson(await ctx.client.officeSheets.text(file));
-    },
-  });
 }

@@ -127,8 +127,6 @@ export type {
   LinksQuery,
   MarketingStatsQuery,
 } from "./contract/marketing.js";
-export { TasksClient } from "./resources/tasks.js";
-export type { Task, TaskSummary, TaskManifest, TaskRole, ResolvedTaskRole, CreateTaskInput, UpdateTaskInput } from "./contract/tasks.js";
 export { ConnectionsClient } from "./resources/connections.js";
 export type {
   Connection,
@@ -181,8 +179,7 @@ export type {
 } from "./contract/threads.js";
 export { FilesClient } from "./resources/files.js";
 export type { FileArtifact, FileKind, ListFilesQuery, CreateFileInput } from "./contract/files.js";
-export { OfficeSlidesClient, OfficeDocsClient, OfficeDriveClient, OfficeSheetsClient } from "./resources/office.js";
-export { DesignsClient } from "./resources/design.js";
+export { OfficeDocsClient, OfficeSheetsClient } from "./resources/office.js";
 export { StatorClient } from "./resources/stator.js";
 export { MediaClient } from "./resources/media.js";
 export type { MediaProject } from "./resources/media.js";
@@ -194,9 +191,6 @@ export type {
   OfficeDocTemplate, OfficeFolder, OfficeDriveFile, OfficeDriveListing,
   OfficeSheet, OfficeSheetMeta, Workbook, Worksheet, SheetColumn, SheetCell,
 } from "./contract/office.js";
-export type {
-  Design, DesignMeta, DesignSystem, DesignColor, DesignFont, DesignAsset, DesignSource, DesignImageryRef, DesignCanvas, UploadDesignAssetInput,
-} from "./contract/design.js";
 export type {
   GlyphFact, StatorRecallInput, StatorRecallResult, StatorBrowseInput, StatorBrowseResult,
   StatorCreateInput, StatorCreateResult, StatorGraphInput, StatorGraphNode, StatorGraphResult,
@@ -224,7 +218,6 @@ export type {
   AppRelease, AppUpload, AppInvokeResult, AppBuildResult,
   CreateAppInstanceInput, PatchAppInstanceInput,
 } from "./contract/app-instances.js";
-export { MarketplaceClient } from "./resources/marketplace.js";
 export type {
   DeveloperScope,
   MarketplaceDeveloper,
@@ -286,7 +279,6 @@ export type {
   JevNoulAnswer, JevChoiceAnswer, JevScoreAnswer, JevAnswer, JevAnswerFor, JevUsage, JevConnection, JevAnswerSummary,
   DecideRequest, DecideResponse, RouteBranches, RouteOptions, RouteDecision, RouteResult,
 } from "./resources/systemone.js";
-export { GuestClient } from "./resources/guest.js";
 export type {
   GatewayMessage,
   GatewayCompletionInput,

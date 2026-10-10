@@ -35,14 +35,6 @@ export function registerApiKeys(reg: CommandRegistry): void {
     },
   });
 
-  reg.register({
-    path: "keys list-org",
-    summary: "every API key in the org, by user (org_admin)",
-    covers: ["apiKeys.listOrg"],
-    async run(ctx) {
-      ctx.printJson(await ctx.client.apiKeys.listOrg());
-    },
-  });
 
   reg.register({
     path: "keys revoke",

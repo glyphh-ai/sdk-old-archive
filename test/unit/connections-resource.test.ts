@@ -32,30 +32,9 @@ describe("ConnectionsClient — org custom-MCP catalog", () => {
     expect(calls).toEqual([{ method: "GET", path: "/api/org/mcp-connections" }]);
   });
 
-  it("orgMcpCreate POSTs the input", async () => {
-    const { calls, client } = recorder();
-    const input = { slug: "billing", name: "Billing", url: "https://x", headers: { A: "b" } };
-    await client.orgMcpCreate(input);
-    expect(calls).toEqual([{ method: "POST", path: "/api/org/mcp-connections", body: input }]);
-  });
 
-  it("orgMcpUpdate PATCHes the slug route", async () => {
-    const { calls, client } = recorder();
-    await client.orgMcpUpdate("mcp-a", { enabled: false });
-    expect(calls).toEqual([{ method: "PATCH", path: "/api/org/mcp-connections/mcp-a", body: { enabled: false } }]);
-  });
 
-  it("orgMcpRemove DELETEs the slug route", async () => {
-    const { calls, client } = recorder();
-    await client.orgMcpRemove("mcp-a");
-    expect(calls).toEqual([{ method: "DELETE", path: "/api/org/mcp-connections/mcp-a" }]);
-  });
 
-  it("orgMcpSetIcon PUTs the icon route with the dataUrl", async () => {
-    const { calls, client } = recorder();
-    await client.orgMcpSetIcon("mcp-a", "data:image/png;base64,aa");
-    expect(calls).toEqual([{ method: "PUT", path: "/api/org/mcp-connections/mcp-a/icon", body: { dataUrl: "data:image/png;base64,aa" } }]);
-  });
 
   it("appTools GETs the connector tools route, URL-encoded", async () => {
     const { calls, client } = recorder({ tools: [] });
@@ -87,11 +66,6 @@ describe("ConnectionsClient — org-shared Pipedream", () => {
     expect(calls).toEqual([{ method: "GET", path: "/api/org/connections" }]);
   });
 
-  it("pipedreamConnect POSTs the appSlug", async () => {
-    const { calls, client } = recorder();
-    await client.pipedreamConnect("notion");
-    expect(calls).toEqual([{ method: "POST", path: "/api/org/connections/connect", body: { appSlug: "notion" } }]);
-  });
 
   it("pipedreamDisconnect DELETEs the id route", async () => {
     const { calls, client } = recorder();

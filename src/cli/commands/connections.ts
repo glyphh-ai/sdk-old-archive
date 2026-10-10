@@ -35,18 +35,6 @@ export function registerConnections(reg: CommandRegistry): void {
   });
 
 
-  reg.register({
-    path: "connections mcp remove",
-    summary: "remove a custom MCP server",
-    usage: "connections mcp remove <slug>",
-    covers: ["connections.removeCustomMcp"],
-    async run(ctx, args) {
-      const slug = args.positional[0];
-      if (!slug) throw new Error("usage: connections mcp remove <slug>");
-      await ctx.client.connections.removeCustomMcp(slug);
-      ctx.print("removed ✓");
-    },
-  });
 
 
   reg.register({
@@ -127,66 +115,9 @@ export function registerConnections(reg: CommandRegistry): void {
     },
   });
 
-  reg.register({
-    path: "connections org-mcp add",
-    summary: "publish a custom-MCP connection (org_admin)",
-    usage: "connections org-mcp add <slug> --name <name> --url <url> [--header 'K: V,K2: V2']",
-    covers: ["connections.orgMcpCreate"],
-    async run(ctx, args) {
-      const slug = args.positional[0];
-      const name = flagStr(args, "name");
-      const url = flagStr(args, "url");
-      if (!slug || !name || !url) throw new Error("usage: connections org-mcp add <slug> --name <name> --url <url>");
-      const headers = parseHeaderFlag(flagStr(args, "header"));
-      ctx.printJson(await ctx.client.connections.orgMcpCreate({ slug, name, url, ...(headers ? { headers } : {}) }));
-    },
-  });
 
-  reg.register({
-    path: "connections org-mcp update",
-    summary: "edit a custom-MCP connection (org_admin)",
-    usage: "connections org-mcp update <slug> [--name <n>] [--url <u>] [--header 'K: V'] [--enabled true|false]",
-    covers: ["connections.orgMcpUpdate"],
-    async run(ctx, args) {
-      const slug = args.positional[0];
-      if (!slug) throw new Error("usage: connections org-mcp update <slug> [--name <n>] [--url <u>] [--header 'K: V'] [--enabled true|false]");
-      const patch: { name?: string; url?: string; headers?: Record<string, string>; enabled?: boolean } = {};
-      const name = flagStr(args, "name");
-      const url = flagStr(args, "url");
-      const headers = parseHeaderFlag(flagStr(args, "header"));
-      const enabled = flagStr(args, "enabled");
-      if (name !== undefined) patch.name = name;
-      if (url !== undefined) patch.url = url;
-      if (headers) patch.headers = headers;
-      if (enabled !== undefined) patch.enabled = enabled === "true";
-      ctx.printJson(await ctx.client.connections.orgMcpUpdate(slug, patch));
-    },
-  });
 
-  reg.register({
-    path: "connections org-mcp remove",
-    summary: "delete a custom-MCP connection (org_admin)",
-    usage: "connections org-mcp remove <slug>",
-    covers: ["connections.orgMcpRemove"],
-    async run(ctx, args) {
-      const slug = args.positional[0];
-      if (!slug) throw new Error("usage: connections org-mcp remove <slug>");
-      ctx.printJson(await ctx.client.connections.orgMcpRemove(slug));
-    },
-  });
 
-  reg.register({
-    path: "connections org-mcp icon",
-    summary: "set a custom-MCP connection's logo (data URL)",
-    usage: "connections org-mcp icon <slug> --dataUrl <data:...>",
-    covers: ["connections.orgMcpSetIcon"],
-    async run(ctx, args) {
-      const slug = args.positional[0];
-      const dataUrl = flagStr(args, "dataUrl");
-      if (!slug || !dataUrl) throw new Error("usage: connections org-mcp icon <slug> --dataUrl <data:...>");
-      ctx.printJson(await ctx.client.connections.orgMcpSetIcon(slug, dataUrl));
-    },
-  });
 
   // ── org-shared Pipedream connections (Configure → Connections) ───────────────
   reg.register({
@@ -198,17 +129,6 @@ export function registerConnections(reg: CommandRegistry): void {
     },
   });
 
-  reg.register({
-    path: "connections org connect",
-    summary: "start an org-level OAuth for an app (prints the URL)",
-    usage: "connections org connect <appSlug>",
-    covers: ["connections.pipedreamConnect"],
-    async run(ctx, args) {
-      const appSlug = args.positional[0];
-      if (!appSlug) throw new Error("usage: connections org connect <appSlug>");
-      ctx.print((await ctx.client.connections.pipedreamConnect(appSlug)).connectUrl);
-    },
-  });
 
   reg.register({
     path: "connections org disconnect",
@@ -347,22 +267,6 @@ export function registerConnections(reg: CommandRegistry): void {
     },
   });
 
-  reg.register({
-    path: "connections run",
-    summary: "run a governed connection tool (scope-derived external id)",
-    usage: "connections run <slug> <tool> [props-json]",
-    covers: ["connections.runTool"],
-    async run(ctx, args) {
-      const [slug, tool, propsRaw] = args.positional;
-      if (!slug || !tool) throw new Error("usage: connections run <slug> <tool> [props-json]");
-      let props;
-      if (propsRaw) {
-        try { props = JSON.parse(propsRaw); }
-        catch { throw new Error("props must be a JSON object, e.g. '{\"text\":\"hi\"}'"); }
-      }
-      ctx.printJson(await ctx.client.connections.runTool({ slug, tool, ...(props ? { props } : {}) }));
-    },
-  });
 
 
 }

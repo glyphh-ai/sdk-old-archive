@@ -8,43 +8,8 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
-import type {
-  OfficeSlide, OfficeSlideMeta,
-  OfficeDoc, OfficeDocMeta, OfficeSuggestion, CreateSuggestionInput,
-  OfficeDocTemplate, OfficeFolder, OfficeDriveListing, DriveKind,
-  OfficeSheet, OfficeSheetMeta, Workbook,
-} from "../contract/office.js";
+import type { OfficeDoc, OfficeDocMeta, OfficeSuggestion, CreateSuggestionInput, OfficeDocTemplate, OfficeSheet, OfficeSheetMeta, Workbook } from "../contract/office.js";
 
-export class OfficeSlidesClient {
-  constructor(private readonly http: AuthedHttp) {}
-
-  /** The org's decks, most recently touched first. */
-  list(): Promise<OfficeSlideMeta[]> {
-    return this.http.get<OfficeSlideMeta[]>("/api/office/slides");
-  }
-
-  /** One deck by name — metadata plus the complete HTML document. */
-  get(file: string): Promise<OfficeSlide> {
-    return this.http.get<OfficeSlide>(`/api/office/slides/${encodeURIComponent(file)}`);
-  }
-
-  /** Create or overwrite a deck by name. The server validates the deck shape
-   *  (needs <section class="slide"> pages) and extracts title + slide count. */
-  put(file: string, html: string): Promise<OfficeSlideMeta> {
-    return this.http.put<OfficeSlideMeta>(`/api/office/slides/${encodeURIComponent(file)}`, { html });
-  }
-
-  /** Delete a deck for the whole org — the stored document and its index row. */
-  delete(file: string): Promise<void> {
-    return this.http.del<void>(`/api/office/slides/${encodeURIComponent(file)}`);
-  }
-
-  /** The deck's READABLE TEXT (per-slide, hidden slides labeled) — what a
-   *  session should read; the raw document is mostly font bytes. */
-  text(file: string): Promise<OfficeSlideMeta & { text: string }> {
-    return this.http.get<OfficeSlideMeta & { text: string }>(`/api/office/slides/${encodeURIComponent(file)}/text`);
-  }
-}
 
 // ── DOCS — markdown documents with the review-and-approve edit flow ──────────
 
@@ -99,38 +64,6 @@ export class OfficeDocsClient {
 
 // ── DRIVE — folders + the pointer view over every Office file ────────────────
 
-export class OfficeDriveClient {
-  constructor(private readonly http: AuthedHttp) {}
-
-  /** Folders + file pointers (slides AND docs), optionally filtered by q. */
-  list(q?: string): Promise<OfficeDriveListing> {
-    const qs = q ? `?q=${encodeURIComponent(q)}` : "";
-    return this.http.get<OfficeDriveListing>(`/api/office/drive${qs}`);
-  }
-
-  createFolder(name: string, parentId?: string | null): Promise<OfficeFolder> {
-    const body: { name: string; parentId?: string | null } = { name };
-    if (parentId !== undefined) body.parentId = parentId;
-    return this.http.post<OfficeFolder>("/api/office/drive/folders", body);
-  }
-
-  /** Rename and/or re-parent (parentId null = root; cycles are rejected). */
-  updateFolder(id: string, fields: { name?: string; parentId?: string | null }): Promise<OfficeFolder> {
-    return this.http.patch<OfficeFolder>(`/api/office/drive/folders/${encodeURIComponent(id)}`, fields);
-  }
-
-  /** Delete a folder — its contents re-parent to the folder's parent. */
-  deleteFolder(id: string): Promise<void> {
-    return this.http.del<void>(`/api/office/drive/folders/${encodeURIComponent(id)}`);
-  }
-
-  /** Point one Office file at a folder (null = root). */
-  /** Move any Drive object into a folder (null = root). Office/design pass
-   *  the file name; media/music/file pass the row id — both ride `file`. */
-  move(kind: DriveKind, ref: string, folderId: string | null): Promise<{ ok: boolean }> {
-    return this.http.post<{ ok: boolean }>("/api/office/drive/move", { kind, file: ref, folderId });
-  }
-}
 
 // ── SHEETS — JSON workbooks; formula values arrive materialized ──────────────
 
@@ -160,8 +93,4 @@ export class OfficeSheetsClient {
     return this.http.del<void>(`/api/office/sheets/${encodeURIComponent(file)}`);
   }
 
-  /** The workbook's READABLE TEXT — headers + sample rows per sheet. */
-  text(file: string): Promise<OfficeSheetMeta & { text: string }> {
-    return this.http.get<OfficeSheetMeta & { text: string }>(`/api/office/sheets/${encodeURIComponent(file)}/text`);
-  }
 }

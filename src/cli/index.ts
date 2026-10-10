@@ -19,7 +19,6 @@ import { registerBilling } from "./commands/billing.js";
 import { registerCatalog } from "./commands/catalog.js";
 import { registerAdmin } from "./commands/admin.js";
 import { registerMarketing } from "./commands/marketing.js";
-import { registerTasks } from "./commands/tasks.js";
 import { registerPlans } from "./commands/plans.js";
 import { registerOrgLibrary } from "./commands/org-library.js";
 import { registerConnections } from "./commands/connections.js";
@@ -28,7 +27,6 @@ import { registerApiKeys } from "./commands/api-keys.js";
 import { registerSessions } from "./commands/sessions.js";
 import { registerFiles } from "./commands/files.js";
 import { registerOffice } from "./commands/office.js";
-import { registerDesign } from "./commands/design.js";
 import { registerStator } from "./commands/stator.js";
 import { registerMedia } from "./commands/media.js";
 import { registerMusic } from "./commands/music.js";
@@ -36,7 +34,6 @@ import { registerGit } from "./commands/git.js";
 import { registerEnvironments } from "./commands/environments.js";
 import { registerArtifacts } from "./commands/artifacts.js";
 import { registerAppInstances } from "./commands/app-instances.js";
-import { registerMarketplace } from "./commands/marketplace.js";
 import { registerLibrary } from "./commands/library.js";
 import { registerMemberLibrary } from "./commands/member-library.js";
 import { registerAttach } from "./commands/attach.js";
@@ -48,8 +45,6 @@ import { registerApi } from "./commands/api.js";
 import { registerGateway } from "./commands/gateway.js";
 import { registerSkills } from "./commands/skills.js";
 import { registerAgents } from "./commands/agents.js";
-import { registerGuest } from "./commands/guest.js";
-import { registerAppServers } from "./commands/app-servers.js";
 import { registerIcons } from "./commands/icons.js";
 import { registerDecide } from "./commands/decide.js";
 
@@ -71,7 +66,6 @@ export function buildRegistry(): CommandRegistry {
   registerCatalog(reg);
   registerAdmin(reg);
   registerMarketing(reg);
-  registerTasks(reg);
   registerPlans(reg);
   registerOrgLibrary(reg);
   registerConnections(reg);
@@ -80,7 +74,6 @@ export function buildRegistry(): CommandRegistry {
   registerSessions(reg);
   registerFiles(reg);
   registerOffice(reg);
-  registerDesign(reg);
   registerStator(reg);
   registerMedia(reg);
   registerMusic(reg);
@@ -90,7 +83,6 @@ export function buildRegistry(): CommandRegistry {
   registerEnvironments(reg);
   registerArtifacts(reg);
   registerAppInstances(reg);
-  registerMarketplace(reg);
   registerLibrary(reg);
   registerMemberLibrary(reg);
   registerAttach(reg);
@@ -98,8 +90,6 @@ export function buildRegistry(): CommandRegistry {
   registerProfile(reg);
   registerSupport(reg);
   registerOAuth(reg);
-  registerGuest(reg);
-  registerAppServers(reg);
   return reg;
 }
 

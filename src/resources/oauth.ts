@@ -10,7 +10,7 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
-import type { OAuthClientInfo, OAuthConsentInput, OAuthConsentResult, OAuthGrant } from "../contract/oauth.js";
+import type { OAuthClientInfo, OAuthConsentInput, OAuthConsentResult } from "../contract/oauth.js";
 
 export class OAuthClient {
   constructor(private readonly http: AuthedHttp) {}
@@ -37,15 +37,5 @@ export class OAuthClient {
     });
   }
 
-  /** Everything currently authorized to act for the caller. */
-  async grants(): Promise<OAuthGrant[]> {
-    const { grants } = await this.http.get<{ grants: OAuthGrant[] }>("/api/oauth/grants");
-    return grants;
-  }
 
-  /** Revoke one connection. Independent of the user's own session: cutting off Claude
-   *  must not sign them out, and signing out must not kill a background agent. */
-  revokeGrant(grantId: string): Promise<{ ok: boolean }> {
-    return this.http.del<{ ok: boolean }>(`/api/oauth/grants/${encodeURIComponent(grantId)}`);
-  }
 }

@@ -6,7 +6,6 @@
  */
 
 import type { CommandRegistry } from "../registry.js";
-import { flagStr } from "../args.js";
 
 export function registerAuth(reg: CommandRegistry): void {
   reg.register({
@@ -81,34 +80,7 @@ export function registerAuth(reg: CommandRegistry): void {
     },
   });
 
-  reg.register({
-    path: "auth apple",
-    summary: "native Apple sign-in (paste a device identityToken)",
-    usage: "auth apple <identityToken>",
-    covers: ["auth.apple"],
-    async run(ctx, args) {
-      const token = args.positional[0];
-      if (!token) throw new Error("usage: auth apple <identityToken>");
-      await ctx.client.auth.apple(token);
-      ctx.print("signed in ✓");
-    },
-  });
 
-  reg.register({
-    path: "auth org",
-    summary: "start organization SSO (prints the authorization URL)",
-    usage: "auth org <email> [--redirect <uri>]",
-    covers: ["auth.startOrgSso"],
-    async run(ctx, args) {
-      const email = args.positional[0];
-      if (!email) throw new Error("usage: auth org <email>");
-      const { authorizationUrl } = await ctx.client.auth.startOrgSso({
-        email,
-        redirectUri: flagStr(args, "redirect") ?? "glyphh://auth/callback",
-      });
-      ctx.print(authorizationUrl);
-    },
-  });
 
   reg.register({
     path: "auth exchange",

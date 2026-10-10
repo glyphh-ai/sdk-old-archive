@@ -9,7 +9,7 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
-import type { Skill, SkillSummary, CreateSkillInput, UpdateSkillInput } from "../contract/skills.js";
+import type { Skill, SkillSummary } from "../contract/skills.js";
 
 export class SkillsClient {
   constructor(private readonly http: AuthedHttp) {}
@@ -23,17 +23,8 @@ export class SkillsClient {
     return this.http.get<Skill>(`/api/skills/${encodeURIComponent(ref)}`);
   }
 
-  create(input: CreateSkillInput): Promise<Skill> {
-    return this.http.post<Skill>("/api/skills", input);
-  }
 
-  update(ref: string, patch: UpdateSkillInput): Promise<Skill> {
-    return this.http.patch<Skill>(`/api/skills/${encodeURIComponent(ref)}`, patch);
-  }
 
-  remove(ref: string): Promise<void> {
-    return this.http.del<void>(`/api/skills/${encodeURIComponent(ref)}`);
-  }
 
   /** Submit MY personal skill to the org admin for org-wide sharing. */
   share(ref: string): Promise<{ id: string; status: string }> {

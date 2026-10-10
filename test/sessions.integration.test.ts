@@ -19,32 +19,6 @@ async function signIn(): Promise<Client> {
   return client;
 }
 
-describe("@glyphh/sdk — sessions", () => {
-  it("provisions a runtime, lists it, and deprovisions", async () => {
-    const client = await signIn();
-
-    const { session, runtimeToken } = await client.sessions.create({ rotor: "default" });
-    expect(session.status).toBe("ready");
-    expect(session.rotor).toBe("default");
-    expect(session.runtimeUrl).toBeTruthy();
-    expect(runtimeToken).toMatch(/^gy_rk_/);
-
-    const listed = await client.sessions.list();
-    expect(listed.some((s) => s.id === session.id)).toBe(true);
-    // The token is never echoed back on reads.
-    expect(JSON.stringify(listed)).not.toContain(runtimeToken);
-
-    const got = await client.sessions.get(session.id);
-    expect(got.id).toBe(session.id);
-
-    await client.sessions.delete(session.id);
-    // After deprovision it is gone or stopped — either way not "ready".
-    const after = await client.sessions.list();
-    const still = after.find((s) => s.id === session.id);
-    expect(still?.status ?? "stopped").not.toBe("ready");
-  });
-});
-
 describe("@glyphh/sdk — session threads (LWW cache sync)", () => {
   it("pushes a client-minted thread, lists metadata, reads messages, rejects stale, tombstones", async () => {
     const client = await signIn();
