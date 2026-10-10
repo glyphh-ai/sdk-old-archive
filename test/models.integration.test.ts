@@ -60,24 +60,7 @@ describe("@glyphh/sdk — model governance", () => {
     expect(audit.entries.every((e) => e.action === "model.support")).toBe(true);
   });
 
-  it("byModel returns an array (empty for a new org)", async () => {
-    const client = await signIn();
-    const rows = await client.usage.byModel();
-    expect(Array.isArray(rows)).toBe(true);
-    expect(rows).toEqual([]);
-  });
 
-  it("recordModelSwitch audits a LOCAL run's switch — ephemeral id, no provisioned session", async () => {
-    const client = await signIn();
-    const localId = `cli-${Date.now()}-4242`; // an embedded-run client id, never provisioned
-    const res = await client.sessions.recordModelSwitch({
-      sessionId: localId, rotorSlug: "base", role: "assistant", from: OPUS, to: SONNET, surface: "cli",
-    });
-    expect(res).toMatchObject({ sessionId: localId, from: OPUS, to: SONNET, surface: "cli" });
-
-    const audit = await client.orgModels.audit({ action: "model.switch" });
-    expect(audit.entries.some((e) => (e.metadata as { sessionId?: string })?.sessionId === localId)).toBe(true);
-  });
 
   it("orgModels surface is forbidden for a non-admin member (server enforces)", async () => {
     // A fresh personal-org user is org_admin, so this asserts the happy path is reachable;

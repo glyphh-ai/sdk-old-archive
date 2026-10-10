@@ -7,11 +7,7 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
-import type {
-  Connection, CustomMcpInput, ConnectLink, ConnectorApp, ConnectorTool,
-  OrgMcpConnection, OrgMcpInput, OrgMcpPatch, OrgMcpCreateResult, OrgPipedreamConnection,
-  ResolvedConnection, McpOAuthStart, PersonalConnection, PersonalConnectSession, RunToolResult, FetchFileResult, ProxySendResult,
-} from "../contract/connections.js";
+import type { Connection, ConnectorApp, ConnectorTool, OrgMcpConnection, OrgMcpInput, OrgMcpPatch, OrgMcpCreateResult, OrgPipedreamConnection, ResolvedConnection, PersonalConnection, PersonalConnectSession, RunToolResult } from "../contract/connections.js";
 
 export class ConnectionsClient {
   constructor(private readonly http: AuthedHttp) {}
@@ -45,19 +41,11 @@ export class ConnectionsClient {
     return this.http.get<{ categories: Array<{ name: string; count: number; apps: ConnectorApp[] }> }>("/api/connectors/categories");
   }
 
-  /** Install a custom MCP server (org_admin). `headers` are sent once, then encrypted. */
-  installCustomMcp(input: CustomMcpInput): Promise<Connection> {
-    return this.http.post<Connection>("/api/connections/mcp", input);
-  }
 
   removeCustomMcp(slug: string): Promise<void> {
     return this.http.del<void>(`/api/connections/mcp/${encodeURIComponent(slug)}`);
   }
 
-  /** Get a Pipedream connect-link URL to OAuth an account (needs Pipedream config). */
-  pipedreamConnectLink(): Promise<ConnectLink> {
-    return this.http.post<ConnectLink>("/api/connections/pipedream/connect");
-  }
 
   /** The tools/actions a connector app exposes (best-effort; empty when unconfigured). */
   appTools(slug: string): Promise<{ tools: ConnectorTool[] }> {
@@ -83,14 +71,6 @@ export class ConnectionsClient {
     return this.http.get<{ connections: ResolvedConnection[] }>("/api/connections/tools");
   }
 
-  /**
-   * Start an OAuth 2.1 authorization for a custom-MCP connection (org_admin); runs
-   * discovery + dynamic client registration as needed and returns the authorize URL
-   * to open. Tokens land later at the browser callback (no SDK method).
-   */
-  startMcpOAuth(slug: string): Promise<McpOAuthStart> {
-    return this.http.post<McpOAuthStart>(`/api/org/mcp-connections/${encodeURIComponent(slug)}/oauth/start`);
-  }
 
   // ── Settings → MCP: the RICH org custom-MCP catalog (org_admin) ──────────────
 
@@ -249,18 +229,5 @@ export class ConnectionsClient {
     return this.http.post<RunToolResult>("/api/connections/run", input);
   }
 
-  /** Fetch a file's bytes from a connected account (provider API url, e.g.
-   *  Drive `files/<id>?alt=media`) through the server's Connect-proxy bridge.
-   *  Same gates as runTool; capped server-side (~15MB default, 25MB max). */
-  fetchFile(input: { slug: string; url: string; scope?: "org" | "personal"; maxBytes?: number }): Promise<FetchFileResult> {
-    return this.http.post<FetchFileResult>("/api/connections/fetch-file", input);
-  }
 
-  /** Push bytes TO a connected account's provider API (uploads, sends with
-   *  real attachments) through the server's Connect-proxy bridge. bodyBase64
-   *  must decode text-safe (MIME with base64-encoded parts is). Same gates as
-   *  runTool; 25MB body cap server-side. */
-  proxySend(input: { slug: string; url: string; bodyBase64: string; method?: "POST" | "PUT"; contentType?: string; scope?: "org" | "personal" }): Promise<ProxySendResult> {
-    return this.http.post<ProxySendResult>("/api/connections/proxy-send", input);
-  }
 }

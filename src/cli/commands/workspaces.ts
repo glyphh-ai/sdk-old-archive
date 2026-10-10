@@ -117,12 +117,4 @@ export function registerWorkspaces(reg: CommandRegistry): void {
     },
   });
 
-  reg.register({
-    path: "ws grants",
-    summary: "the caller's effective grants",
-    covers: ["workspaces.grants"],
-    async run(ctx) {
-      ctx.printJson(await ctx.client.workspaces.grants());
-    },
-  });
 }

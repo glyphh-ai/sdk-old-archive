@@ -8,7 +8,7 @@
 
 import { describe, it, expect } from "vitest";
 import { randomUUID } from "node:crypto";
-import { createClient, type Client } from "../src/index.js";
+import { createClient, NotFoundError, type Client } from "../src/index.js";
 
 const url = process.env.GLYPHH_SERVER_URL ?? "http://127.0.0.1:3001";
 
@@ -86,9 +86,8 @@ describe("@glyphh/sdk — session threads (LWW cache sync)", () => {
     // Tombstone: gone from list/read; a stale push cannot resurrect it.
     await client.sessions.deleteThread(id);
     expect((await client.sessions.threads()).some((t) => t.id === id)).toBe(false);
-    await expect(client.sessions.thread(id)).rejects.toMatchObject({ code: "E_NOT_FOUND" });
-    const zombie = await client.sessions.pushThread(id, { title: "zombie", updatedAt: t1 });
-    expect(zombie.applied).toBe(false);
-    await expect(client.sessions.thread(id)).rejects.toMatchObject({ code: "E_NOT_FOUND" });
+    await expect(client.sessions.thread(id)).rejects.toBeInstanceOf(NotFoundError);
+    await expect(client.sessions.pushThread(id, { title: "zombie", updatedAt: Date.now() })).rejects.toBeInstanceOf(NotFoundError);
+    await expect(client.sessions.thread(id)).rejects.toBeInstanceOf(NotFoundError);
   });
 });

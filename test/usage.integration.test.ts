@@ -23,7 +23,7 @@ describe("@glyphh/sdk — usage", () => {
     const mine = await (await signIn()).usage.mine();
     expect(mine.usd).toBe(0);
     expect(mine.bySource.pipedream).toBe(0);
-    expect(mine.bySource).toEqual({ fly: 0, pipedream: 0, provider: 0 });
+    expect(mine.bySource).toEqual({ pipedream: 0, provider: 0 });
     expect(mine.events).toBe(0);
   });
 

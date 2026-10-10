@@ -9,7 +9,7 @@
 import { readFileSync } from "node:fs";
 import type { CommandRegistry } from "../registry.js";
 import { flagStr } from "../args.js";
-import type { CreateSessionInput, SessionLocus, ModelSwitchSurface } from "../../contract/runtime.js";
+import type { CreateSessionInput, SessionLocus } from "../../contract/runtime.js";
 import type { PushThreadInput, SessionThreadMessage } from "../../contract/threads.js";
 
 export function registerSessions(reg: CommandRegistry): void {
@@ -57,33 +57,6 @@ export function registerSessions(reg: CommandRegistry): void {
     },
   });
 
-  reg.register({
-    path: "sessions model-switch",
-    summary: "record a mid-stream model switch (traceability audit)",
-    usage: "sessions model-switch <sessionId> --to <modelId> --surface cli|desktop|mobile|platform [--rotor <slug>] [--role <role>] [--from <modelId>]",
-    covers: ["sessions.recordModelSwitch"],
-    async run(ctx, args) {
-      const sessionId = args.positional[0];
-      const to = flagStr(args, "to");
-      const surface = flagStr(args, "surface");
-      if (!sessionId || !to || !surface) {
-        throw new Error("usage: sessions model-switch <sessionId> --to <modelId> --surface cli|desktop|mobile|platform");
-      }
-      const rotorSlug = flagStr(args, "rotor");
-      const role = flagStr(args, "role");
-      const from = flagStr(args, "from");
-      ctx.printJson(
-        await ctx.client.sessions.recordModelSwitch({
-          sessionId,
-          to,
-          surface: surface as ModelSwitchSurface,
-          ...(rotorSlug ? { rotorSlug } : {}),
-          ...(role ? { role } : {}),
-          ...(from ? { from } : {}),
-        }),
-      );
-    },
-  });
 
   reg.register({
     path: "sessions delete",

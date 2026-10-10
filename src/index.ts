@@ -68,7 +68,6 @@ export { BillingClient } from "./resources/billing.js";
 export type { Plan, Subscription, Balance, MemberBudget, HostedUrl, UpcomingInvoice } from "./contract/billing.js";
 export { ReleasesClient } from "./resources/releases.js";
 export type { Release, ReleaseAsset, ReleaseAssetUrl } from "./contract/releases.js";
-export { RuntimeImagesClient } from "./resources/runtime-images.js";
 export type {
   RuntimeImage, RuntimeImageType, OrgRuntimeImage,
   AdminRuntimeImageCreate, AdminRuntimeImageUpdate,
@@ -242,17 +241,8 @@ export type {
   MemberLibraryKind, MemberLibraryRow, MemberLibraryItem, MemberLibraryFile, MemberLibraryFileUrls,
   ListMemberLibraryOptions, PutMemberLibraryInput, PutMemberLibraryResult, RemoveMemberLibraryInput,
 } from "./contract/member-library.js";
-export { RelayClient } from "./resources/relay.js";
 export { AttachClient, type AttachStatus, type AttachedMachine, type FsEntry, type FsListing } from "./resources/attach.js";
 export { RunStreamClient, type RunStreamHandle, type RunStreamFrame } from "./resources/run-stream.js";
-export type {
-  RelayPolicy,
-  RelayDevice,
-  RelayDeviceStatus,
-  RelayStatus,
-  EnableRelayInput,
-} from "./contract/relay.js";
-export { RotorConfigClient } from "./resources/rotor-config.js";
 export type { RotorRole, RotorCatalogEntry } from "./contract/rotors.js";
 export { OrgModelsClient } from "./resources/org-models.js";
 export type { GatewayMetrics, GatewayDay, GatewayBreakdownRow } from "./resources/gateway.js";

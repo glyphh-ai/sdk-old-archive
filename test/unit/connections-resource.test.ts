@@ -77,11 +77,6 @@ describe("ConnectionsClient — org custom-MCP catalog", () => {
     expect(calls).toEqual([{ method: "GET", path: "/api/connections/tools" }]);
   });
 
-  it("startMcpOAuth POSTs the oauth/start route, URL-encoded", async () => {
-    const { calls, client } = recorder();
-    await client.startMcpOAuth("mcp-a/x");
-    expect(calls).toEqual([{ method: "POST", path: "/api/org/mcp-connections/mcp-a%2Fx/oauth/start", body: undefined }]);
-  });
 });
 
 describe("ConnectionsClient — org-shared Pipedream", () => {

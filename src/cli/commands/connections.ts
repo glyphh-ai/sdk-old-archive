@@ -34,28 +34,6 @@ export function registerConnections(reg: CommandRegistry): void {
     },
   });
 
-  reg.register({
-    path: "connections mcp add",
-    summary: "install a custom MCP server (org_admin)",
-    usage: "connections mcp add <slug> --name <name> --url <url> [--header 'K: V' ...]",
-    covers: ["connections.installCustomMcp"],
-    async run(ctx, args) {
-      const slug = args.positional[0];
-      const name = flagStr(args, "name");
-      const url = flagStr(args, "url");
-      if (!slug || !name || !url) throw new Error("usage: connections mcp add <slug> --name <name> --url <url>");
-      // --header may repeat via comma: "K1: V1,K2: V2"
-      const headerFlag = flagStr(args, "header");
-      const headers: Record<string, string> = {};
-      if (headerFlag) {
-        for (const pair of headerFlag.split(",")) {
-          const idx = pair.indexOf(":");
-          if (idx !== -1) headers[pair.slice(0, idx).trim()] = pair.slice(idx + 1).trim();
-        }
-      }
-      ctx.printJson(await ctx.client.connections.installCustomMcp({ slug, name, url, ...(Object.keys(headers).length ? { headers } : {}) }));
-    },
-  });
 
   reg.register({
     path: "connections mcp remove",
@@ -70,14 +48,6 @@ export function registerConnections(reg: CommandRegistry): void {
     },
   });
 
-  reg.register({
-    path: "connections pipedream",
-    summary: "get a Pipedream connect-link (prints the URL)",
-    covers: ["connections.pipedreamConnectLink"],
-    async run(ctx) {
-      ctx.print((await ctx.client.connections.pipedreamConnectLink()).url);
-    },
-  });
 
   reg.register({
     path: "connections apptools",
@@ -112,17 +82,6 @@ export function registerConnections(reg: CommandRegistry): void {
     },
   });
 
-  reg.register({
-    path: "connections mcp-oauth",
-    summary: "start OAuth for a custom-MCP connection (prints the authorize URL)",
-    usage: "connections mcp-oauth <slug>",
-    covers: ["connections.startMcpOAuth"],
-    async run(ctx, args) {
-      const slug = args.positional[0];
-      if (!slug) throw new Error("usage: connections mcp-oauth <slug>");
-      ctx.print((await ctx.client.connections.startMcpOAuth(slug)).authorizeUrl);
-    },
-  });
 
   reg.register({
     path: "connections org-tools",
@@ -405,35 +364,7 @@ export function registerConnections(reg: CommandRegistry): void {
     },
   });
 
-  reg.register({
-    path: "connections fetch-file",
-    summary: "fetch a file's bytes from a connected account (Connect proxy) to a local path",
-    usage: "connections fetch-file <slug> <provider-url> <out-path>",
-    covers: ["connections.fetchFile"],
-    async run(ctx, args) {
-      const [slug, url, outPath] = args.positional;
-      if (!slug || !url || !outPath) throw new Error("usage: connections fetch-file <slug> <provider-url> <out-path>");
-      const out = await ctx.client.connections.fetchFile({ slug, url });
-      const { writeFileSync } = await import("node:fs");
-      writeFileSync(outPath, Buffer.from(out.dataBase64, "base64"));
-      ctx.printJson({ saved: outPath, bytes: out.bytes, contentType: out.contentType });
-    },
-  });
 
-  reg.register({
-    path: "connections proxy-send",
-    summary: "push bytes to a connected provider's API (uploads, sends with attachments)",
-    usage: "connections proxy-send <slug> <provider-url> <body-file> [content-type]",
-    covers: ["connections.proxySend"],
-    async run(ctx, args) {
-      const [slug, url, bodyFile, contentType] = args.positional;
-      if (!slug || !url || !bodyFile) throw new Error("usage: connections proxy-send <slug> <provider-url> <body-file> [content-type]");
-      const { readFileSync } = await import("node:fs");
-      const bodyBase64 = readFileSync(bodyFile).toString("base64");
-      const out = await ctx.client.connections.proxySend({ slug, url, bodyBase64, ...(contentType ? { contentType } : {}) });
-      ctx.printJson({ status: out.status, contentType: out.contentType, body: Buffer.from(out.dataBase64, "base64").toString("utf8").slice(0, 2000) });
-    },
-  });
 }
 
 /** Parse a repeated `--header 'K: V,K2: V2'` flag into a header map (or undefined). */

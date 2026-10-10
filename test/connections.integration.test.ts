@@ -19,32 +19,7 @@ async function signIn(): Promise<Client> {
 }
 
 describe("@glyphh/sdk — connections", () => {
-  it("install a custom MCP (write-only headers) → list → remove", async () => {
-    const client = await signIn();
-    expect(await client.connections.list()).toEqual([]);
 
-    const conn = await client.connections.installCustomMcp({
-      slug: "sfdc",
-      name: "Salesforce",
-      url: "https://mcp.example.com",
-      headers: { Authorization: "Bearer super-secret-token" },
-    });
-    expect(conn.slug).toBe("mcp-sfdc"); // auto-prefixed
-    expect(conn.kind).toBe("custom_mcp");
-    expect(conn.hasCredentials).toBe(true);
-    expect(JSON.stringify(conn)).not.toContain("super-secret");
-
-    const list = await client.connections.list();
-    expect(list.some((c) => c.slug === "mcp-sfdc")).toBe(true);
-
-    await client.connections.removeCustomMcp("mcp-sfdc");
-    expect(await client.connections.list()).toEqual([]);
-  });
-
-  it("Pipedream connect returns a hosted connect link (live-configured)", async () => {
-    const { url } = await (await signIn()).connections.pipedreamConnectLink();
-    expect(url).toMatch(/^https:\/\/pipedream\.com\//);
-  });
 
   it("apps() searches the connector catalog and returns typed { apps } (degrades to [] when unconfigured)", async () => {
     const client = await signIn();
@@ -116,30 +91,6 @@ describe("@glyphh/sdk — connections", () => {
     expect(resolved.connections).toEqual([]);
   });
 
-  it("startMcpOAuth (org_admin) 404s a connection the org doesn't own", async () => {
-    const client = await signIn();
-    await expect(client.connections.startMcpOAuth("mcp-nope")).rejects.toMatchObject({ httpStatus: 404 });
-  });
 
-  it("proxySend gates like runTool: an unreachable slug 404s, a bad url 400s", async () => {
-    const client = await signIn();
-    await expect(
-      client.connections.proxySend({ slug: "gmail", url: "https://gmail.googleapis.com/upload/x", bodyBase64: "aGk=" }),
-    ).rejects.toMatchObject({ httpStatus: 404 });
-    await expect(
-      client.connections.proxySend({ slug: "gmail", url: "http://gmail.googleapis.com/x", bodyBase64: "aGk=" }),
-    ).rejects.toMatchObject({ httpStatus: 400 });
-  });
 
-  it("fetchFile gates like runTool: an unreachable slug 404s, a bad url 400s", async () => {
-    const client = await signIn();
-    // connection gate first — a slug the caller can't reach 404s
-    await expect(
-      client.connections.fetchFile({ slug: "google_drive", url: "https://www.googleapis.com/drive/v3/files/x?alt=media" }),
-    ).rejects.toMatchObject({ httpStatus: 404 });
-    // schema gate — an unparseable body 400s before any resolution
-    await expect(
-      client.connections.fetchFile({ slug: "", url: "https://x.example/f" }),
-    ).rejects.toMatchObject({ httpStatus: 400 });
-  });
 });

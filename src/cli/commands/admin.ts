@@ -10,7 +10,7 @@
 import type { CommandRegistry } from "../registry.js";
 import type { CliArgs } from "../args.js";
 import { flagStr } from "../args.js";
-import type { AdminOrgPatch, AdminUserPatch, AdminPlanUpdate, AdminPlanCreate, AdminOrgPlanPatch, AdminModelUpdate } from "../../contract/admin.js";
+import type { AdminOrgPatch, AdminUserPatch, AdminPlanUpdate, AdminPlanCreate, AdminModelUpdate } from "../../contract/admin.js";
 
 function flagNum(args: CliArgs, name: string): number | undefined {
   const v = flagStr(args, name);
@@ -285,48 +285,6 @@ export function registerAdmin(reg: CommandRegistry): void {
 
   // ── per-org bespoke (enterprise) plans ────────────────────────────────────────
   reg.register({
-    path: "admin org-plan set",
-    summary: "create/replace an org's bespoke plan (super_admin)",
-    usage: "admin org-plan set <orgId> --seats <n> --cents <usd_cents> --name <displayName>",
-    covers: ["admin.setOrgPlan"],
-    async run(ctx, args) {
-      const orgId = args.positional[0];
-      const seats = flagNum(args, "seats");
-      const cents = flagNum(args, "cents");
-      const name = flagStr(args, "name");
-      if (!orgId || seats === undefined || cents === undefined || !name) {
-        throw new Error("usage: admin org-plan set <orgId> --seats <n> --cents <usd_cents> --name <displayName>");
-      }
-      ctx.printJson(await ctx.client.admin.setOrgPlan(orgId, { maxSeats: seats, monthlyUsdCents: cents, displayName: name }));
-    },
-  });
-  reg.register({
-    path: "admin org-plan update",
-    summary: "edit an org's bespoke plan (super_admin)",
-    usage: "admin org-plan update <orgId> [--seats <n>] [--cents <usd_cents>] [--name <displayName>]",
-    covers: ["admin.updateOrgPlan"],
-    async run(ctx, args) {
-      const orgId = args.positional[0];
-      if (!orgId) throw new Error("usage: admin org-plan update <orgId> [--seats ..] [--cents ..] [--name ..]");
-      const patch: AdminOrgPlanPatch = {};
-      const seats = flagNum(args, "seats"); if (seats !== undefined) patch.maxSeats = seats;
-      const cents = flagNum(args, "cents"); if (cents !== undefined) patch.monthlyUsdCents = cents;
-      const name = flagStr(args, "name"); if (name !== undefined) patch.displayName = name;
-      ctx.printJson(await ctx.client.admin.updateOrgPlan(orgId, patch));
-    },
-  });
-  reg.register({
-    path: "admin org-plan remove",
-    summary: "remove an org's bespoke plan, reverting to its global tier (super_admin)",
-    usage: "admin org-plan remove <orgId>",
-    covers: ["admin.removeOrgPlan"],
-    async run(ctx, args) {
-      const orgId = args.positional[0];
-      if (!orgId) throw new Error("usage: admin org-plan remove <orgId>");
-      ctx.printJson(await ctx.client.admin.removeOrgPlan(orgId));
-    },
-  });
-  reg.register({
     path: "admin models",
     summary: "list catalog models (super_admin)",
     covers: ["admin.models"],
@@ -511,69 +469,4 @@ export function registerAdmin(reg: CommandRegistry): void {
   });
 
   // ── support console ────────────────────────────────────────────────────────────
-  reg.register({
-    path: "admin support list",
-    summary: "browse every org's tickets (super_admin)",
-    usage: "admin support list [--q <search>] [--status <s>] [--page <n>] [--limit <n>]",
-    covers: ["admin.supportTickets"],
-    async run(ctx, args) {
-      ctx.printJson(await ctx.client.admin.supportTickets({
-        q: flagStr(args, "q"), status: flagStr(args, "status"),
-        page: flagNum(args, "page"), limit: flagNum(args, "limit"),
-      }));
-    },
-  });
-  reg.register({
-    path: "admin support show",
-    summary: "one ticket + its full thread (super_admin)",
-    usage: "admin support show <id>",
-    covers: ["admin.supportTicket"],
-    async run(ctx, args) {
-      const id = args.positional[0];
-      if (!id) throw new Error("usage: admin support show <id>");
-      ctx.printJson(await ctx.client.admin.supportTicket(id));
-    },
-  });
-  reg.register({
-    path: "admin support reply",
-    summary: "append an admin reply to a ticket (super_admin)",
-    usage: "admin support reply <id> <body...>",
-    covers: ["admin.supportReply"],
-    async run(ctx, args) {
-      const [id, ...rest] = args.positional;
-      const body = rest.join(" ").trim();
-      if (!id || !body) throw new Error("usage: admin support reply <id> <body...>");
-      ctx.printJson(await ctx.client.admin.supportReply(id, body));
-    },
-  });
-  reg.register({
-    path: "admin support status",
-    summary: "set a ticket's status (super_admin)",
-    usage: "admin support status <id> <open|pending|resolved|closed>",
-    covers: ["admin.setSupportStatus"],
-    async run(ctx, args) {
-      const [id, status] = args.positional;
-      if (!id || !status) throw new Error("usage: admin support status <id> <open|pending|resolved|closed>");
-      ctx.printJson(await ctx.client.admin.setSupportStatus(id, status));
-    },
-  });
-  reg.register({
-    path: "admin support read",
-    summary: "mark a ticket read by the admin (super_admin)",
-    usage: "admin support read <id>",
-    covers: ["admin.markSupportRead"],
-    async run(ctx, args) {
-      const id = args.positional[0];
-      if (!id) throw new Error("usage: admin support read <id>");
-      ctx.printJson(await ctx.client.admin.markSupportRead(id));
-    },
-  });
-  reg.register({
-    path: "admin support unread",
-    summary: "count of tickets needing admin attention (super_admin)",
-    covers: ["admin.supportUnreadCount"],
-    async run(ctx) {
-      ctx.printJson(await ctx.client.admin.supportUnreadCount());
-    },
-  });
 }

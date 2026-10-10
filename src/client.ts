@@ -50,7 +50,6 @@ import { MarketplaceClient, LibraryMarketClient } from "./resources/marketplace.
 import { AppInstancesClient } from "./resources/app-instances.js";
 import { LibraryClient } from "./resources/library.js";
 import { MemberLibraryClient } from "./resources/member-library.js";
-import { RelayClient } from "./resources/relay.js";
 import { AttachClient } from "./resources/attach.js";
 import { RunStreamClient } from "./resources/run-stream.js";
 
@@ -131,7 +130,6 @@ export interface RunHandle {
    *  instead of only on the next turn. */
   setPermission(mode: "ask" | "plan" | "acceptEdits" | "auto" | "bypass"): Promise<void>;
 }
-import { RotorConfigClient } from "./resources/rotor-config.js";
 import { GatewayClient } from "./resources/gateway.js";
 import { AdaClient } from "./resources/ada.js";
 import { SystemOneClient } from "./resources/systemone.js";
@@ -143,7 +141,6 @@ import { ModelsClient } from "./resources/models.js";
 import { ProfileClient } from "./resources/profile.js";
 import { SupportClient } from "./resources/support.js";
 import { OAuthClient } from "./resources/oauth.js";
-import { RuntimeImagesClient } from "./resources/runtime-images.js";
 import type { Identity, StoredSession } from "./contract/auth.js";
 
 export interface ClientOptions {
@@ -217,8 +214,6 @@ export interface Client {
   billing: BillingClient;
   /** Desktop builds — the release list and signed download URLs. */
   releases: ReleasesClient;
-  /** Runtime image SKUs (§7b) — the org's picker, current image, and change requests. */
-  runtimeImages: RuntimeImagesClient;
   /** The provider/model catalog (read). */
   catalog: CatalogClient;
   /** Voice runtime — transcribe (STT) + synthesize (TTS). */
@@ -293,15 +288,11 @@ export interface Client {
   /** THE MEMBER LIBRARY v2 — workspaces, tabs, skills, agents, tasks: database
    *  as truth, files in R2, synced per item by `reconcile` (LWW + tombstones). */
   memberLibrary: MemberLibraryClient;
-  /** Drive-my-desktop relay — org policy + per-device opt-in (same-user, revocable). */
-  relay: RelayClient;
   /** Attached-desktop control — status + dispatch a method to the caller's own live machine. */
   attach: AttachClient;
   /** Attach to a thread's live run and stream its frames (the run-stream broker) —
    *  "open a thread anywhere, see the live turn". */
   runStream: RunStreamClient;
-  /** Rotor catalog + role→model bindings + the resolved runtime registry. */
-  rotorConfig: RotorConfigClient;
   /** The org's SUPPORTED model set + model-governance audit (org_admin). */
   orgModels: OrgModelsClient;
   /** The caller's EFFECTIVE model set — what they may actually use right now. */
@@ -388,7 +379,6 @@ export function createClient(opts: ClientOptions): Client {
     workspaces: new WorkspacesClient(authed),
     billing: new BillingClient(authed),
     releases: new ReleasesClient(authed),
-    runtimeImages: new RuntimeImagesClient(authed),
     catalog: new CatalogClient(authed),
     voice: new VoiceClient(authed),
     providers: new ProvidersClient(authed),
@@ -423,10 +413,8 @@ export function createClient(opts: ClientOptions): Client {
     drips: new LibraryClient(authed, "drip"),
     messageSessions: new LibraryClient(authed, "message_session"),
     memberLibrary: new MemberLibraryClient(authed),
-    relay: new RelayClient(authed),
     attach: new AttachClient(authed),
     runStream: new RunStreamClient(authed),
-    rotorConfig: new RotorConfigClient(authed),
     orgModels: new OrgModelsClient(authed),
     models: new ModelsClient(authed),
     gateway,

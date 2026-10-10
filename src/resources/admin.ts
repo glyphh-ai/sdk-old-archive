@@ -10,19 +10,9 @@
 
 import type { AuthedHttp } from "../core/authed-http.js";
 import type { Provider, Model, ProviderCreate, ModelCreate, ModelPricing } from "../contract/catalog.js";
-import type {
-  AdminStats, AdminOrgsPage, AdminOrgListItem, AdminOrgDetail, AdminOrgPatch, AdminCreateOrg,
-  AdminUsersPage, AdminUser, AdminUserPatch,
-  AdminPlan, AdminPlanUpdate, AdminPlanCreate, AdminProviderKey, AdminOrgPlanInput, AdminOrgPlanPatch, AdminModel, AdminModelUpdate, AdminPlanPrice,
-  AuditPage, AuditQuery, AdminUsageByUser, AdminUsageDay, AdminDailyQuery, AdminListQuery,
-  AdminUsageByRuntime, AdminRuntimeUsageQuery, RuntimeMode, AdminRevenue,
-} from "../contract/admin.js";
+import type { AdminStats, AdminOrgsPage, AdminOrgListItem, AdminOrgDetail, AdminOrgPatch, AdminCreateOrg, AdminUsersPage, AdminUser, AdminUserPatch, AdminPlan, AdminPlanUpdate, AdminPlanCreate, AdminProviderKey, AdminModel, AdminModelUpdate, AdminPlanPrice, AuditPage, AuditQuery, AdminUsageByUser, AdminUsageDay, AdminDailyQuery, AdminListQuery, AdminUsageByRuntime, AdminRuntimeUsageQuery, RuntimeMode, AdminRevenue } from "../contract/admin.js";
 import type { EffectiveContext } from "../contract/membership.js";
-import type { RuntimeImage, AdminRuntimeImageCreate, AdminRuntimeImageUpdate } from "../contract/runtime-images.js";
 import type { AppServerImage, AdminAppServerImageCreate, AdminAppServerImageUpdate } from "../contract/app-servers.js";
-import type {
-  AdminSupportPage, AdminSupportThread, AdminSupportTicket, AdminSupportQuery, SupportUnread,
-} from "../contract/support.js";
 
 /** Append defined params to a path as a query string. */
 function withQuery(path: string, params: Record<string, string | number | undefined>): string {
@@ -140,18 +130,6 @@ export class AdminClient {
   removeProviderKey(id: string): Promise<void> {
     return this.http.del<void>(`/api/admin/providers/keys/${encodeURIComponent(id)}`);
   }
-  /** Create/replace an org's bespoke (enterprise) plan — custom seat cap + per-seat price (its pool). */
-  setOrgPlan(orgId: string, input: AdminOrgPlanInput): Promise<{ plan: AdminPlan }> {
-    return this.http.post<{ plan: AdminPlan }>(`/api/admin/orgs/${encodeURIComponent(orgId)}/plan`, input);
-  }
-  /** Edit an org's bespoke plan (must already exist). */
-  updateOrgPlan(orgId: string, patch: AdminOrgPlanPatch): Promise<{ plan: AdminPlan }> {
-    return this.http.patch<{ plan: AdminPlan }>(`/api/admin/orgs/${encodeURIComponent(orgId)}/plan`, patch);
-  }
-  /** Remove an org's bespoke plan, reverting it to its global tier. */
-  removeOrgPlan(orgId: string): Promise<{ ok: boolean }> {
-    return this.http.del<{ ok: boolean }>(`/api/admin/orgs/${encodeURIComponent(orgId)}/plan`);
-  }
   models(): Promise<{ models: AdminModel[] }> {
     return this.http.get<{ models: AdminModel[] }>("/api/admin/models");
   }
@@ -189,28 +167,6 @@ export class AdminClient {
     return this.http.del<void>(`/api/admin/plans/prices/${encodeURIComponent(id)}`);
   }
 
-  // ── runtime image catalog (§7b — the model-catalog treatment) ─────────────────
-  /** Every catalog image, every region, active + inactive. */
-  runtimeImages(): Promise<{ images: RuntimeImage[] }> {
-    return this.http.get<{ images: RuntimeImage[] }>("/api/admin/runtime-images");
-  }
-  /** Add a SKU to a region's catalog (`monthlyCredits` in WHOLE credits/month). */
-  createRuntimeImage(input: AdminRuntimeImageCreate): Promise<{ image: RuntimeImage }> {
-    return this.http.post<{ image: RuntimeImage }>("/api/admin/runtime-images", input);
-  }
-  /** Re-price / re-size / retire a region's SKU (audited). */
-  updateRuntimeImage(region: string, key: string, patch: AdminRuntimeImageUpdate): Promise<{ image: RuntimeImage }> {
-    return this.http.put<{ image: RuntimeImage }>(
-      `/api/admin/runtime-images/${encodeURIComponent(region)}/${encodeURIComponent(key)}`, patch,
-    );
-  }
-  /** Remove a SKU from a region's catalog (audited). Bound orgs keep serving off
-   *  their realized route; only the price stops resolving. */
-  deleteRuntimeImage(region: string, key: string): Promise<{ ok: boolean }> {
-    return this.http.del<{ ok: boolean }>(
-      `/api/admin/runtime-images/${encodeURIComponent(region)}/${encodeURIComponent(key)}`,
-    );
-  }
 
   // ── app-server image catalog (the runtime-image treatment) ────────────────────
   /** Every app-server SKU, every region, active + inactive. */
@@ -278,31 +234,4 @@ export class AdminClient {
     );
   }
 
-  // ── support console (super_admin) ──────────────────────────────────────────────
-  /** Browse every org's tickets (search + status filter + pagination). Shapes are snake_case. */
-  supportTickets(query: AdminSupportQuery = {}): Promise<AdminSupportPage> {
-    return this.http.get<AdminSupportPage>(
-      withQuery("/api/admin/support/tickets", { q: query.q, status: query.status, page: query.page, limit: query.limit }),
-    );
-  }
-  /** One ticket + its full thread (any org). */
-  supportTicket(id: string): Promise<AdminSupportThread> {
-    return this.http.get<AdminSupportThread>(`/api/admin/support/tickets/${encodeURIComponent(id)}`);
-  }
-  /** Append an admin reply (moves the ticket → 'pending'); returns the updated thread. */
-  supportReply(id: string, body: string): Promise<AdminSupportThread> {
-    return this.http.post<AdminSupportThread>(`/api/admin/support/tickets/${encodeURIComponent(id)}/messages`, { body });
-  }
-  /** Set a ticket's status (audited: open|pending|resolved|closed). */
-  setSupportStatus(id: string, status: string): Promise<AdminSupportTicket> {
-    return this.http.patch<AdminSupportTicket>(`/api/admin/support/tickets/${encodeURIComponent(id)}`, { status });
-  }
-  /** Mark a ticket read by the admin (clears its attention flag; never reorders the list). */
-  markSupportRead(id: string): Promise<{ ok: boolean }> {
-    return this.http.post<{ ok: boolean }>(`/api/admin/support/tickets/${encodeURIComponent(id)}/read`);
-  }
-  /** Count of tickets needing admin attention (open|pending AND unread-for-admin). */
-  supportUnreadCount(): Promise<SupportUnread> {
-    return this.http.get<SupportUnread>("/api/admin/support/unread");
-  }
 }

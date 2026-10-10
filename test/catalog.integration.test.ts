@@ -19,14 +19,14 @@ async function signIn(): Promise<Client> {
 }
 
 describe("@glyphh/sdk — catalog", () => {
-  it("lists the seeded models with credit pricing", async () => {
+  it("lists the catalog with list prices: a fresh server carries the Ada model", async () => {
     const models = await (await signIn()).catalog.models();
-    const opus = models.find((m) => m.id === "anthropic::claude-opus-4-8");
-    expect(opus).toBeTruthy();
-    // The vendor's list price in dollars per 1M input tokens — informational,
-    // never a bill. The server's own catalog tests assert the same number.
-    expect(opus!.inputUsdPerMTok).toBe(5);
-    expect(opus!.providerSlug).toBe("anthropic");
+    // The server seeds glyphh-ada-1.0 (server ada_model.py); every other model is the super admin's to add.
+    const ada = models.find((m) => m.id === "glyphh::glyphh-ada-1.0");
+    expect(ada).toBeTruthy();
+    expect(ada!.providerSlug).toBe("glyphh");
+    expect(typeof ada!.inputUsdPerMTok).toBe("number");
+    expect(typeof ada!.outputUsdPerMTok).toBe("number");
   });
 
   it("enable a provider with a BYOK key (write-only) then disable", async () => {

@@ -24,9 +24,10 @@ import type {
 export class SupportClient {
   constructor(private readonly http: AuthedHttp) {}
 
-  /** Legacy flare: relay a subject + description to the Discord sink. */
-  ticket(input: SupportTicketInput): Promise<SupportTicketAck> {
-    return this.http.post<SupportTicketAck>("/api/support/ticket", input);
+  /** The docs page's quick report: a stored ticket from a subject + description. */
+  async ticket(input: SupportTicketInput): Promise<SupportTicketAck> {
+    await this.createTicket({ subject: input.subject, message: input.description });
+    return { ok: true };
   }
 
   /** Open a stored ticket with its first message; returns the ticket + its thread. */
@@ -47,7 +48,7 @@ export class SupportClient {
 
   /** Append a reply to the caller's ticket; returns the updated thread. */
   reply(id: string, body: string): Promise<SupportThread> {
-    return this.http.post<SupportThread>(`/api/support/tickets/${encodeURIComponent(id)}/messages`, { body });
+    return this.http.post<SupportThread>(`/api/support/tickets/${encodeURIComponent(id)}/messages`, { message: body });
   }
 
   /** Mark a ticket read by the user (clears its unread flag; never reorders the list). */
