@@ -62,10 +62,6 @@ export class AdminClient {
     return this.http.del<{ ok: boolean }>(`/api/admin/orgs/${encodeURIComponent(id)}/members/${encodeURIComponent(userId)}`);
   }
 
-  // ── users ──────────────────────────────────────────────────────────────────
-  users(query: AdminListQuery = {}): Promise<AdminUsersPage> {
-    return this.http.get<AdminUsersPage>(withQuery("/api/admin/users", { q: query.q, page: query.page, limit: query.limit }));
-  }
 
   // ── plans + models pricing ────────────────────────────────────────────────────
   plans(): Promise<{ plans: AdminPlan[] }> {
@@ -162,18 +158,5 @@ export class AdminClient {
     );
   }
 
-  // ── audit ────────────────────────────────────────────────────────────────────
-  audit(query: AuditQuery = {}): Promise<AuditPage> {
-    return this.http.get<AuditPage>(
-      withQuery("/api/admin/audit", { action: query.action, actor: query.actor, days: query.days, page: query.page, limit: query.limit }),
-    );
-  }
 
-  // ── support console (super_admin) ──────────────────────────────────────────────
-  /** Browse every org's tickets (search + status filter + pagination). Shapes are snake_case. */
-  supportTickets(query: AdminSupportQuery = {}): Promise<AdminSupportPage> {
-    return this.http.get<AdminSupportPage>(
-      withQuery("/api/admin/support/tickets", { q: query.q, status: query.status, page: query.page, limit: query.limit }),
-    );
-  }
 }

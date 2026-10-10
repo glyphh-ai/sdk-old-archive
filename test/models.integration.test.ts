@@ -1,9 +1,10 @@
 /**
  * @license Proprietary — © Glyphh. All rights reserved.
  *
- * Model governance ↔ live control plane. The org's SUPPORTED set (list / toggle /
- * bulk), the caller's EFFECTIVE set (`models.available`), the model-governance audit
- * slice, usage.byModel, and the runtime model-switch plumbing. Needs the server on :3001.
+ * Model governance ↔ live control plane: the org's model view (`orgModels.list`)
+ * and the caller's EFFECTIVE set (`models.available`). A fresh server carries the
+ * Ada model (server ada_model.py); every other model is the super admin's to add.
+ * Needs a server at $GLYPHH_SERVER_URL.
  */
 
 import { describe, it, expect } from "vitest";
@@ -11,8 +12,7 @@ import { randomUUID } from "node:crypto";
 import { createClient, type Client } from "../src/index.js";
 
 const url = process.env.GLYPHH_SERVER_URL ?? "http://127.0.0.1:3001";
-const OPUS = "anthropic::claude-opus-4-8";
-const SONNET = "anthropic::claude-sonnet-5";
+const ADA = "glyphh::glyphh-ada-1.0";
 
 async function signIn(): Promise<Client> {
   const client = createClient({ url });
@@ -22,50 +22,21 @@ async function signIn(): Promise<Client> {
 }
 
 describe("@glyphh/sdk — model governance", () => {
-  it("lists the org support view with the whole catalog + flags", async () => {
-    const client = await signIn();
-    const rows = await client.orgModels.list();
-    const opus = rows.find((m) => m.id === OPUS);
-    expect(opus).toBeTruthy();
-    expect(opus!.providerEnabled).toBe(true); // providers are default-ON (proxy + meter)
-    expect(opus!.hasByokKey).toBe(false); // …and default-ON never means an inherited key
-    expect(typeof opus!.supported).toBe("boolean");
-    expect(opus!.inputUsdPerMTok).toBe(5); // the vendor's list price, $/1M input tokens (informational)
+  it("lists the org's model view with its flags and list prices", async () => {
+    const rows = await (await signIn()).orgModels.list();
+    const ada = rows.find((m) => m.id === ADA);
+    expect(ada).toBeTruthy();
+    expect(ada!.providerEnabled).toBe(true);
+    expect(typeof ada!.supported).toBe("boolean");
+    expect(typeof ada!.inputUsdPerMTok).toBe("number");
   });
 
-  it("available() resolves the effective set and narrows to the explicit supported set", async () => {
+  it("available() is the caller's effective set: supported models, never Ada (a decision model, not a turn model)", async () => {
     const client = await signIn();
-    await client.providers.enable("anthropic"); // legacy org → all anthropic supported
-    const all = await client.models.available();
-    expect(all.find((m) => m.id === OPUS)!.source).toBe("proxy");
-
-    // Leave legacy: support only SONNET → available narrows to it.
-    const bulk = await client.orgModels.setSupportedBulk([SONNET]);
-    expect(bulk.find((m) => m.id === SONNET)!.supported).toBe(true);
-    expect(bulk.find((m) => m.id === OPUS)!.supported).toBe(false);
-
-    const narrowed = await client.models.available();
-    expect(narrowed.map((m) => m.id)).toEqual([SONNET]);
-  });
-
-  it("setSupported toggles one model and shows in the audit slice", async () => {
-    const client = await signIn();
-    await client.providers.enable("anthropic");
-    const one = await client.orgModels.setSupported(OPUS, true);
-    expect(one.id).toBe(OPUS);
-    expect(one.supported).toBe(true);
-
-    const audit = await client.orgModels.audit({ action: "model.support" });
-    expect(audit.total).toBeGreaterThanOrEqual(1);
-    expect(audit.entries.every((e) => e.action === "model.support")).toBe(true);
-  });
-
-
-
-  it("orgModels surface is forbidden for a non-admin member (server enforces)", async () => {
-    // A fresh personal-org user is org_admin, so this asserts the happy path is reachable;
-    // role downgrade is exercised server-side. Here we simply confirm the call shape works.
-    const client = await signIn();
-    await expect(client.orgModels.list()).resolves.toBeInstanceOf(Array);
+    const supported = new Set((await client.orgModels.list()).filter((m) => m.supported).map((m) => m.id));
+    const available = (await client.models.available()).map((m) => m.id);
+    expect(available.every((id) => supported.has(id))).toBe(true);
+    expect(supported.has(ADA)).toBe(true);
+    expect(available).not.toContain(ADA);
   });
 });

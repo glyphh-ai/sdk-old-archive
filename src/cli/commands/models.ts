@@ -55,26 +55,6 @@ export function registerModels(reg: CommandRegistry): void {
     },
   });
 
-  reg.register({
-    path: "org model-audit",
-    summary: "the org's model-governance audit slice (org_admin)",
-    usage: "org model-audit [--action <model.*>] [--actor <email>] [--days <n>] [--page <n>] [--limit <n>]",
-    covers: ["orgModels.audit"],
-    async run(ctx, args) {
-      const q: ModelAuditQuery = {};
-      const action = flagStr(args, "action");
-      const actor = flagStr(args, "actor");
-      const days = flagStr(args, "days");
-      const page = flagStr(args, "page");
-      const limit = flagStr(args, "limit");
-      if (action) q.action = action;
-      if (actor) q.actor = actor;
-      if (days) q.days = Number(days);
-      if (page) q.page = Number(page);
-      if (limit) q.limit = Number(limit);
-      ctx.printJson(await ctx.client.orgModels.audit(q));
-    },
-  });
 
   // ── custom models (BYO OpenAI-compatible endpoint) ──
   reg.register({

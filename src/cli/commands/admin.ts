@@ -87,15 +87,6 @@ export function registerAdmin(reg: CommandRegistry): void {
   });
 
   // ── users ──────────────────────────────────────────────────────────────────
-  reg.register({
-    path: "admin users",
-    summary: "list users (super_admin)",
-    usage: "admin users [--q <search>] [--page <n>] [--limit <n>]",
-    covers: ["admin.users"],
-    async run(ctx, args) {
-      ctx.printJson(await ctx.client.admin.users({ q: flagStr(args, "q"), page: flagNum(args, "page"), limit: flagNum(args, "limit") }));
-    },
-  });
 
   // ── plans + models pricing ────────────────────────────────────────────────────
   reg.register({
@@ -336,18 +327,6 @@ export function registerAdmin(reg: CommandRegistry): void {
   });
 
   // ── audit ────────────────────────────────────────────────────────────────────
-  reg.register({
-    path: "admin audit",
-    summary: "the platform audit log (super_admin)",
-    usage: "admin audit [--action <a>] [--actor <email>] [--days <n>] [--page <n>] [--limit <n>]",
-    covers: ["admin.audit"],
-    async run(ctx, args) {
-      ctx.printJson(await ctx.client.admin.audit({
-        action: flagStr(args, "action"), actor: flagStr(args, "actor"),
-        days: flagNum(args, "days"), page: flagNum(args, "page"), limit: flagNum(args, "limit"),
-      }));
-    },
-  });
 
   // ── support console ────────────────────────────────────────────────────────────
 }

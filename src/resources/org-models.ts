@@ -37,14 +37,6 @@ export class OrgModelsClient {
     return this.http.put<OrgModel[]>("/api/org/models", { supported: modelIds });
   }
 
-  /** The org's model-governance audit slice (model.* actions, scoped to the org). */
-  audit(query: ModelAuditQuery = {}): Promise<ModelAuditPage> {
-    return this.http.get<ModelAuditPage>(
-      withQuery("/api/org/model-audit", {
-        action: query.action, actor: query.actor, days: query.days, page: query.page, limit: query.limit,
-      }),
-    );
-  }
 
   // ── custom models — the org brings its own OpenAI-compatible endpoint ──
 

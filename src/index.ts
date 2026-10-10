@@ -94,15 +94,6 @@ export type {
   RuntimeMode,
   AdminDailyQuery,
   AdminListQuery } from "./contract/admin.js";
-export { MarketingClient } from "./resources/marketing.js";
-export type {
-  MarketingLink,
-  MarketingClick,
-  ClicksByDay,
-  MarketingLinksPage,
-  MarketingStats,
-  LinksQuery,
-  MarketingStatsQuery } from "./contract/marketing.js";
 export { ConnectionsClient } from "./resources/connections.js";
 export type {
   Connection,
@@ -174,8 +165,6 @@ export type {
   AppInstance, AppInstanceKind, AppInstanceAccess, AppInstanceStatus, AppInstanceManifest,
   AppRelease, AppUpload, AppInvokeResult, AppBuildResult,
   CreateAppInstanceInput, PatchAppInstanceInput } from "./contract/app-instances.js";
-export { LibraryClient } from "./resources/library.js";
-export type { LibraryItem, LibraryKind, LibraryScope, SaveLibraryItemInput } from "./contract/library.js";
 export { MemberLibraryClient } from "./resources/member-library.js";
 export { MEMBER_LIBRARY_KINDS } from "./contract/member-library.js";
 export type {

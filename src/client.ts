@@ -29,7 +29,6 @@ import { CatalogClient } from "./resources/catalog.js";
 import { VoiceClient } from "./resources/voice.js";
 import { ProvidersClient } from "./resources/providers.js";
 import { AdminClient } from "./resources/admin.js";
-import { MarketingClient } from "./resources/marketing.js";
 import { ConnectionsClient } from "./resources/connections.js";
 import { UsageClient } from "./resources/usage.js";
 import { ApiKeysClient } from "./resources/api-keys.js";
@@ -46,7 +45,6 @@ import { EnvironmentsClient } from "./resources/environments.js";
 import { ArtifactsClient } from "./resources/artifacts.js";
 import { LibraryMarketClient } from "./resources/marketplace.js";
 import { AppInstancesClient } from "./resources/app-instances.js";
-import { LibraryClient } from "./resources/library.js";
 import { MemberLibraryClient } from "./resources/member-library.js";
 import { AttachClient } from "./resources/attach.js";
 import { RunStreamClient } from "./resources/run-stream.js";
@@ -219,8 +217,6 @@ export interface Client {
   providers: ProvidersClient;
   /** Glyphh platform administration (super_admin). */
   admin: AdminClient;
-  /** Marketing link tracking + click analytics (super_admin). */
-  marketing: MarketingClient;
   /** Connectors — Pipedream accounts + custom MCP servers (org_admin manages). */
   connections: ConnectionsClient;
   /** Usage rollups — dollars spent by user, workspace, org. */
@@ -258,18 +254,10 @@ export interface Client {
   appInstances: AppInstancesClient;
   /** Skills + loops marketplace — free installs, org share queue, review desk. */
   libraryMarket: LibraryMarketClient;
-  /** Rotor-loop library (personal + org). */
-  rotors: LibraryClient;
   /** Skill library — manifest + prompt + optional program (org_admin builds). */
   skills: SkillsClient;
   /** Standing workers: an agent runs a loop and fires scheduled tasks. */
   agents: AgentsClient;
-  /** Workbench layout library (personal + org). */
-  layouts: LibraryClient;
-  /** Drip (scheduled prompt) library (personal + org). */
-  drips: LibraryClient;
-  /** Saved message-session library (personal + org). */
-  messageSessions: LibraryClient;
   /** THE MEMBER LIBRARY v2 — workspaces, tabs, skills, agents, tasks: database
    *  as truth, files in R2, synced per item by `reconcile` (LWW + tombstones). */
   memberLibrary: MemberLibraryClient;
@@ -366,7 +354,6 @@ export function createClient(opts: ClientOptions): Client {
     voice: new VoiceClient(authed),
     providers: new ProvidersClient(authed),
     admin: new AdminClient(authed),
-    marketing: new MarketingClient(authed),
     connections: new ConnectionsClient(authed),
     usage: new UsageClient(authed),
     apiKeys: new ApiKeysClient(authed),
@@ -384,12 +371,8 @@ export function createClient(opts: ClientOptions): Client {
     artifacts: new ArtifactsClient(authed),
     appInstances: new AppInstancesClient(authed),
     libraryMarket: new LibraryMarketClient(authed),
-    rotors: new LibraryClient(authed, "rotor"),
     skills: new SkillsClient(authed),
     agents: new AgentsClient(authed),
-    layouts: new LibraryClient(authed, "layout"),
-    drips: new LibraryClient(authed, "drip"),
-    messageSessions: new LibraryClient(authed, "message_session"),
     memberLibrary: new MemberLibraryClient(authed),
     attach: new AttachClient(authed),
     runStream: new RunStreamClient(authed),
