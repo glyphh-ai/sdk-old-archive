@@ -75,10 +75,6 @@ export type HarnessWireFrame = HarnessFrame & { seq: number; runId: string; at: 
 /** The pod's frame wire version (`POST /run` echoes it; major must match). */
 export const HARNESS_WIRE_VERSION = "glyphh.harness/v1";
 
-/** Terminal frame types — after one of these the run emits nothing further. */
-export function isHarnessTerminal(frame: Pick<HarnessFrame, "type">): boolean {
-  return frame.type === "done" || frame.type === "error";
-}
 
 /** True when a parsed wire message is an enveloped harness frame (vs a WS
  *  control message like `{type:"ready"}` — those carry no `seq`). */

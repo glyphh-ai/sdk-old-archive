@@ -60,11 +60,6 @@ export interface Model {
   freePlan?: boolean;
 }
 
-/** org_admin: enable a provider for the org, optionally with a BYOK key (write-only). */
-export interface EnableProviderInput {
-  slug: string;
-  key?: string;
-}
 
 /** super_admin: release a provider into the platform catalog. */
 export interface ProviderCreate {
@@ -99,22 +94,6 @@ export interface ModelCreate {
   freePlan?: boolean;
 }
 
-/** super_admin: update a model's list price / availability. */
-export interface ModelPricing {
-  contextWindow?: number | null;
-  maxOutputTokens?: number | null;
-  /** Null clears the alias; omit to keep it. */
-  alias?: string | null;
-  inputUsdPerMTok?: number;
-  outputUsdPerMTok?: number;
-  modality?: Modality;
-  rateUnit?: RateUnit;
-  active?: boolean;
-  /** Live per-org default: orgs with no explicit override follow this. */
-  defaultOn?: boolean;
-  /** One of the handful of models a Free org gets. */
-  freePlan?: boolean;
-}
 
 /** A TTS provider's voice — a synthesis call is model + voice. */
 export interface Voice {
@@ -155,29 +134,3 @@ export const DEFAULT_VOICE_SETTINGS: VoiceSettings = {
   inputModel: null, outputModel: null, voiceId: null, deviceId: null, mode: "push-to-talk", autoplay: true, brief: false,
 };
 
-// ── Hugging Face open-weight search (proxied server-side) ─────────────────────
-/** A GGUF repo hit from HF search. */
-export interface HfRepo {
-  repo: string;
-  downloads: number;
-}
-/** A curated open-weight recommendation (shown when the search box is empty). */
-export interface HfRecommended {
-  repo: string;
-  displayName: string;
-  description: string;
-}
-/** The hf-search result: raw repo hits + curated recommendations. */
-export interface HfSearchResult {
-  repos: HfRepo[];
-  recommended: HfRecommended[];
-}
-/** One downloadable GGUF quant within a repo. */
-export interface HfQuant {
-  file: string;
-  url: string;
-  sizeBytes: number;
-  sha256: string;
-  contextTokens: number;
-  minRamGb: number;
-}

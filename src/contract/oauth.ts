@@ -38,13 +38,3 @@ export interface OAuthConsentResult {
   redirectTo: string;
 }
 
-/** One third party currently authorized to act for the user. */
-export interface OAuthGrant {
-  grantId: string;
-  clientId: string;
-  clientName: string;
-  scope: string;
-  createdAt: string;
-  /** Null until the client first uses it — an integration that never connected. */
-  lastUsedAt: string | null;
-}

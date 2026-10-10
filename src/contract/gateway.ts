@@ -55,62 +55,10 @@ export interface GatewayCompletion {
 
 // ── Anthropic Messages (the tool-capable turn) ───────────────────────────────
 
-/** A tool the model may call, in Anthropic's shape. */
-export interface MessageTool {
-  name: string;
-  description?: string;
-  input_schema?: unknown;
-}
 
-/** One tool the model decided to call. */
-export interface ToolUse {
-  id: string;
-  name: string;
-  input: Record<string, unknown>;
-}
 
-export interface MessageTurnInput {
-  /** Catalog model id or bare id. */
-  model: string;
-  /** The conversation so far, in Anthropic shape (content string or blocks). */
-  messages: Array<{ role: string; content: unknown }>;
-  system?: string;
-  maxTokens?: number;
-  temperature?: number;
-  tools?: MessageTool[];
-}
 
 // ── anonymous guest chat (no account) ────────────────────────────────────────
 
-/** A minted guest token — a self-verifying credential for the guest surface only. */
-export interface GuestToken {
-  token: string;
-  /** The server-minted, client-persisted id that scopes the ephemeral guest session. */
-  guestId: string;
-  /** Seconds until the token must be re-issued. */
-  expiresIn: number;
-  /** The one model a guest is forced onto (server-enforced). */
-  model: string;
-}
 
-/** A guest chat turn — Anthropic-Messages shaped. The model is IGNORED (forced to Mistral). */
-export interface GuestTurnInput {
-  messages: Array<{ role: string; content: unknown }>;
-  system?: string;
-  maxTokens?: number;
-  temperature?: number;
-}
 
-/**
- * A completed turn, flattened to what a loop actually branches on: what the model
- * said, what it wants to call, and why it stopped. `toolUses` being non-empty with
- * `stopReason: "tool_use"` is the signal to run tools and come back.
- */
-export interface MessageTurn {
-  text: string;
-  toolUses: ToolUse[];
-  stopReason: string;
-  usage: { inputTokens: number; outputTokens: number };
-  /** The raw assistant content blocks, to append verbatim to the conversation. */
-  content: unknown[];
-}

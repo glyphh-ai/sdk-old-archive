@@ -7,20 +7,7 @@
  * agent-authored documents, addressed by their stable `file` name.
  */
 
-export interface OfficeSlideMeta {
-  /** "<slug>.html" — unique per org; the stable name decks are addressed by. */
-  file: string;
-  title: string;
-  /** <section class="slide"> count. */
-  slides: number;
-  sizeBytes: number;
-  updatedAt: string;
-}
 
-/** One deck in full: the metadata plus the complete HTML document. */
-export interface OfficeSlide extends OfficeSlideMeta {
-  html: string;
-}
 
 // ── DOCS ──────────────────────────────────────────────────────────────────────
 
@@ -73,35 +60,11 @@ export interface OfficeDocTemplate {
 
 // ── DRIVE ─────────────────────────────────────────────────────────────────────
 
-export interface OfficeFolder {
-  id: string;
-  name: string;
-  parentId: string | null;
-  updatedAt: string;
-}
 
 /** One Drive entry — a POINTER at an object, never a copy. Every kind rides
  *  the same listing: office by FILE name, the rest by row id (`ref`). */
 export type DriveKind = "slides" | "docs" | "sheets" | "design" | "media" | "music" | "file";
-export interface OfficeDriveFile {
-  kind: DriveKind;
-  /** The stable reference: office/design = the file name; media/music/file = the uuid. */
-  ref: string;
-  /** Office/design keep their file name for the editors' open-by-name APIs. */
-  file?: string;
-  title: string;
-  sizeBytes: number;
-  folderId: string | null;
-  /** media: image|video|audio|voice|…; file: the files.kind bucket. */
-  subkind?: string;
-  mime?: string;
-  updatedAt: string;
-}
 
-export interface OfficeDriveListing {
-  folders: OfficeFolder[];
-  files: OfficeDriveFile[];
-}
 
 // ── SHEETS ────────────────────────────────────────────────────────────────────
 

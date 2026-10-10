@@ -9,7 +9,7 @@
 
 import { describe, it, expect } from "vitest";
 import { EnvironmentsClient } from "../../src/resources/environments.js";
-import { DEFAULT_ENVIRONMENT_ID, ENVIRONMENT_NETWORKS, ENVIRONMENT_NETWORK_LABELS } from "../../src/contract/environments.js";
+import { DEFAULT_ENVIRONMENT_ID, ENVIRONMENT_NETWORKS } from "../../src/contract/environments.js";
 import { createClient } from "../../src/index.js";
 import type { AuthedHttp } from "../../src/core/authed-http.js";
 
@@ -58,9 +58,8 @@ describe("EnvironmentsClient — the member's named environments", () => {
     ]);
   });
 
-  it("names the three network policies and their labels, Default being the absent pick", () => {
+  it("names the three network policies, Default being the absent pick", () => {
     expect(ENVIRONMENT_NETWORKS).toEqual(["none", "trusted", "full"]);
-    expect(ENVIRONMENT_NETWORK_LABELS).toEqual({ none: "No network access", trusted: "Trusted network access", full: "Full network access" });
     expect(DEFAULT_ENVIRONMENT_ID).toBe("default");
   });
 });

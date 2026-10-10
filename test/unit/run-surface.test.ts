@@ -5,7 +5,7 @@
  * out when the caller named none, and the CLI's `harness run` stamps "cli".
  */
 import { describe, it, expect } from "vitest";
-import { createClient, isHarnessWireFrame, isHarnessTerminal } from "../../src/index.js";
+import { createClient, isHarnessWireFrame } from "../../src/index.js";
 import type { HarnessFrame, HarnessRunBody, HarnessSurface } from "../../src/index.js";
 
 function frontDoor() {
@@ -48,7 +48,6 @@ describe("the frame contract", () => {
       { type: "open-app", url: "https://glyphh.ai" },
     ];
     for (const f of frames) {
-      expect(isHarnessTerminal(f)).toBe(false);
       expect(isHarnessWireFrame({ ...f, seq: 1, runId: "r", at: 0 })).toBe(true);
     }
   });

@@ -64,20 +64,4 @@ export interface Skill extends SkillSummary {
   code: string;
 }
 
-export interface CreateSkillInput {
-  slug: string;
-  name: string;
-  description?: string;
-  manifest?: SkillManifest;
-  prompt?: string;
-  code?: string;
-}
 
-export interface UpdateSkillInput {
-  slug?: string;
-  name?: string;
-  description?: string;
-  manifest?: SkillManifest;
-  prompt?: string;
-  code?: string;
-}

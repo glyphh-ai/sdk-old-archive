@@ -44,21 +44,7 @@ export interface MarketingStats {
   totalConversions: number;
 }
 
-export interface CreateLinkInput {
-  slug: string;
-  url: string;
-  label?: string;
-  campaign?: string;
-  expiresAt?: string; // ISO
-}
 
-export interface UpdateLinkInput {
-  label?: string;
-  url?: string;
-  campaign?: string;
-  isActive?: boolean;
-  expiresAt?: string | null; // ISO or null to clear
-}
 
 export interface LinksQuery {
   q?: string | undefined;
