@@ -34,26 +34,48 @@ export function registerConnections(reg: CommandRegistry): void {
     },
   });
 
-
-
-
   reg.register({
-    path: "connections popular",
-    summary: "the most connected apps across the server, by install count",
-    usage: "connections popular [--limit <n>]",
-    covers: ["connections.popular"],
+    path: "connections mcp add",
+    summary: "install a custom MCP server (org_admin)",
+    usage: "connections mcp add <slug> --name <name> --url <url> [--header 'K: V' ...]",
+    covers: ["connections.installCustomMcp"],
     async run(ctx, args) {
-      const limit = flagStr(args, "limit");
-      ctx.printJson(await ctx.client.connections.popular(limit ? Number(limit) : undefined));
+      const slug = args.positional[0];
+      const name = flagStr(args, "name");
+      const url = flagStr(args, "url");
+      if (!slug || !name || !url) throw new Error("usage: connections mcp add <slug> --name <name> --url <url>");
+      // --header may repeat via comma: "K1: V1,K2: V2"
+      const headerFlag = flagStr(args, "header");
+      const headers: Record<string, string> = {};
+      if (headerFlag) {
+        for (const pair of headerFlag.split(",")) {
+          const idx = pair.indexOf(":");
+          if (idx !== -1) headers[pair.slice(0, idx).trim()] = pair.slice(idx + 1).trim();
+        }
+      }
+      ctx.printJson(await ctx.client.connections.installCustomMcp({ slug, name, url, ...(Object.keys(headers).length ? { headers } : {}) }));
     },
   });
 
   reg.register({
-    path: "connections categories",
-    summary: "the connector directory by category (name, count, featured apps)",
-    covers: ["connections.categories"],
+    path: "connections mcp remove",
+    summary: "remove a custom MCP server",
+    usage: "connections mcp remove <slug>",
+    covers: ["connections.removeCustomMcp"],
+    async run(ctx, args) {
+      const slug = args.positional[0];
+      if (!slug) throw new Error("usage: connections mcp remove <slug>");
+      await ctx.client.connections.removeCustomMcp(slug);
+      ctx.print("removed ✓");
+    },
+  });
+
+  reg.register({
+    path: "connections pipedream",
+    summary: "get a Pipedream connect-link (prints the URL)",
+    covers: ["connections.pipedreamConnectLink"],
     async run(ctx) {
-      ctx.printJson(await ctx.client.connections.categories());
+      ctx.print((await ctx.client.connections.pipedreamConnectLink()).url);
     },
   });
 
@@ -90,6 +112,17 @@ export function registerConnections(reg: CommandRegistry): void {
     },
   });
 
+  reg.register({
+    path: "connections mcp-oauth",
+    summary: "start OAuth for a custom-MCP connection (prints the authorize URL)",
+    usage: "connections mcp-oauth <slug>",
+    covers: ["connections.startMcpOAuth"],
+    async run(ctx, args) {
+      const slug = args.positional[0];
+      if (!slug) throw new Error("usage: connections mcp-oauth <slug>");
+      ctx.print((await ctx.client.connections.startMcpOAuth(slug)).authorizeUrl);
+    },
+  });
 
   reg.register({
     path: "connections org-tools",
@@ -135,9 +168,66 @@ export function registerConnections(reg: CommandRegistry): void {
     },
   });
 
+  reg.register({
+    path: "connections org-mcp add",
+    summary: "publish a custom-MCP connection (org_admin)",
+    usage: "connections org-mcp add <slug> --name <name> --url <url> [--header 'K: V,K2: V2']",
+    covers: ["connections.orgMcpCreate"],
+    async run(ctx, args) {
+      const slug = args.positional[0];
+      const name = flagStr(args, "name");
+      const url = flagStr(args, "url");
+      if (!slug || !name || !url) throw new Error("usage: connections org-mcp add <slug> --name <name> --url <url>");
+      const headers = parseHeaderFlag(flagStr(args, "header"));
+      ctx.printJson(await ctx.client.connections.orgMcpCreate({ slug, name, url, ...(headers ? { headers } : {}) }));
+    },
+  });
 
+  reg.register({
+    path: "connections org-mcp update",
+    summary: "edit a custom-MCP connection (org_admin)",
+    usage: "connections org-mcp update <slug> [--name <n>] [--url <u>] [--header 'K: V'] [--enabled true|false]",
+    covers: ["connections.orgMcpUpdate"],
+    async run(ctx, args) {
+      const slug = args.positional[0];
+      if (!slug) throw new Error("usage: connections org-mcp update <slug> [--name <n>] [--url <u>] [--header 'K: V'] [--enabled true|false]");
+      const patch: { name?: string; url?: string; headers?: Record<string, string>; enabled?: boolean } = {};
+      const name = flagStr(args, "name");
+      const url = flagStr(args, "url");
+      const headers = parseHeaderFlag(flagStr(args, "header"));
+      const enabled = flagStr(args, "enabled");
+      if (name !== undefined) patch.name = name;
+      if (url !== undefined) patch.url = url;
+      if (headers) patch.headers = headers;
+      if (enabled !== undefined) patch.enabled = enabled === "true";
+      ctx.printJson(await ctx.client.connections.orgMcpUpdate(slug, patch));
+    },
+  });
 
+  reg.register({
+    path: "connections org-mcp remove",
+    summary: "delete a custom-MCP connection (org_admin)",
+    usage: "connections org-mcp remove <slug>",
+    covers: ["connections.orgMcpRemove"],
+    async run(ctx, args) {
+      const slug = args.positional[0];
+      if (!slug) throw new Error("usage: connections org-mcp remove <slug>");
+      ctx.printJson(await ctx.client.connections.orgMcpRemove(slug));
+    },
+  });
 
+  reg.register({
+    path: "connections org-mcp icon",
+    summary: "set a custom-MCP connection's logo (data URL)",
+    usage: "connections org-mcp icon <slug> --dataUrl <data:...>",
+    covers: ["connections.orgMcpSetIcon"],
+    async run(ctx, args) {
+      const slug = args.positional[0];
+      const dataUrl = flagStr(args, "dataUrl");
+      if (!slug || !dataUrl) throw new Error("usage: connections org-mcp icon <slug> --dataUrl <data:...>");
+      ctx.printJson(await ctx.client.connections.orgMcpSetIcon(slug, dataUrl));
+    },
+  });
 
   // ── org-shared Pipedream connections (Configure → Connections) ───────────────
   reg.register({
@@ -149,6 +239,17 @@ export function registerConnections(reg: CommandRegistry): void {
     },
   });
 
+  reg.register({
+    path: "connections org connect",
+    summary: "start an org-level OAuth for an app (prints the URL)",
+    usage: "connections org connect <appSlug>",
+    covers: ["connections.pipedreamConnect"],
+    async run(ctx, args) {
+      const appSlug = args.positional[0];
+      if (!appSlug) throw new Error("usage: connections org connect <appSlug>");
+      ctx.print((await ctx.client.connections.pipedreamConnect(appSlug)).connectUrl);
+    },
+  });
 
   reg.register({
     path: "connections org disconnect",
@@ -194,18 +295,6 @@ export function registerConnections(reg: CommandRegistry): void {
       const label = rest.join(" ");
       if (!id || !label) throw new Error("usage: connections personal rename <id> <label...>");
       ctx.printJson(await ctx.client.connections.renamePersonalConnection(id, label));
-    },
-  });
-
-  reg.register({
-    path: "connections personal enable",
-    summary: "turn one of your own connections on or off",
-    usage: "connections personal enable <id> <on|off>",
-    covers: ["connections.setPersonalConnectionEnabled"],
-    async run(ctx, args) {
-      const [id, state] = args.positional;
-      if (!id || (state !== "on" && state !== "off")) throw new Error("usage: connections personal enable <id> <on|off>");
-      ctx.printJson(await ctx.client.connections.setPersonalConnectionEnabled(id, state === "on"));
     },
   });
 
@@ -299,8 +388,52 @@ export function registerConnections(reg: CommandRegistry): void {
     },
   });
 
+  reg.register({
+    path: "connections run",
+    summary: "run a governed connection tool (scope-derived external id)",
+    usage: "connections run <slug> <tool> [props-json]",
+    covers: ["connections.runTool"],
+    async run(ctx, args) {
+      const [slug, tool, propsRaw] = args.positional;
+      if (!slug || !tool) throw new Error("usage: connections run <slug> <tool> [props-json]");
+      let props;
+      if (propsRaw) {
+        try { props = JSON.parse(propsRaw); }
+        catch { throw new Error("props must be a JSON object, e.g. '{\"text\":\"hi\"}'"); }
+      }
+      ctx.printJson(await ctx.client.connections.runTool({ slug, tool, ...(props ? { props } : {}) }));
+    },
+  });
 
+  reg.register({
+    path: "connections fetch-file",
+    summary: "fetch a file's bytes from a connected account (Connect proxy) to a local path",
+    usage: "connections fetch-file <slug> <provider-url> <out-path>",
+    covers: ["connections.fetchFile"],
+    async run(ctx, args) {
+      const [slug, url, outPath] = args.positional;
+      if (!slug || !url || !outPath) throw new Error("usage: connections fetch-file <slug> <provider-url> <out-path>");
+      const out = await ctx.client.connections.fetchFile({ slug, url });
+      const { writeFileSync } = await import("node:fs");
+      writeFileSync(outPath, Buffer.from(out.dataBase64, "base64"));
+      ctx.printJson({ saved: outPath, bytes: out.bytes, contentType: out.contentType });
+    },
+  });
 
+  reg.register({
+    path: "connections proxy-send",
+    summary: "push bytes to a connected provider's API (uploads, sends with attachments)",
+    usage: "connections proxy-send <slug> <provider-url> <body-file> [content-type]",
+    covers: ["connections.proxySend"],
+    async run(ctx, args) {
+      const [slug, url, bodyFile, contentType] = args.positional;
+      if (!slug || !url || !bodyFile) throw new Error("usage: connections proxy-send <slug> <provider-url> <body-file> [content-type]");
+      const { readFileSync } = await import("node:fs");
+      const bodyBase64 = readFileSync(bodyFile).toString("base64");
+      const out = await ctx.client.connections.proxySend({ slug, url, bodyBase64, ...(contentType ? { contentType } : {}) });
+      ctx.printJson({ status: out.status, contentType: out.contentType, body: Buffer.from(out.dataBase64, "base64").toString("utf8").slice(0, 2000) });
+    },
+  });
 }
 
 /** Parse a repeated `--header 'K: V,K2: V2'` flag into a header map (or undefined). */

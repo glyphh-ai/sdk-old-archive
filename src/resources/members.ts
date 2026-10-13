@@ -48,4 +48,11 @@ export class MembersClient {
     return this.http.patch<Member>(`/api/org/members/${encodeURIComponent(userId)}/role`, { role });
   }
 
+  /**
+   * Assign a member to a workspace (access role), or clear them back to the org's
+   * base workspace with `null` (org_admin).
+   */
+  assignWorkspace(userId: string, workspaceId: string | null): Promise<Member> {
+    return this.http.patch<Member>(`/api/org/members/${encodeURIComponent(userId)}/org-role`, { roleId: workspaceId });
+  }
 }

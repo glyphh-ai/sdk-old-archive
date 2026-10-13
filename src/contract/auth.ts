@@ -53,8 +53,21 @@ export interface MagicLinkStart {
   devUrl?: string;
 }
 
+export interface OrgSsoStart {
+  authorizationUrl: string;
+}
 
+export interface AppleName {
+  givenName?: string | null;
+  familyName?: string | null;
+}
 
+export interface OrgSsoParams {
+  email?: string;
+  organizationId?: string;
+  redirectUri: string;
+  machineId?: string;
+}
 
 // ── device authorization grant (RFC 8628) — the CLI/TUI sign-in ────────────────
 

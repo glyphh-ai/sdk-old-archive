@@ -71,4 +71,11 @@ describe("@glyphh/sdk — workspaces", () => {
     }
   });
 
+  it("an org_admin's effective grants are unlimited (all)", async () => {
+    const client = await signIn();
+    const grants = await client.workspaces.grants();
+    expect(grants.models).toBe("all");
+    expect(grants.connections).toBe("all");
+    expect(grants.apps).toBe("all");
+  });
 });

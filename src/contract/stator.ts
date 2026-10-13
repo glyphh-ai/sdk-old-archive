@@ -37,6 +37,20 @@ export interface StatorBrowseResult {
   facts: GlyphFact[];
 }
 
+export interface StatorCreateInput {
+  name: string;
+  /** {layer: {role: value}} over the universal schema; off-schema slots are
+   *  preserved verbatim (reported back as preservedSlots). */
+  facts?: Record<string, Record<string, string>>;
+  confidence?: number;
+  scope?: "org" | "user";
+}
+export interface StatorCreateResult {
+  id: string;
+  confidence: number;
+  scope: "org" | "user";
+  preservedSlots?: string[];
+}
 
 export interface StatorGraphInput { max?: number; semMin?: number; neuralMin?: number; neuralMax?: number }
 export interface StatorGraphNode {

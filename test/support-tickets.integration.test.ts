@@ -16,7 +16,7 @@
 import { describe, it, expect, afterAll } from "vitest";
 import { randomUUID } from "node:crypto";
 import { Client as PgClient } from "pg";
-import { createClient, type Client } from "../src/index.js";
+import { createClient, ForbiddenError, type Client } from "../src/index.js";
 
 const url = process.env.GLYPHH_SERVER_URL ?? "http://127.0.0.1:3001";
 const databaseUrl = process.env.DATABASE_URL ?? "postgres://glyphh:glyphh@127.0.0.1:5432/glyphh";
@@ -91,3 +91,34 @@ describe("@glyphh/sdk — support tickets (user flow)", () => {
   });
 });
 
+describe("@glyphh/sdk — admin support console (role gate)", () => {
+  it("supportTickets is forbidden for a non-platform-admin", async () => {
+    const client = await signIn();
+    await expect(client.admin.supportTickets()).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it("supportTicket is forbidden for a non-platform-admin", async () => {
+    const client = await signIn();
+    await expect(client.admin.supportTicket(randomUUID())).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it("supportReply is forbidden for a non-platform-admin", async () => {
+    const client = await signIn();
+    await expect(client.admin.supportReply(randomUUID(), "we're on it")).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it("setSupportStatus is forbidden for a non-platform-admin", async () => {
+    const client = await signIn();
+    await expect(client.admin.setSupportStatus(randomUUID(), "resolved")).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it("markSupportRead is forbidden for a non-platform-admin", async () => {
+    const client = await signIn();
+    await expect(client.admin.markSupportRead(randomUUID())).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it("supportUnreadCount is forbidden for a non-platform-admin", async () => {
+    const client = await signIn();
+    await expect(client.admin.supportUnreadCount()).rejects.toBeInstanceOf(ForbiddenError);
+  });
+});

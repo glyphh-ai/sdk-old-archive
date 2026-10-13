@@ -88,3 +88,16 @@ export interface WorkspaceInput {
 /** A resolved grant: "all" (unlimited) or the exact allow-list. */
 export type Grant = "all" | string[];
 
+/** The effective governance for a member — what the runtime enforces. */
+export interface EffectiveGrants {
+  providers: Grant;
+  models: Grant;
+  connections: Grant;
+  /** Which apps a member may PERSONALLY connect (their own auth). */
+  personalConnections: Grant;
+  apps: Grant;
+  hosting: Grant;
+  allowCustomMcp: boolean;
+  rateLimitCalls: number | null;
+  rateLimitWindowSeconds: number | null;
+}

@@ -158,6 +158,11 @@ export class OrgClient {
   security(): Promise<OrgSecurity> {
     return this.http.get<OrgSecurity>("/api/org/security");
   }
+  /** A WorkOS Admin Portal link the admin opens to connect an IdP / directory
+   *  sync / verify a domain. Provisions the WorkOS org on first use. */
+  securityPortal(intent: "sso" | "dsync" | "domain_verification" = "sso"): Promise<{ url: string }> {
+    return this.http.post<{ url: string }>("/api/org/security/portal", { intent });
+  }
   /** Require every member to sign in through the org's IdP. Refused unless a
    *  connection is already active — enabling it blind would lock the org out. */
   setRequireSso(requireSso: boolean): Promise<{ requireSso: boolean }> {

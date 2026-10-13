@@ -21,6 +21,12 @@ export const DEFAULT_ENVIRONMENT_ID = "default";
 export type EnvironmentNetwork = "none" | "trusted" | "full";
 export const ENVIRONMENT_NETWORKS: readonly EnvironmentNetwork[] = ["none", "trusted", "full"];
 
+/** The words the pickers show for each policy (his screenshot, 2026-10-05). */
+export const ENVIRONMENT_NETWORK_LABELS: Readonly<Record<EnvironmentNetwork, string>> = {
+  none: "No network access",
+  trusted: "Trusted network access",
+  full: "Full network access",
+};
 
 /** One row of `environments.list`: never the variables, not even their names. */
 export interface EnvironmentSummary {

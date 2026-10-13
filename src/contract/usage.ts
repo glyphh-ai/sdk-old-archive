@@ -26,9 +26,42 @@ export interface UsageSummaryQuery {
   to?: string;
 }
 
+/** One day of the org usage series (dollars; only days with usage). */
+export interface UsageDay {
+  day: string; // YYYY-MM-DD
+  usd: number; // dollars
+  requests: number;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheCreationTokens: number;
+}
 
+/** Query for the per-day series. `from`/`to` are YYYY-MM-DD; `tz` defaults to UTC. */
+export interface UsageDailyQuery {
+  from: string;
+  to: string;
+  tz?: string;
+  /** org_admin only — break the org series down to one member. */
+  userId?: string;
+}
 
+/** One model's usage rollup (dollars). */
+export interface UsageByModelRow {
+  model: string;
+  usd: number; // dollars
+  requests: number;
+  inputTokens: number;
+  outputTokens: number;
+}
 
+/** Query for the by-model rollup. `from`/`to` are YYYY-MM-DD (optional; all time when omitted). */
+export interface UsageByModelQuery {
+  from?: string;
+  to?: string;
+  /** org_admin only — drill into one member (members are pinned to their own usage). */
+  userId?: string;
+}
 
 /** The stack dimension for the day × group series. */
 export type UsageSeriesGroupBy = "model" | "source" | "user";

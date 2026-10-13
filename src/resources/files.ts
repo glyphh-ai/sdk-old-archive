@@ -9,7 +9,7 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
-import type { FileArtifact, ListFilesQuery } from "../contract/files.js";
+import type { FileArtifact, ListFilesQuery, CreateFileInput } from "../contract/files.js";
 
 export class FilesClient {
   constructor(private readonly http: AuthedHttp) {}
@@ -25,6 +25,10 @@ export class FilesClient {
     return this.http.get<FileArtifact>(`/api/files/${encodeURIComponent(id)}`);
   }
 
+  /** Save an artifact on the caller's behalf (the runtime is the primary writer). */
+  create(input: CreateFileInput): Promise<FileArtifact> {
+    return this.http.post<FileArtifact>("/api/files", input);
+  }
 
   /** Delete an artifact (owner / org_admin): removes the stored object and the index row. */
   delete(id: string): Promise<void> {

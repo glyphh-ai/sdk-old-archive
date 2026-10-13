@@ -22,6 +22,10 @@ export class ApiKeysClient {
     return this.http.get<ApiKey[]>("/api/keys");
   }
 
+  /** Every key in the caller's org, grouped by user — the platform view (org_admin). */
+  listOrg(): Promise<ApiKey[]> {
+    return this.http.get<ApiKey[]>("/api/keys/org");
+  }
 
   /** Revoke a key by id (owner, or an org_admin for any key in the org). */
   revoke(id: string): Promise<void> {

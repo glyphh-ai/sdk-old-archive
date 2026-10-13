@@ -51,5 +51,24 @@ export function registerOAuth(reg: CommandRegistry): void {
     },
   });
 
+  reg.register({
+    path: "oauth grants",
+    summary: "everything currently authorized to act for you",
+    covers: ["oauth.grants"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.oauth.grants());
+    },
+  });
 
+  reg.register({
+    path: "oauth revoke",
+    summary: "revoke one authorized connection (does not sign you out)",
+    usage: "oauth revoke --id <grant_id>",
+    covers: ["oauth.revokeGrant"],
+    async run(ctx, args) {
+      const id = flagStr(args, "id");
+      if (!id) throw new Error("usage: oauth revoke --id <grant_id>");
+      ctx.printJson(await ctx.client.oauth.revokeGrant(id));
+    },
+  });
 }

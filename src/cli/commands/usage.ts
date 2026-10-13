@@ -30,6 +30,17 @@ export function registerUsage(reg: CommandRegistry): void {
     },
   });
 
+  reg.register({
+    path: "usage workspace",
+    summary: "a workspace's usage rollup",
+    usage: "usage workspace <workspaceId>",
+    covers: ["usage.workspace"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: usage workspace <workspaceId>");
+      ctx.printJson(await ctx.client.usage.workspace(id));
+    },
+  });
 
   reg.register({
     path: "usage org",
@@ -40,6 +51,24 @@ export function registerUsage(reg: CommandRegistry): void {
     },
   });
 
+  reg.register({
+    path: "usage by-model",
+    summary: "usage attributed by model (org_admin sees the org; members see self)",
+    usage: "usage by-model [--from <YYYY-MM-DD>] [--to <YYYY-MM-DD>] [--user <userId>]",
+    covers: ["usage.byModel"],
+    async run(ctx, args) {
+      const from = flagStr(args, "from");
+      const to = flagStr(args, "to");
+      const userId = flagStr(args, "user");
+      ctx.printJson(
+        await ctx.client.usage.byModel({
+          ...(from ? { from } : {}),
+          ...(to ? { to } : {}),
+          ...(userId ? { userId } : {}),
+        }),
+      );
+    },
+  });
 
   reg.register({
     path: "usage series",
@@ -72,4 +101,25 @@ export function registerUsage(reg: CommandRegistry): void {
     },
   });
 
+  reg.register({
+    path: "usage daily",
+    summary: "per-day org usage series for a date range",
+    usage: "usage daily <from:YYYY-MM-DD> <to:YYYY-MM-DD> [--tz <IANA>] [--user <userId>]",
+    covers: ["usage.daily"],
+    async run(ctx, args) {
+      const from = args.positional[0];
+      const to = args.positional[1];
+      if (!from || !to) throw new Error("usage: usage daily <from> <to> [--tz <IANA>] [--user <userId>]");
+      const tz = flagStr(args, "tz");
+      const userId = flagStr(args, "user");
+      ctx.printJson(
+        await ctx.client.usage.daily({
+          from,
+          to,
+          ...(tz ? { tz } : {}),
+          ...(userId ? { userId } : {}),
+        }),
+      );
+    },
+  });
 }

@@ -6,7 +6,7 @@
  * prints the job to poll yourself.
  */
 
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { basename, extname } from "node:path";
 import type { CommandRegistry } from "../registry.js";
 import { flagStr } from "../args.js";
@@ -21,18 +21,41 @@ const KIND_BY_MIME = (mime: string): "image" | "video" | "audio" | "script" =>
   mime.startsWith("image/") ? "image" : mime.startsWith("video/") ? "video" : mime.startsWith("audio/") ? "audio" : "script";
 
 export function registerMedia(reg: CommandRegistry): void {
-
-
+  reg.register({
+    path: "media list",
+    summary: "the org's media library (newest first)",
+    usage: "media list [--kind image|video|audio|voice|avatar|recording|script] [--q <text>]",
+    covers: ["media.list"],
+    async run(ctx, args) {
+      const kind = flagStr(args, "kind");
+      ctx.printJson(await ctx.client.media.list(kind as never, flagStr(args, "q")));
+    },
+  });
 
   reg.register({
-    path: "media job",
-    summary: "one generation job's current state",
-    usage: "media job <id>",
-    covers: ["media.job"],
+    path: "media get",
+    summary: "one asset's metadata",
+    usage: "media get <id>",
+    covers: ["media.get"],
     async run(ctx, args) {
       const id = args.positional[0];
-      if (!id) throw new Error("usage: media job <id>");
-      ctx.printJson(await ctx.client.media.job(id));
+      if (!id) throw new Error("usage: media get <id>");
+      ctx.printJson(await ctx.client.media.get(id));
+    },
+  });
+
+  reg.register({
+    path: "media download",
+    summary: "download an asset's bytes",
+    usage: "media download <id> --out <path>",
+    covers: ["media.bytes"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      const out = flagStr(args, "out");
+      if (!id || !out) throw new Error("usage: media download <id> --out <path>");
+      const bytes = await ctx.client.media.bytes(id);
+      writeFileSync(out, Buffer.from(bytes));
+      ctx.printJson({ wrote: out, bytes: bytes.byteLength });
     },
   });
 
@@ -104,6 +127,16 @@ export function registerMedia(reg: CommandRegistry): void {
     },
   });
 
+  reg.register({
+    path: "media jobs",
+    summary: "recent generation jobs (status, model, dollars charged)",
+    usage: "media jobs [--id <jobId>]",
+    covers: ["media.jobs", "media.job"],
+    async run(ctx, args) {
+      const id = flagStr(args, "id");
+      ctx.printJson(id ? await ctx.client.media.job(id) : await ctx.client.media.jobs());
+    },
+  });
 
   reg.register({
     path: "media projects",
@@ -183,4 +216,16 @@ export function registerMedia(reg: CommandRegistry): void {
     },
   });
 
+  reg.register({
+    path: "media delete",
+    summary: "delete an asset (bytes + row)",
+    usage: "media delete <id>",
+    covers: ["media.delete"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: media delete <id>");
+      await ctx.client.media.delete(id);
+      ctx.printJson({ deleted: id });
+    },
+  });
 }

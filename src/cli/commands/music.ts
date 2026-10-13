@@ -113,10 +113,12 @@ export function registerMusic(reg: CommandRegistry): void {
 
   reg.register({
     path: "music songs",
-    summary: "the org's songs (newest first)",
-    covers: ["music.songs"],
-    async run(ctx) {
-      ctx.printJson(await ctx.client.music.songs());
+    summary: "the org's songs (newest first) or one song in full",
+    usage: "music songs [--id <songId>]",
+    covers: ["music.songs", "music.song"],
+    async run(ctx, args) {
+      const id = flagStr(args, "id");
+      ctx.printJson(id ? await ctx.client.music.song(id) : await ctx.client.music.songs());
     },
   });
   reg.register({

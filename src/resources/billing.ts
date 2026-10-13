@@ -80,7 +80,7 @@ export class BillingClient {
 
   /** Configure the org's auto-reload rule (upsert, dollars). */
   setAutotopup(input: AutotopupInput): Promise<AutotopupConfig> {
-    return this.http.post<AutotopupConfig>("/api/billing/autotopup", input);
+    return this.http.put<AutotopupConfig>("/api/billing/autotopup", input);
   }
 
   /** Recent Stripe invoices for the org. */

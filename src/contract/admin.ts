@@ -10,6 +10,10 @@
  * page consumes.
  */
 
+export interface AdminStats {
+  users: { total: number; active: number };
+  orgCount: number;
+}
 
 // ── orgs ─────────────────────────────────────────────────────────────────────
 export interface AdminOrgListItem {
@@ -71,6 +75,15 @@ export interface AdminUsersPage {
   users: AdminUser[];
   total: number;
 }
+export interface AdminUserPatch {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  role?: string;
+  status?: string;
+  tier?: string;
+  billingStatus?: string;
+}
 
 // ── plans / models pricing ────────────────────────────────────────────────────
 export interface AdminPlan {
@@ -118,6 +131,26 @@ export interface AdminPlanCreate {
   active?: boolean;
 }
 
+/**
+ * A per-org bespoke (enterprise) plan. Unlike the snake_case global-plan shapes above,
+ * the org-plan write payloads are camelCase — they mirror the server's org-plan
+ * endpoints (which take camelCase directly). `monthlyUsdCents` is the per-seat
+ * price — the plan's monthly pool is that price, dollar for dollar.
+ */
+export interface AdminOrgPlanInput {
+  maxSeats: number;
+  monthlyUsdCents: number;
+  displayName: string;
+  /** The specific Stripe price the org is billed on (enterprise is provisioned/invoiced). */
+  stripePriceId?: string;
+}
+/** Partial edit of an org's bespoke plan (every field optional). */
+export interface AdminOrgPlanPatch {
+  maxSeats?: number;
+  monthlyUsdCents?: number;
+  displayName?: string;
+  stripePriceId?: string;
+}
 export interface AdminModel {
   provider: string;
   model: string;

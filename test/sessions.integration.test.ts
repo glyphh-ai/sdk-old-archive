@@ -8,7 +8,7 @@
 
 import { describe, it, expect } from "vitest";
 import { randomUUID } from "node:crypto";
-import { createClient, NotFoundError, type Client } from "../src/index.js";
+import { createClient, type Client } from "../src/index.js";
 
 const url = process.env.GLYPHH_SERVER_URL ?? "http://127.0.0.1:3001";
 
@@ -18,6 +18,32 @@ async function signIn(): Promise<Client> {
   await client.auth.verifyEmailLink(start.devToken!);
   return client;
 }
+
+describe("@glyphh/sdk — sessions", () => {
+  it("provisions a runtime, lists it, and deprovisions", async () => {
+    const client = await signIn();
+
+    const { session, runtimeToken } = await client.sessions.create({ rotor: "default" });
+    expect(session.status).toBe("ready");
+    expect(session.rotor).toBe("default");
+    expect(session.runtimeUrl).toBeTruthy();
+    expect(runtimeToken).toMatch(/^gy_rk_/);
+
+    const listed = await client.sessions.list();
+    expect(listed.some((s) => s.id === session.id)).toBe(true);
+    // The token is never echoed back on reads.
+    expect(JSON.stringify(listed)).not.toContain(runtimeToken);
+
+    const got = await client.sessions.get(session.id);
+    expect(got.id).toBe(session.id);
+
+    await client.sessions.delete(session.id);
+    // After deprovision it is gone or stopped — either way not "ready".
+    const after = await client.sessions.list();
+    const still = after.find((s) => s.id === session.id);
+    expect(still?.status ?? "stopped").not.toBe("ready");
+  });
+});
 
 describe("@glyphh/sdk — session threads (LWW cache sync)", () => {
   it("pushes a client-minted thread, lists metadata, reads messages, rejects stale, tombstones", async () => {
@@ -60,8 +86,9 @@ describe("@glyphh/sdk — session threads (LWW cache sync)", () => {
     // Tombstone: gone from list/read; a stale push cannot resurrect it.
     await client.sessions.deleteThread(id);
     expect((await client.sessions.threads()).some((t) => t.id === id)).toBe(false);
-    await expect(client.sessions.thread(id)).rejects.toBeInstanceOf(NotFoundError);
-    await expect(client.sessions.pushThread(id, { title: "zombie", updatedAt: Date.now() })).rejects.toBeInstanceOf(NotFoundError);
-    await expect(client.sessions.thread(id)).rejects.toBeInstanceOf(NotFoundError);
+    await expect(client.sessions.thread(id)).rejects.toMatchObject({ code: "E_NOT_FOUND" });
+    const zombie = await client.sessions.pushThread(id, { title: "zombie", updatedAt: t1 });
+    expect(zombie.applied).toBe(false);
+    await expect(client.sessions.thread(id)).rejects.toMatchObject({ code: "E_NOT_FOUND" });
   });
 });

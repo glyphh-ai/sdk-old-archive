@@ -100,6 +100,9 @@ export class MusicClient {
   songs(): Promise<MusicSong[]> {
     return this.http.get<MusicSong[]>("/api/music/songs");
   }
+  song(id: string): Promise<MusicSong> {
+    return this.http.get<MusicSong>(`/api/music/songs/${encodeURIComponent(id)}`);
+  }
   createSong(input: MusicSongInput): Promise<MusicSong> {
     return this.http.post<MusicSong>("/api/music/songs", input);
   }

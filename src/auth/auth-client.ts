@@ -11,7 +11,17 @@ import type { HttpClient } from "../core/http.js";
 import type { AuthedHttp } from "../core/authed-http.js";
 import type { RefreshManager } from "./refresh-manager.js";
 import { AuthError } from "../core/errors.js";
-import type { DeviceAuthStart, DeviceLoginOptions, DevicePoll, IssuedSession, MagicLinkStart, StoredSession } from "../contract/auth.js";
+import type {
+  AppleName,
+  DeviceAuthStart,
+  DeviceLoginOptions,
+  DevicePoll,
+  IssuedSession,
+  MagicLinkStart,
+  OrgSsoParams,
+  OrgSsoStart,
+  StoredSession,
+} from "../contract/auth.js";
 
 /** A client-side device-login failure (the caller must re-authenticate). */
 function deviceFail(message: string): AuthError {
@@ -65,6 +75,10 @@ export class AuthClient {
   // ── native social ───────────────────────────────────────────────────────────
   async google(idToken: string, machineId?: string): Promise<StoredSession> {
     const issued = await this.http.post<IssuedSession>("/api/auth/google", { idToken, ...(machineId ? { machineId } : {}) });
+    return this.#adopt(issued);
+  }
+  async apple(identityToken: string, opts: { fullName?: AppleName; machineId?: string } = {}): Promise<StoredSession> {
+    const issued = await this.http.post<IssuedSession>("/api/auth/apple", { identityToken, ...opts });
     return this.#adopt(issued);
   }
 
@@ -125,6 +139,11 @@ export class AuthClient {
     return this.authed.post<{ ok: boolean }>("/api/auth/device/approve", { userCode });
   }
 
+  // ── organization OAuth/SSO (WorkOS, browser handoff) ────────────────────────
+  /** Returns the WorkOS authorization URL to open in a system browser. */
+  startOrgSso(params: OrgSsoParams): Promise<OrgSsoStart> {
+    return this.http.post<OrgSsoStart>("/api/auth/org/start", params);
+  }
   /** Trade the one-time code (from the app's deep-link callback) for a session. */
   async exchange(code: string, machineId?: string): Promise<StoredSession> {
     const issued = await this.http.post<IssuedSession>("/api/auth/exchange", { code, ...(machineId ? { machineId } : {}) });

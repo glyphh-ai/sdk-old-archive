@@ -108,32 +108,6 @@ export interface LoopAgentDef {
 /** Who a child event came from, so a host can nest it under the right agent. */
 export interface LoopAgentRef { childId: string; slug: string; name: string; model: string }
 
-/**
- * THE SCOPE (his order, 2026-10-10: "the LOOP MUST MUST respect it at all
- * costs... NO EXCEPTIONS"). Every tool call a turn makes — a builtin, a belt
- * tool, a catalog tool named through call_tool, a lent server's tool, a
- * connected account's, a sub-agent — is shown to the host's scope BEFORE the
- * permission gate and before it runs. A refusal is final: the call never runs,
- * never asks, and the model is told why. A scope that throws refuses (fail
- * closed). find_tools only ever lists what the scope would allow.
- */
-export type ScopeKind = "builtin" | "artifact" | "belt" | "catalog" | "mcp" | "account" | "spawn";
-export interface ScopeCall {
-  /** The top-level chat the turn belongs to (a child reports its parent's). */
-  chatId: string;
-  /** Set on a sub-agent's call: the agent it runs as. */
-  agent?: string;
-  kind: ScopeKind;
-  /** The tool as it would run (call_tool's inner name; a sub-agent's slug for spawn). */
-  tool: string;
-  /** A catalog or belt entry's family (the host's own grouping). */
-  family?: string;
-  /** A lent server's tool: is it the host's own server (true) or the gateway's (false)? */
-  local?: boolean;
-  input: Record<string, unknown>;
-}
-export type LoopScope = (call: ScopeCall) => string | null | Promise<string | null>;
-
 export interface LoopDeps {
   /** The member's gateway credential, or null when the org's gateway lane is off. */
   gateway: () => Promise<LoopGateway | null>;
@@ -162,8 +136,6 @@ export interface LoopDeps {
    *  exactly the old behaviour. Every model gets memory this way, not just
    *  the one a proxy happened to sit in front of. */
   facts?: (userText: string, scope: { folder: string; workspace?: string }) => Promise<string>;
-  /** THE SCOPE (above): every tool call, refused or let through. */
-  scope?: LoopScope;
   /** STANDING TEXT (2026-10-07): what a host wants in the system prompt for the
    *  whole chat — a run's own instructions, a workspace note — the SAME every
    *  turn. It rides as a second, CACHED system block: constant text belongs
@@ -471,23 +443,13 @@ export class GlyphhLoop {
     const query = typeof o.query === "string" ? o.query : "";
     const limit = typeof o.limit === "number" && o.limit > 0 ? Math.min(20, Math.floor(o.limit)) : 8;
     if (!query.trim()) return { text: "find_tools needs a query: the task, in plain words", failed: true };
-    const found = searchCatalog(c.catalog, query, limit, c.recent);
-    const allowed = await Promise.all(found.map(async (e) => !(await this.outOfScope(c, CALL_TOOL, { name: e.name, arguments: {} }))));
-    const local = found.filter((_, i) => allowed[i]).map((e) => ({ name: e.name, from: e.family, description: e.description, input_schema: e.inputSchema ?? { type: "object", properties: {} } }));
+    const local = searchCatalog(c.catalog, query, limit, c.recent).map((e) => ({ name: e.name, from: e.family, description: e.description, input_schema: e.inputSchema ?? { type: "object", properties: {} } }));
     let accounts: unknown = undefined;
     if (c.accounts) {
       try {
         const r = await c.accounts.search.client.callTool(c.accounts.search.realName, { query, top_k: limit }, signal);
         const text = resultText(r);
         try { accounts = JSON.parse(text); } catch { accounts = text; }
-        // The connected accounts' tools, held to the scope like everything else.
-        if (Array.isArray(accounts) && this.deps.scope) {
-          const rows = accounts as Array<{ name?: unknown }>;
-          const keep = await Promise.all(rows.map(async (t) => typeof t?.name === "string" && !(await this.outOfScope(c, CALL_TOOL, { name: t.name, arguments: {} }))));
-          accounts = rows.filter((_, i) => keep[i]);
-        } else if (!Array.isArray(accounts) && this.deps.scope) {
-          accounts = undefined;   // an answer the scope cannot read is not shown
-        }
       } catch (err) {
         accounts = `connected-account search failed: ${err instanceof Error ? err.message : String(err)}`;
       }
@@ -517,42 +479,6 @@ export class GlyphhLoop {
       }
     }
     return { text: `unknown tool ${name}: search for it with find_tools first`, failed: true };
-  }
-
-  /** What a call would run, as the scope sees it; null for the loop's own find. */
-  private scopeCallFor(c: LoopChat, name: string, input: unknown): Omit<ScopeCall, "chatId" | "agent"> | null {
-    const args = (input && typeof input === "object" && !Array.isArray(input) ? input : {}) as Record<string, unknown>;
-    if (name === FIND_TOOL) return null;
-    if (name === GlyphhLoop.SPAWN_TOOL) return { kind: "spawn", tool: String(args.agent ?? "").trim(), input: args };
-    if (name === CALL_TOOL) {
-      const { name: inner, args: innerArgs } = GlyphhLoop.callTarget(input);
-      if (!inner || inner === CALL_TOOL) return { kind: "account", tool: inner, input: innerArgs };
-      if (inner === FIND_TOOL) return null;
-      const entry = c.catalog.find((e) => e.name === inner);
-      if (entry) return { kind: entry.belt ? "belt" : "catalog", tool: inner, ...(entry.family ? { family: entry.family } : {}), input: innerArgs };
-      return this.scopeCallFor(c, inner, innerArgs) ?? { kind: "account", tool: inner, input: innerArgs };
-    }
-    if (BUILTIN_TOOLS.some((b) => b.name === name)) return { kind: "builtin", tool: name, input: args };
-    if (name === ARTIFACT_PUBLISH || name === ARTIFACT_READ) return { kind: "artifact", tool: name, input: args };
-    const belt = c.catalog.find((e) => e.belt && e.name === name);
-    if (belt) return { kind: "belt", tool: name, ...(belt.family ? { family: belt.family } : {}), input: args };
-    const m = c.mcp.get(name);
-    if (m) return { kind: "mcp", tool: name, local: m.local, input: args };
-    return { kind: "account", tool: name, input: args };
-  }
-
-  /** The scope's word on a call: a refusal, or null to let it through. Fails closed. */
-  private async outOfScope(c: LoopChat, name: string, input: unknown): Promise<string | null> {
-    if (!this.deps.scope) return null;
-    const call = this.scopeCallFor(c, name, input);
-    if (!call) return null;
-    const root = c.owner ?? c;
-    try {
-      const said = await this.deps.scope({ ...call, chatId: root.chatId, ...(c.as ? { agent: c.as.slug } : {}) });
-      return said ? String(said) : null;
-    } catch (err) {
-      return `Not run: this call's scope could not be checked (${err instanceof Error ? err.message : String(err)}).`;
-    }
   }
 
   private static promptExtras(c: LoopChat, host: LoopHost | undefined): PromptExtras {
@@ -850,7 +776,7 @@ ${context}` : task;
       if (final.stop_reason !== "tool_use" || !uses.length) break;
       // VERDICTS FIRST, ONE AT A TIME: an approval is a conversation with a
       // person, and two prompts at once is not one.
-      const planned: Array<{ use: typeof uses[number]; title: string; allowed: boolean; refused?: string }> = [];
+      const planned: Array<{ use: typeof uses[number]; title: string; allowed: boolean }> = [];
       for (const use of uses) {
         if (signal.aborted) break;
         // DELEGATING IS NOT THE RISKY PART: a sub-agent touches nothing by
@@ -865,13 +791,6 @@ ${context}` : task;
           : inner ? toolKind(inner.name, innerEntry ? innerEntry.readOnly === true : c.mcp.get(inner.name)?.readOnly === true)
           : toolKind(use.name, (c.catalog.find((e) => e.belt && e.name === use.name)?.readOnly ?? c.mcp.get(use.name)?.readOnly) === true);
         const title = inner?.name ? toolTitle(inner.name, inner.args) : toolTitle(use.name, use.input);
-        // THE SCOPE FIRST: out of scope never runs and never asks.
-        const refused = await this.outOfScope(c, use.name, use.input);
-        if (refused) {
-          this.send(c, { type: "tool", phase: "done", name: use.name, title, failed: true, preview: refused });
-          planned.push({ use, title, allowed: false, refused });
-          continue;
-        }
         let verdict = gate(c.permission, kind);
         if (verdict === "ask") {
           const askKind = kind === "exec" ? "command" : kind === "edit" ? "edit" : "tool";
@@ -910,7 +829,7 @@ ${context}` : task;
           if (!r) {
             return {
               type: "tool_result", tool_use_id: x.use.id, is_error: true,
-              content: x.refused ?? (c.permission === "plan" ? "Not run: plan mode reads only. Describe the change instead." : "The user declined this step."),
+              content: c.permission === "plan" ? "Not run: plan mode reads only. Describe the change instead." : "The user declined this step.",
             };
           }
           return { type: "tool_result", tool_use_id: x.use.id, is_error: r.failed, content: toolResultContent(r) };

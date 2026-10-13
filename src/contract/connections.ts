@@ -19,7 +19,18 @@ export interface Connection {
   hasCredentials: boolean;
 }
 
+/** org_admin installs a custom MCP server. `headers` are write-only (encrypted at rest). */
+export interface CustomMcpInput {
+  slug: string;
+  name: string;
+  url: string;
+  headers?: Record<string, string>;
+}
 
+/** A Pipedream connect-link URL to open (OAuth an account). */
+export interface ConnectLink {
+  url: string;
+}
 
 /** One connectable app from the connector catalog (the "Add Connection" picker). */
 export interface ConnectorApp {
@@ -44,8 +55,27 @@ export interface ConnectorTool {
   inputSchema?: Record<string, unknown> | null;
 }
 
+/** The result of running a connection tool (`ret` is the action's return value). */
+export interface RunToolResult {
+  result: { ret: unknown; exports?: unknown; os?: unknown };
+}
 
+/** A file fetched from a connected account via the server's Connect-proxy
+ *  bridge — the way FILE BYTES reach the caller (connector actions execute in
+ *  a remote sandbox; their "downloads" never leave it). */
+export interface FetchFileResult {
+  contentType: string | null;
+  bytes: number;
+  dataBase64: string;
+}
 
+/** The provider's response to a proxy send (outbound bytes: uploads, sends
+ *  with attachments). */
+export interface ProxySendResult {
+  status: number;
+  contentType: string | null;
+  dataBase64: string;
+}
 
 /**
  * One enabled connection the caller may reach, with its advertised tools already
@@ -94,6 +124,10 @@ export interface PersonalConnectSession {
   url: string;
 }
 
+/** The authorize URL to open to start a custom-MCP OAuth 2.1 authorization. */
+export interface McpOAuthStart {
+  authorizeUrl: string;
+}
 
 /**
  * The RICH custom-MCP connection the org admin catalog (Settings → MCP) manages:

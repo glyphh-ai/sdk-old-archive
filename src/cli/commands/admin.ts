@@ -10,7 +10,7 @@
 import type { CommandRegistry } from "../registry.js";
 import type { CliArgs } from "../args.js";
 import { flagStr } from "../args.js";
-import type { AdminOrgPatch, AdminPlanUpdate, AdminPlanCreate, AdminModelUpdate } from "../../contract/admin.js";
+import type { AdminOrgPatch, AdminUserPatch, AdminPlanUpdate, AdminPlanCreate, AdminOrgPlanPatch, AdminModelUpdate } from "../../contract/admin.js";
 
 function flagNum(args: CliArgs, name: string): number | undefined {
   const v = flagStr(args, name);
@@ -24,6 +24,14 @@ function flagBool(args: CliArgs, name: string): boolean | undefined {
 }
 
 export function registerAdmin(reg: CommandRegistry): void {
+  reg.register({
+    path: "admin stats",
+    summary: "platform dashboard totals (super_admin)",
+    covers: ["admin.stats"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.admin.stats());
+    },
+  });
 
   // ── orgs ─────────────────────────────────────────────────────────────────────
   reg.register({
@@ -74,6 +82,28 @@ export function registerAdmin(reg: CommandRegistry): void {
     },
   });
   reg.register({
+    path: "admin org lock",
+    summary: "lock an org (billing → canceled)",
+    usage: "admin org lock <id> [--reason <text>]",
+    covers: ["admin.lockOrg"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: admin org lock <id> [--reason ..]");
+      ctx.printJson(await ctx.client.admin.lockOrg(id, flagStr(args, "reason")));
+    },
+  });
+  reg.register({
+    path: "admin org unlock",
+    summary: "unlock an org (billing → active)",
+    usage: "admin org unlock <id>",
+    covers: ["admin.unlockOrg"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: admin org unlock <id>");
+      ctx.printJson(await ctx.client.admin.unlockOrg(id));
+    },
+  });
+  reg.register({
     path: "admin org funds",
     summary: "add dollars to an org's budget (admin grant)",
     usage: "admin org funds <id> <usd> [--note <text>]",
@@ -87,6 +117,67 @@ export function registerAdmin(reg: CommandRegistry): void {
   });
 
   // ── users ──────────────────────────────────────────────────────────────────
+  reg.register({
+    path: "admin users",
+    summary: "list users (super_admin)",
+    usage: "admin users [--q <search>] [--page <n>] [--limit <n>]",
+    covers: ["admin.users"],
+    async run(ctx, args) {
+      ctx.printJson(await ctx.client.admin.users({ q: flagStr(args, "q"), page: flagNum(args, "page"), limit: flagNum(args, "limit") }));
+    },
+  });
+  reg.register({
+    path: "admin user",
+    summary: "a user's detail (super_admin)",
+    usage: "admin user <id>",
+    covers: ["admin.user"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: admin user <id>");
+      ctx.printJson(await ctx.client.admin.user(id));
+    },
+  });
+  reg.register({
+    path: "admin user update",
+    summary: "edit a user (tier/billing apply org-wide)",
+    usage: "admin user update <id> [--first <n>] [--last <n>] [--email <e>] [--role <r>] [--status <s>] [--tier <t>] [--billing <b>]",
+    covers: ["admin.updateUser"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: admin user update <id> [--first ..] [--last ..] [--email ..] ...");
+      const patch: AdminUserPatch = {};
+      const first = flagStr(args, "first"); if (first !== undefined) patch.firstName = first;
+      const last = flagStr(args, "last"); if (last !== undefined) patch.lastName = last;
+      const email = flagStr(args, "email"); if (email !== undefined) patch.email = email;
+      const role = flagStr(args, "role"); if (role !== undefined) patch.role = role;
+      const status = flagStr(args, "status"); if (status !== undefined) patch.status = status;
+      const tier = flagStr(args, "tier"); if (tier !== undefined) patch.tier = tier;
+      const billing = flagStr(args, "billing"); if (billing !== undefined) patch.billingStatus = billing;
+      ctx.printJson(await ctx.client.admin.updateUser(id, patch));
+    },
+  });
+  reg.register({
+    path: "admin user disable",
+    summary: "disable a user",
+    usage: "admin user disable <id> [--reason <text>]",
+    covers: ["admin.disableUser"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: admin user disable <id> [--reason ..]");
+      ctx.printJson(await ctx.client.admin.disableUser(id, flagStr(args, "reason")));
+    },
+  });
+  reg.register({
+    path: "admin user enable",
+    summary: "enable a user",
+    usage: "admin user enable <id>",
+    covers: ["admin.enableUser"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: admin user enable <id>");
+      ctx.printJson(await ctx.client.admin.enableUser(id));
+    },
+  });
 
   // ── plans + models pricing ────────────────────────────────────────────────────
   reg.register({
@@ -194,6 +285,48 @@ export function registerAdmin(reg: CommandRegistry): void {
 
   // ── per-org bespoke (enterprise) plans ────────────────────────────────────────
   reg.register({
+    path: "admin org-plan set",
+    summary: "create/replace an org's bespoke plan (super_admin)",
+    usage: "admin org-plan set <orgId> --seats <n> --cents <usd_cents> --name <displayName>",
+    covers: ["admin.setOrgPlan"],
+    async run(ctx, args) {
+      const orgId = args.positional[0];
+      const seats = flagNum(args, "seats");
+      const cents = flagNum(args, "cents");
+      const name = flagStr(args, "name");
+      if (!orgId || seats === undefined || cents === undefined || !name) {
+        throw new Error("usage: admin org-plan set <orgId> --seats <n> --cents <usd_cents> --name <displayName>");
+      }
+      ctx.printJson(await ctx.client.admin.setOrgPlan(orgId, { maxSeats: seats, monthlyUsdCents: cents, displayName: name }));
+    },
+  });
+  reg.register({
+    path: "admin org-plan update",
+    summary: "edit an org's bespoke plan (super_admin)",
+    usage: "admin org-plan update <orgId> [--seats <n>] [--cents <usd_cents>] [--name <displayName>]",
+    covers: ["admin.updateOrgPlan"],
+    async run(ctx, args) {
+      const orgId = args.positional[0];
+      if (!orgId) throw new Error("usage: admin org-plan update <orgId> [--seats ..] [--cents ..] [--name ..]");
+      const patch: AdminOrgPlanPatch = {};
+      const seats = flagNum(args, "seats"); if (seats !== undefined) patch.maxSeats = seats;
+      const cents = flagNum(args, "cents"); if (cents !== undefined) patch.monthlyUsdCents = cents;
+      const name = flagStr(args, "name"); if (name !== undefined) patch.displayName = name;
+      ctx.printJson(await ctx.client.admin.updateOrgPlan(orgId, patch));
+    },
+  });
+  reg.register({
+    path: "admin org-plan remove",
+    summary: "remove an org's bespoke plan, reverting to its global tier (super_admin)",
+    usage: "admin org-plan remove <orgId>",
+    covers: ["admin.removeOrgPlan"],
+    async run(ctx, args) {
+      const orgId = args.positional[0];
+      if (!orgId) throw new Error("usage: admin org-plan remove <orgId>");
+      ctx.printJson(await ctx.client.admin.removeOrgPlan(orgId));
+    },
+  });
+  reg.register({
     path: "admin models",
     summary: "list catalog models (super_admin)",
     covers: ["admin.models"],
@@ -213,6 +346,18 @@ export function registerAdmin(reg: CommandRegistry): void {
       const name = flagStr(args, "name"); if (name !== undefined) patch.display_name = name;
       const active = flagBool(args, "active"); if (active !== undefined) patch.active = active;
       ctx.printJson(await ctx.client.admin.updateModel(provider, model, patch));
+    },
+  });
+  reg.register({
+    path: "admin model delete",
+    summary: "remove a catalog model + its org support (super_admin)",
+    usage: "admin model delete <provider> <model>",
+    covers: ["admin.deleteModel"],
+    async run(ctx, args) {
+      const [provider, model] = args.positional;
+      if (!provider || !model) throw new Error("usage: admin model delete <provider> <model>");
+      await ctx.client.admin.deleteModel(provider, model);
+      ctx.print("deleted ✓");
     },
   });
 
@@ -283,6 +428,31 @@ export function registerAdmin(reg: CommandRegistry): void {
       ctx.printJson(await ctx.client.admin.stopImpersonate());
     },
   });
+  reg.register({
+    path: "admin models rename",
+    summary: "rename a model id in place (migrates support + bindings)",
+    usage: "admin models rename <provider> <model> <newModel>",
+    covers: ["admin.renameModel"],
+    async run(ctx, args) {
+      const [provider, model, newModel] = args.positional;
+      if (!provider || !model || !newModel) throw new Error("usage: admin models rename <provider> <model> <newModel>");
+      ctx.printJson(await ctx.client.admin.renameModel(provider, model, newModel));
+    },
+  });
+  reg.register({
+    path: "admin delete-org",
+    summary: "PERMANENTLY delete an org and all its data (super_admin)",
+    usage: "admin delete-org <orgId> --confirm-name <exact org name>",
+    covers: ["admin.deleteOrg"],
+    async run(ctx, args) {
+      const orgId = args.positional[0];
+      const confirmName = args.flags["confirm-name"];
+      if (!orgId || typeof confirmName !== "string" || !confirmName) {
+        throw new Error("usage: admin delete-org <orgId> --confirm-name <exact org name>");
+      }
+      ctx.printJson(await ctx.client.admin.deleteOrg(orgId, confirmName));
+    },
+  });
 
   // ── usage ────────────────────────────────────────────────────────────────────
   reg.register({
@@ -327,6 +497,83 @@ export function registerAdmin(reg: CommandRegistry): void {
   });
 
   // ── audit ────────────────────────────────────────────────────────────────────
+  reg.register({
+    path: "admin audit",
+    summary: "the platform audit log (super_admin)",
+    usage: "admin audit [--action <a>] [--actor <email>] [--days <n>] [--page <n>] [--limit <n>]",
+    covers: ["admin.audit"],
+    async run(ctx, args) {
+      ctx.printJson(await ctx.client.admin.audit({
+        action: flagStr(args, "action"), actor: flagStr(args, "actor"),
+        days: flagNum(args, "days"), page: flagNum(args, "page"), limit: flagNum(args, "limit"),
+      }));
+    },
+  });
 
   // ── support console ────────────────────────────────────────────────────────────
+  reg.register({
+    path: "admin support list",
+    summary: "browse every org's tickets (super_admin)",
+    usage: "admin support list [--q <search>] [--status <s>] [--page <n>] [--limit <n>]",
+    covers: ["admin.supportTickets"],
+    async run(ctx, args) {
+      ctx.printJson(await ctx.client.admin.supportTickets({
+        q: flagStr(args, "q"), status: flagStr(args, "status"),
+        page: flagNum(args, "page"), limit: flagNum(args, "limit"),
+      }));
+    },
+  });
+  reg.register({
+    path: "admin support show",
+    summary: "one ticket + its full thread (super_admin)",
+    usage: "admin support show <id>",
+    covers: ["admin.supportTicket"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: admin support show <id>");
+      ctx.printJson(await ctx.client.admin.supportTicket(id));
+    },
+  });
+  reg.register({
+    path: "admin support reply",
+    summary: "append an admin reply to a ticket (super_admin)",
+    usage: "admin support reply <id> <body...>",
+    covers: ["admin.supportReply"],
+    async run(ctx, args) {
+      const [id, ...rest] = args.positional;
+      const body = rest.join(" ").trim();
+      if (!id || !body) throw new Error("usage: admin support reply <id> <body...>");
+      ctx.printJson(await ctx.client.admin.supportReply(id, body));
+    },
+  });
+  reg.register({
+    path: "admin support status",
+    summary: "set a ticket's status (super_admin)",
+    usage: "admin support status <id> <open|pending|resolved|closed>",
+    covers: ["admin.setSupportStatus"],
+    async run(ctx, args) {
+      const [id, status] = args.positional;
+      if (!id || !status) throw new Error("usage: admin support status <id> <open|pending|resolved|closed>");
+      ctx.printJson(await ctx.client.admin.setSupportStatus(id, status));
+    },
+  });
+  reg.register({
+    path: "admin support read",
+    summary: "mark a ticket read by the admin (super_admin)",
+    usage: "admin support read <id>",
+    covers: ["admin.markSupportRead"],
+    async run(ctx, args) {
+      const id = args.positional[0];
+      if (!id) throw new Error("usage: admin support read <id>");
+      ctx.printJson(await ctx.client.admin.markSupportRead(id));
+    },
+  });
+  reg.register({
+    path: "admin support unread",
+    summary: "count of tickets needing admin attention (super_admin)",
+    covers: ["admin.supportUnreadCount"],
+    async run(ctx) {
+      ctx.printJson(await ctx.client.admin.supportUnreadCount());
+    },
+  });
 }

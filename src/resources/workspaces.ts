@@ -7,7 +7,7 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
-import type { Workspace, WorkspaceInput } from "../contract/workspace.js";
+import type { Workspace, WorkspaceInput, EffectiveGrants } from "../contract/workspace.js";
 
 export class WorkspacesClient {
   constructor(private readonly http: AuthedHttp) {}
@@ -33,6 +33,10 @@ export class WorkspacesClient {
     return this.http.post<void>("/api/workspaces/assign", { userId, workspaceId });
   }
 
+  /** The caller's effective grants (what the runtime enforces for them). */
+  grants(): Promise<EffectiveGrants> {
+    return this.http.get<EffectiveGrants>("/api/workspaces/grants");
+  }
 
   // ── role-level provider keys (org_admin) — override the org's vendor key ──
   // Write-only: presence in, presence out. Removing one returns the role to

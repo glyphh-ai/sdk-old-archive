@@ -84,10 +84,50 @@ export interface AgentTask {
   lastError: string | null;
 }
 
+/** A live agent with its enabled tasks — what a runner arms on start. */
+export interface LiveAgent extends Agent {
+  tasks: AgentTask[];
+}
 
+export interface CreateAgentInput {
+  slug: string;
+  scope?: AgentScope;
+  name: string;
+  description?: string;
+  loopId?: string | null;
+  selections?: AgentSelections;
+  guardrails?: GuardrailsPolicy | null;
+  live?: boolean;
+}
 
+export interface UpdateAgentInput {
+  slug?: string;
+  scope?: AgentScope;
+  name?: string;
+  description?: string;
+  loopId?: string | null;
+  selections?: AgentSelections;
+  guardrails?: GuardrailsPolicy | null;
+  live?: boolean;
+}
 
+export interface CreateAgentTaskInput {
+  name: string;
+  kind: AgentTaskKind;
+  target: string;
+  args?: Record<string, unknown>;
+  cron: string;
+  enabled?: boolean;
+}
 
+export interface UpdateAgentTaskInput {
+  name?: string;
+  kind?: AgentTaskKind;
+  target?: string;
+  args?: Record<string, unknown>;
+  cron?: string;
+  enabled?: boolean;
+}
 
 /** One firing of a task — an entry in the agent's run feed. */
 export interface AgentTaskRun {

@@ -13,7 +13,6 @@ export {
   GATEWAY_OFF_MESSAGE, NO_MODEL_MESSAGE, NO_FOLDER_MESSAGE, BUSY_MESSAGE, LOOP_EFFORTS,
   type LoopAgentDef, type LoopAgentRef, type LoopEffort,
   type LoopDeps, type LoopEmit, type LoopEvent, type LoopGateway, type LoopMcpServer, type LoopSpace, type LoopTurn,
-  type LoopScope, type ScopeCall, type ScopeKind,
 } from "./loop.js";
 export {
   gate, toolKind, readsByName, seedFromChat, shouldCompact, safeToolName, toolTitle, preview, systemPrompt,

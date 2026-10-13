@@ -7,7 +7,11 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
-import type { Connection, ConnectorApp, ConnectorTool, OrgMcpConnection, OrgMcpInput, OrgMcpPatch, OrgMcpCreateResult, OrgPipedreamConnection, ResolvedConnection, PersonalConnection, PersonalConnectSession } from "../contract/connections.js";
+import type {
+  Connection, CustomMcpInput, ConnectLink, ConnectorApp, ConnectorTool,
+  OrgMcpConnection, OrgMcpInput, OrgMcpPatch, OrgMcpCreateResult, OrgPipedreamConnection,
+  ResolvedConnection, McpOAuthStart, PersonalConnection, PersonalConnectSession, RunToolResult, FetchFileResult, ProxySendResult,
+} from "../contract/connections.js";
 
 export class ConnectionsClient {
   constructor(private readonly http: AuthedHttp) {}
@@ -41,8 +45,19 @@ export class ConnectionsClient {
     return this.http.get<{ categories: Array<{ name: string; count: number; apps: ConnectorApp[] }> }>("/api/connectors/categories");
   }
 
+  /** Install a custom MCP server (org_admin). `headers` are sent once, then encrypted. */
+  installCustomMcp(input: CustomMcpInput): Promise<Connection> {
+    return this.http.post<Connection>("/api/connections/mcp", input);
+  }
 
+  removeCustomMcp(slug: string): Promise<void> {
+    return this.http.del<void>(`/api/connections/mcp/${encodeURIComponent(slug)}`);
+  }
 
+  /** Get a Pipedream connect-link URL to OAuth an account (needs Pipedream config). */
+  pipedreamConnectLink(): Promise<ConnectLink> {
+    return this.http.post<ConnectLink>("/api/connections/pipedream/connect");
+  }
 
   /** The tools/actions a connector app exposes (best-effort; empty when unconfigured). */
   appTools(slug: string): Promise<{ tools: ConnectorTool[] }> {
@@ -68,6 +83,14 @@ export class ConnectionsClient {
     return this.http.get<{ connections: ResolvedConnection[] }>("/api/connections/tools");
   }
 
+  /**
+   * Start an OAuth 2.1 authorization for a custom-MCP connection (org_admin); runs
+   * discovery + dynamic client registration as needed and returns the authorize URL
+   * to open. Tokens land later at the browser callback (no SDK method).
+   */
+  startMcpOAuth(slug: string): Promise<McpOAuthStart> {
+    return this.http.post<McpOAuthStart>(`/api/org/mcp-connections/${encodeURIComponent(slug)}/oauth/start`);
+  }
 
   // ── Settings → MCP: the RICH org custom-MCP catalog (org_admin) ──────────────
 
@@ -77,9 +100,25 @@ export class ConnectionsClient {
     return connections;
   }
 
+  /** Publish a custom-MCP connection; the server probes it for reachability + tool count. */
+  orgMcpCreate(input: OrgMcpInput): Promise<OrgMcpCreateResult> {
+    return this.http.post<OrgMcpCreateResult>("/api/org/mcp-connections", input);
+  }
 
+  /** Edit a custom-MCP connection (omit `headers` to keep the saved secret). */
+  orgMcpUpdate(slug: string, patch: OrgMcpPatch): Promise<{ ok: boolean; connection: OrgMcpConnection }> {
+    return this.http.patch<{ ok: boolean; connection: OrgMcpConnection }>(`/api/org/mcp-connections/${encodeURIComponent(slug)}`, patch);
+  }
 
+  /** Delete a custom-MCP connection (removes every member's install of it). */
+  orgMcpRemove(slug: string): Promise<{ ok: boolean }> {
+    return this.http.del<{ ok: boolean }>(`/api/org/mcp-connections/${encodeURIComponent(slug)}`);
+  }
 
+  /** Set a custom-MCP connection's logo from a data-URL. */
+  orgMcpSetIcon(slug: string, dataUrl: string): Promise<{ ok: boolean; iconSha: string }> {
+    return this.http.put<{ ok: boolean; iconSha: string }>(`/api/org/mcp-connections/${encodeURIComponent(slug)}/icon`, { dataUrl });
+  }
 
   // ── Configure → Connections: the RICH org-shared Pipedream cards (org_admin) ──
 
@@ -89,6 +128,14 @@ export class ConnectionsClient {
     return connections;
   }
 
+  /**
+   * Start an org-level Pipedream Connect session for one app. Returns the
+   * short-lived Connect `token` (authorizes the browser SDK's inline connect
+   * dialog for this app) plus the hosted `connectUrl` fallback.
+   */
+  async pipedreamConnect(appSlug: string): Promise<{ token: string; connectUrl: string }> {
+    return this.http.post<{ token: string; connectUrl: string }>("/api/org/connections/connect", { appSlug });
+  }
 
   /** Disconnect an org Pipedream account by id (audited server-side). */
   pipedreamDisconnect(id: string): Promise<{ ok: boolean }> {
@@ -192,6 +239,28 @@ export class ConnectionsClient {
     return this.http.put<{ ok: boolean; slug: string; tools: string[] }>(`/api/connections/personal/${encodeURIComponent(slug)}/tools`, { tools });
   }
 
+  /**
+   * Run one governed connection tool. `slug` names a connection from the caller's resolved
+   * set; `tool` is the tool key or name; `props` are the action inputs. Scope is derived
+   * server-side from the resolved connection — a PERSONAL connection runs under the member's
+   * own external id (`user_<userId>`), an org-shared one under `org_<orgId>`.
+   */
+  runTool(input: { slug: string; tool: string; props?: Record<string, unknown>; scope?: "org" | "personal" }): Promise<RunToolResult> {
+    return this.http.post<RunToolResult>("/api/connections/run", input);
+  }
 
+  /** Fetch a file's bytes from a connected account (provider API url, e.g.
+   *  Drive `files/<id>?alt=media`) through the server's Connect-proxy bridge.
+   *  Same gates as runTool; capped server-side (~15MB default, 25MB max). */
+  fetchFile(input: { slug: string; url: string; scope?: "org" | "personal"; maxBytes?: number }): Promise<FetchFileResult> {
+    return this.http.post<FetchFileResult>("/api/connections/fetch-file", input);
+  }
 
+  /** Push bytes TO a connected account's provider API (uploads, sends with
+   *  real attachments) through the server's Connect-proxy bridge. bodyBase64
+   *  must decode text-safe (MIME with base64-encoded parts is). Same gates as
+   *  runTool; 25MB body cap server-side. */
+  proxySend(input: { slug: string; url: string; bodyBase64: string; method?: "POST" | "PUT"; contentType?: string; scope?: "org" | "personal" }): Promise<ProxySendResult> {
+    return this.http.post<ProxySendResult>("/api/connections/proxy-send", input);
+  }
 }

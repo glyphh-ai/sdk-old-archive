@@ -12,7 +12,10 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
-import type { AgentSummary, AgentTask, AgentTaskRun } from "../contract/agents.js";
+import type {
+  Agent, AgentSummary, LiveAgent, AgentTask,
+  CreateAgentInput, UpdateAgentInput, CreateAgentTaskInput, UpdateAgentTaskInput, AgentTaskRun,
+} from "../contract/agents.js";
 
 export class AgentsClient {
   constructor(private readonly http: AuthedHttp) {}
@@ -22,10 +25,27 @@ export class AgentsClient {
     return agents;
   }
 
+  /** Live agents with their enabled tasks — what a runner arms on start. */
+  async live(): Promise<LiveAgent[]> {
+    const { agents } = await this.http.get<{ agents: LiveAgent[] }>("/api/agents/live");
+    return agents;
+  }
 
+  get(ref: string): Promise<Agent> {
+    return this.http.get<Agent>(`/api/agents/${encodeURIComponent(ref)}`);
+  }
 
+  create(input: CreateAgentInput): Promise<Agent> {
+    return this.http.post<Agent>("/api/agents", input);
+  }
 
+  update(ref: string, patch: UpdateAgentInput): Promise<Agent> {
+    return this.http.patch<Agent>(`/api/agents/${encodeURIComponent(ref)}`, patch);
+  }
 
+  remove(ref: string): Promise<void> {
+    return this.http.del<void>(`/api/agents/${encodeURIComponent(ref)}`);
+  }
 
   // ── tasks ─────────────────────────────────────────────────────────────────
 
@@ -34,8 +54,25 @@ export class AgentsClient {
     return tasks;
   }
 
+  addTask(ref: string, input: CreateAgentTaskInput): Promise<AgentTask> {
+    return this.http.post<AgentTask>(`/api/agents/${encodeURIComponent(ref)}/tasks`, input);
+  }
 
+  updateTask(ref: string, taskId: string, patch: UpdateAgentTaskInput): Promise<AgentTask> {
+    return this.http.patch<AgentTask>(
+      `/api/agents/${encodeURIComponent(ref)}/tasks/${encodeURIComponent(taskId)}`, patch,
+    );
+  }
 
+  /** The scheduler's write-back after firing a task — the outcome plus what
+   *  the run PRODUCED, which becomes the run feed's entry body. */
+  reportTaskRun(
+    ref: string,
+    taskId: string,
+    outcome: { status: "ok" | "error"; error?: string | null; output?: string | null; durationMs?: number | null },
+  ): Promise<{ ok: boolean }> {
+    return this.http.post<{ ok: boolean }>(`/api/agents/${encodeURIComponent(ref)}/tasks/${encodeURIComponent(taskId)}/runs`, outcome);
+  }
 
   /** A task's firing history, newest first. */
   async taskRuns(ref: string, taskId: string): Promise<AgentTaskRun[]> {
@@ -43,4 +80,7 @@ export class AgentsClient {
     return runs;
   }
 
+  removeTask(ref: string, taskId: string): Promise<void> {
+    return this.http.del<void>(`/api/agents/${encodeURIComponent(ref)}/tasks/${encodeURIComponent(taskId)}`);
+  }
 }

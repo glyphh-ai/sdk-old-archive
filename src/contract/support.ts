@@ -65,6 +65,14 @@ export interface SupportTicketCreate {
   message: string;
 }
 
+// ── admin-console (snake_case; mirrors the /admin wire) ──────────────────────
+export interface AdminSupportMessage {
+  id: string;
+  author_kind: "user" | "admin";
+  author_user_id: string | null;
+  body: string;
+  created_at: string;
+}
 
 /** A row in the admin ticket list: joined with org name + reporter email. */
 export interface AdminSupportTicket {
@@ -81,6 +89,9 @@ export interface AdminSupportTicket {
   unread_for_admin: boolean;
 }
 
+export interface AdminSupportThread extends AdminSupportTicket {
+  messages: AdminSupportMessage[];
+}
 
 /** A page of the admin ticket browser. */
 export interface AdminSupportPage {

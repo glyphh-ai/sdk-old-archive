@@ -8,6 +8,7 @@
  */
 
 import type { AuthedHttp } from "../core/authed-http.js";
+import type { CreateSessionInput, ProvisionedSession, RuntimeSession, ModelSwitchInput, ModelSwitchResult } from "../contract/runtime.js";
 import type {
   SessionThread, SessionThreadMeta, PushThreadInput, PushThreadResult,
   ThreadTranscriptUrl, AppendThreadMessagesInput, AppendThreadMessagesResult,
@@ -19,10 +20,38 @@ const threadPath = (id: string): string => `${THREADS}/${encodeURIComponent(id)}
 export class SessionsClient {
   constructor(private readonly http: AuthedHttp) {}
 
+  /**
+   * Mint a RUN-SCOPED session so a long agent run doesn't ride the caller's
+   * short-lived access token (which expires mid-build and 401s the gateway).
+   * Same user, same org, no new privilege — a visible, revocable device
+   * (`run:<id>`). RELEASE it when the run ends: the TTL is a ceiling.
+   */
+  createRunSession(runId: string): Promise<{ accessToken: string; expiresIn: number }> {
+    return this.http.post("/api/session/run", { runId });
+  }
+  releaseRunSession(runId: string): Promise<{ released: number }> {
+    return this.http.del(`/api/session/run/${encodeURIComponent(runId)}`) as Promise<{ released: number }>;
+  }
 
+  /** Provision a runtime. The `runtimeToken` in the reply is shown ONCE — store it. */
+  create(input: CreateSessionInput): Promise<ProvisionedSession> {
+    return this.http.post<ProvisionedSession>("/api/sessions", input);
+  }
 
+  /** The caller's runtime sessions. */
+  list(): Promise<RuntimeSession[]> {
+    return this.http.get<RuntimeSession[]>("/api/sessions");
+  }
 
+  /** One session by id (owner). */
+  get(id: string): Promise<RuntimeSession> {
+    return this.http.get<RuntimeSession>(`/api/sessions/${encodeURIComponent(id)}`);
+  }
 
+  /** Deprovision + stop a session. */
+  delete(id: string): Promise<void> {
+    return this.http.del<void>(`/api/sessions/${encodeURIComponent(id)}`);
+  }
 
   // ── threads — the durable conversations the control plane keeps ─────────────
   // Served at /api/harness/threads (the server's own; no pod involved).
@@ -58,8 +87,7 @@ export class SessionsClient {
    * ids are client-minted text (`c<ts36>` style — not uuids): an unknown id creates
    * the thread. The push applies only when `body.updatedAt` (epoch ms) is STRICTLY
    * newer than the server's copy; either way the result carries the server's
-   * current state to reconcile against. A deleted thread stays deleted: a push
-   * to it is a NotFoundError.
+   * current state to reconcile against.
    */
   pushThread(id: string, body: PushThreadInput): Promise<PushThreadResult> {
     return this.http.put<PushThreadResult>(threadPath(id), body);
@@ -70,4 +98,14 @@ export class SessionsClient {
     return this.http.del<void>(threadPath(id));
   }
 
+  /**
+   * Record a mid-stream model switch for traceability (the model-governance audit).
+   * The runtime calls this on a role→model change so the whole switch is auditable.
+   * Session-agnostic: `sessionId` is a free-form string — a provisioned session id
+   * for hosted runs, or an ephemeral client id for LOCAL (embedded) runs that have
+   * no provisioned session — so a local opus→haiku switch still audits.
+   */
+  recordModelSwitch(input: ModelSwitchInput): Promise<ModelSwitchResult> {
+    return this.http.post<ModelSwitchResult>("/api/models/switch", input);
+  }
 }

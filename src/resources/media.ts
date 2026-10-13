@@ -25,8 +25,23 @@ export interface MediaProject {
 export class MediaClient {
   constructor(private readonly http: AuthedHttp) {}
 
+  /** The org's media library, newest first (kind and text filters optional). */
+  list(kind?: MediaKind, q?: string): Promise<MediaAsset[]> {
+    const qs = new URLSearchParams();
+    if (kind) qs.set("kind", kind);
+    if (q) qs.set("q", q);
+    const tail = qs.toString();
+    return this.http.get<MediaAsset[]>(`/api/media${tail ? `?${tail}` : ""}`);
+  }
 
+  get(id: string): Promise<MediaAsset> {
+    return this.http.get<MediaAsset>(`/api/media/${encodeURIComponent(id)}`);
+  }
 
+  /** The asset's bytes through the API (follows the presigned redirect). */
+  bytes(id: string): Promise<ArrayBuffer> {
+    return this.http.getBytes(`/api/media/${encodeURIComponent(id)}/bytes`);
+  }
 
   /** A direct-playable URL (presigned; null when the store can't presign). */
   playbackUrl(id: string): Promise<{ url: string | null }> {
@@ -48,13 +63,22 @@ export class MediaClient {
     return this.http.post<MediaAsset>(`/api/media/${encodeURIComponent(id)}/finalize`, input);
   }
 
+  delete(id: string): Promise<void> {
+    return this.http.del<void>(`/api/media/${encodeURIComponent(id)}`);
+  }
 
   /** Start a generation job (202). Enforced + spend-logged (dollars) server-side. */
   generate(input: MediaGenerateInput): Promise<{ job: MediaJob; outputKind: MediaKind }> {
     return this.http.post<{ job: MediaJob; outputKind: MediaKind }>("/api/media/generate", input);
   }
 
+  job(id: string): Promise<MediaJob> {
+    return this.http.get<MediaJob>(`/api/media/jobs/${encodeURIComponent(id)}`);
+  }
 
+  jobs(): Promise<MediaJob[]> {
+    return this.http.get<MediaJob[]>("/api/media/jobs");
+  }
 
   projects(): Promise<MediaProject[]> {
     return this.http.get<MediaProject[]>("/api/media/projects");
@@ -74,9 +98,6 @@ export class MediaClient {
     return this.http.post<{ project: MediaProject; job: MediaJob }>(`/api/media/projects/${encodeURIComponent(id)}/generate`, input);
   }
 
-  job(id: string): Promise<MediaJob> {
-    return this.http.get<MediaJob>(`/api/media/jobs/${encodeURIComponent(id)}`);
-  }
   /** Poll a job to its terminal state (2s cadence, capped). */
   async waitForJob(id: string, timeoutMs = 8 * 60 * 1000): Promise<MediaJob> {
     const deadline = Date.now() + timeoutMs;
