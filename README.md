@@ -133,3 +133,8 @@ npm test           # unit (deterministic, no server) + integration (vs a live se
 The **integration tests drive a real running control plane** (per the SDK spec —
 no mocks for the transport). Start it first with
 [`docker compose up`](../server/README.md), then `npm test`.
+
+
+## License
+
+Apache-2.0. See LICENSE and NOTICE. Copyright 2026 Chris Timmerman / Glyphh AI LLC. More about it: https://glyphh.ai/projects/glyphh-sdk-old
